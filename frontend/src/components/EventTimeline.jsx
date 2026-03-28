@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { api } from '../api/client'
 import { formatTimestamp } from '../utils/timeUtils'
 import { useAuth } from '../context/AuthContext'
+import { toast } from './Toast'
 
 const TYPE_COLOR = {
   spread_warning:          '#ef4444',
@@ -188,6 +189,7 @@ export default function EventTimeline({ alerts, incidents, units = [], onAlertsC
       onAlertsChanged?.()
     } catch (e) {
       console.error(e)
+      toast('Dispatch failed — check unit availability', 'error')
     } finally {
       setDispatching(false)
     }

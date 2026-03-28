@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
+import { toast } from './Toast'
 
 const SEVERITY_STYLE = {
   critical: { border: '#ef4444', text: '#ef4444', bg: 'rgba(239,68,68,0.08)' },
@@ -119,6 +120,7 @@ function AlertRecommendationPanel({ alert, recData, recLoading, units, incidents
       onDispatchSuccess?.()
     } catch (e) {
       console.error(e)
+      toast('Dispatch failed — check unit availability', 'error')
     } finally {
       setDispatching(false)
     }

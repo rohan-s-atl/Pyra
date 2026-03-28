@@ -20,9 +20,11 @@ USER pyra
 
 EXPOSE 8000
 
-# Production: 2 workers, access log off for performance
+# Single worker required — route cache and simulation state are in-process.
+# Multiple workers would each have their own cache, causing units to snap to
+# base immediately instead of following their built routes.
 CMD ["uvicorn", "app.main:app", \
      "--host", "0.0.0.0", \
      "--port", "8000", \
-     "--workers", "2", \
+     "--workers", "1", \
      "--no-access-log"]
