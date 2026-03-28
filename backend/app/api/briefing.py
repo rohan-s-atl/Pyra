@@ -124,7 +124,7 @@ async def generate_briefing(
         try:
             async def ai_call():
                 return client.messages.stream(
-                    model="claude-sonnet-4-20250514",
+                    model="claude-sonnet-4-6",
                     max_tokens=1024,
                     system="You are a CAL FIRE incident commander generating ICS-style operational briefings. Write in plain English using standard ICS terminology. Be authoritative, concise, and direct.",
                     messages=[{"role": "user", "content": prompt}],
@@ -196,7 +196,7 @@ async def _generate_handoff_text(prompt: str, api_key: str) -> str:
 
     async def call():
         return client.messages.create(
-            model="claude-sonnet-4-20250514",
+            model="claude-sonnet-4-6",
             max_tokens=1024,
             system="You are a CAL FIRE incident commander generating ICS shift handoff briefings.",
             messages=[{"role": "user", "content": prompt}],

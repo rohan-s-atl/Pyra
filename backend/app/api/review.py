@@ -149,7 +149,7 @@ Keep total length under 600 words. No bullet points."""
         try:
             async def ai_call():
                 return client.messages.stream(
-                    model="claude-sonnet-4-20250514",
+                    model="claude-sonnet-4-6",
                     max_tokens=1200,
                     system="You are a CAL FIRE after-action review specialist. Be analytical and concise.",
                     messages=[{"role": "user", "content": prompt}],
