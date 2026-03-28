@@ -159,6 +159,7 @@ def _arrive_on_scene(db: Session, unit: Unit) -> None:
         _set_position(unit, incident.latitude, incident.longitude)
 
     unit.status = "on_scene"
+    unit.on_scene_since = datetime.now(UTC)
     unit.last_updated = datetime.now(UTC)
     invalidate_route(unit.id)
     logger.info("[movement] Unit=%s arrived on_scene at incident=%s",
@@ -199,6 +200,7 @@ def _arrive_at_base(db: Session, unit: Unit, station: Station) -> None:
     _set_position(unit, station.latitude, station.longitude)
     unit.status = "available"
     unit.assigned_incident_id = None
+    unit.on_scene_since = None
     unit.last_updated = datetime.now(UTC)
     invalidate_route(unit.id)
     logger.info("[movement] Unit=%s returned to base station=%s", unit.id, station.id)

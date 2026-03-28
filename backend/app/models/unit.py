@@ -41,6 +41,8 @@ class Unit(Base):
     # Used by recommendation logic to prefer higher-typed units for critical incidents
     ics_type = Column(String, nullable=True, index=True)  # e.g. "Type 1", "Type 2", "Type 3"
 
+    on_scene_since = Column(DateTime, nullable=True)   # set on arrival, cleared on departure
+
     last_updated = Column(DateTime, nullable=False, index=True)
 
     incident = relationship("Incident", back_populates="units")

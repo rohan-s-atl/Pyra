@@ -1035,16 +1035,6 @@ export default function IncidentDetailPanel({
         <PostIncidentReview incident={incident} onClose={() => setReviewOpen(false)} />
       )}
 
-      {/* SITREP Chat floating panel */}
-      {chatOpen && (
-        <SitrepChat incident={incident} onClose={() => setChatOpen(false)} />
-      )}
-
-      {/* Post-Incident Review floating panel */}
-      {reviewOpen && auth?.role === 'commander' && (
-        <PostIncidentReview incident={incident} onClose={() => setReviewOpen(false)} />
-      )}
-
       {/* Close-out modal */}
       {closeoutOpen && (
         <div style={{

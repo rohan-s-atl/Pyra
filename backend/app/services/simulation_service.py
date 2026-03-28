@@ -271,11 +271,47 @@ def _advance_positions(db: Session) -> None:
     for unit in db.query(Unit).filter(Unit.status == "returning").all():
         mv.advance_returning(db, unit)
 
-    for unit in db.query(Unit).filter(
+    for unit in db.query(Unit).filter(\
         Unit.status == "available",
         Unit.assigned_incident_id.is_(None),
     ).all():
         mv.pin_idle_unit(db, unit)
+
+    _rotate_on_scene_units(db)
+
+
+# Seconds a unit of each type stays on scene before rotating off (demo-speed)
+_ON_SCENE_DURATION: dict[str, int] = {
+    "helicopter":   30,
+    "air_tanker":   30,
+    "engine":       40,
+    "water_tender": 40,
+    "dozer":        40,
+    "hand_crew":    45,
+    "command_unit": 45,
+}
+_ON_SCENE_DEFAULT = 40
+
+
+def _rotate_on_scene_units(db: Session) -> None:
+    """Rotate units off scene once they've exceeded their on-scene duration."""
+    now = datetime.now(UTC)
+    on_scene_units = db.query(Unit).filter(
+        Unit.status == "on_scene",
+        Unit.on_scene_since.isnot(None),
+    ).all()
+
+    for unit in on_scene_units:
+        duration = _ON_SCENE_DURATION.get(unit.unit_type, _ON_SCENE_DEFAULT)
+        elapsed = (now - unit.on_scene_since.replace(tzinfo=UTC)).total_seconds()
+        if elapsed >= duration:
+            unit.status = "returning"
+            unit.on_scene_since = None
+            unit.last_updated = now
+            logger.info(
+                "[simulation] Unit=%s rotating off scene after %.0fs (type=%s)",
+                unit.id, elapsed, unit.unit_type,
+            )
 
 
 # ---------------------------------------------------------------------------
