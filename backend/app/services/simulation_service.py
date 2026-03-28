@@ -294,16 +294,25 @@ _ON_SCENE_DEFAULT = 40
 
 
 def _rotate_on_scene_units(db: Session) -> None:
-    """Rotate units off scene once they've exceeded their on-scene duration."""
+    """Rotate units off scene once they've exceeded their on-scene duration.
+    Units with no on_scene_since stamp (arrived before this feature) are
+    stamped now and will rotate on the next eligible tick.
+    """
     now = datetime.now(UTC)
-    on_scene_units = db.query(Unit).filter(
-        Unit.status == "on_scene",
-        Unit.on_scene_since.isnot(None),
-    ).all()
+    on_scene_units = db.query(Unit).filter(Unit.status == "on_scene").all()
 
     for unit in on_scene_units:
+        # Stamp units that arrived before on_scene_since existed
+        if unit.on_scene_since is None:
+            unit.on_scene_since = now
+            unit.last_updated = now
+            continue
+
         duration = _ON_SCENE_DURATION.get(unit.unit_type, _ON_SCENE_DEFAULT)
-        elapsed = (now - unit.on_scene_since.replace(tzinfo=UTC)).total_seconds()
+        ts = unit.on_scene_since
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=UTC)
+        elapsed = (now - ts).total_seconds()
         if elapsed >= duration:
             unit.status = "returning"
             unit.on_scene_since = None

@@ -37,7 +37,7 @@ export default function SettingsPanel({ onClose }) {
       const data = await res.json()
       setTestResult({ ok: true, message: `Backend online — ${data.app} v${data.version}` })
     } catch {
-      setTestResult({ ok: false, message: `Cannot reach backend at ${BASE_URL}` })
+      setTestResult({ ok: false, message: `Cannot reach backend at ${BASE_URL || 'http://localhost:8000'}` })
     } finally {
       setTesting(false)
     }
