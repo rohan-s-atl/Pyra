@@ -1,10 +1,10 @@
-# Pyra
+# PyraAI
 
 **AI-Powered Wildfire Command & Intelligence Platform**
 
-Pyra is a real-time wildfire command-support system for incident commanders and CAL FIRE dispatch operations. It aggregates satellite detections, live weather, terrain data, and unit positions into a single map-based interface, and uses Claude AI to generate dispatch recommendations, tactical briefings, and risk assessments.
+PyraAI is a real-time wildfire command-support system for incident commanders and CAL FIRE dispatch operations. It aggregates satellite detections, live weather, terrain data, and unit positions into a single map-based interface, and uses Claude AI to generate dispatch recommendations, tactical briefings, and risk assessments.
 
-Pyra is a **decision-support system** — it surfaces data and recommendations but never automates dispatch. Every action requires a human commander or dispatcher to confirm.
+PyraAI is a **decision-support system** — it surfaces data and recommendations but never automates dispatch. Every action requires a human commander or dispatcher to confirm.
 
 ---
 
@@ -105,8 +105,8 @@ Pyra is a **decision-support system** — it surfaces data and recommendations b
 ### 1. Clone and configure
 
 ```bash
-git clone https://github.com/your-org/pyra.git
-cd pyra
+git clone https://github.com/your-org/PyraAI.git
+cd PyraAI
 ```
 
 Create a `.env` file in the project root:
@@ -153,9 +153,9 @@ This creates 3 incidents (LNU Lightning Complex, Shasta River Fire, San Jose Str
 
 | Username | Password | Role |
 |---|---|---|
-| `commander` | `pyra2025` | Full access |
-| `dispatcher` | `pyra2025` | Dispatch + briefings |
-| `viewer` | `pyra2025` | Read only |
+| `commander` | `PyraAI2025` | Full access |
+| `dispatcher` | `PyraAI2025` | Dispatch + briefings |
+| `viewer` | `PyraAI2025` | Read only |
 
 ---
 
@@ -197,7 +197,7 @@ python app/scripts/seed_data.py
 
 ## Optional: Local OSRM
 
-By default Pyra uses the public OSRM instance at `router.project-osrm.org`. For offline use or better performance, you can run OSRM locally:
+By default PyraAI uses the public OSRM instance at `router.project-osrm.org`. For offline use or better performance, you can run OSRM locally:
 
 ```bash
 # Download a region (e.g. California)
@@ -272,7 +272,7 @@ Interactive docs available at **http://localhost:8000/docs** once the backend is
 ## Project Structure
 
 ```
-pyra/
+PyraAI/
 ├── backend/
 │   ├── app/
 │   │   ├── api/          # FastAPI route handlers
@@ -314,4 +314,4 @@ Tests cover auth and roles, incident CRUD, unit management, dispatch flow, alert
 
 ## Disclaimer
 
-Pyra is a development project for exploring AI-assisted wildfire response coordination. It is designed to provide **decision support** to trained professionals, not to replace their judgment. Do not use in real emergency operations without thorough validation and certification.
+PyraAI is a development project for exploring AI-assisted wildfire response coordination. It is designed to provide **decision support** to trained professionals, not to replace their judgment. Do not use in real emergency operations without thorough validation and certification.
