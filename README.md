@@ -119,7 +119,6 @@ ANTHROPIC_API_KEY=sk-ant-...
 
 # Optional
 NASA_FIRMS_API_KEY=your_firms_key
-AIRNOW_API_KEY=                        # not currently used
 CORS_ORIGINS=http://localhost:5173
 ACCESS_TOKEN_EXPIRE_HOURS=8
 VITE_API_URL=http://localhost:8000

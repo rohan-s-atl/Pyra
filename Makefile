@@ -50,7 +50,7 @@ test-cov:
 
 # ── Dev ───────────────────────────────────────────────────────────
 seed:
-	cd database/seeds && python seed.py
+	cd $(BACKEND_DIR) && python app/scripts/seed_data.py
 
 dev-backend:
 	cd $(BACKEND_DIR) && uvicorn app.main:app --reload --port 8000
