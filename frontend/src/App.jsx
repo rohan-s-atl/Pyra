@@ -91,7 +91,23 @@ export default function App() {
 
   // ── Stable refresh callbacks (no stale closure in polling interval) ──────
   const refreshAlerts    = useCallback(() => api.alerts().then(setAlerts).catch(() => {}), [])
-  const refreshUnits     = useCallback(() => api.units().then(setUnits).catch(() => {}), [])
+  const refreshUnits = useCallback(() =>
+    api.units().then(newUnits => {
+      setUnits(newUnits)
+      // Clear loadout for any unit that has returned to available
+      setConfirmedLoadouts(prev => {
+        const next = { ...prev }
+        let changed = false
+        for (const unit of newUnits) {
+          if (unit.status === 'available' && next[unit.id]) {
+            delete next[unit.id]
+            changed = true
+          }
+        }
+        return changed ? next : prev
+      })
+    }).catch(() => {}),
+  [])
   const refreshIncidents = useCallback(() => api.incidents().then(setIncidents).catch(() => {}), [])
 
   // Debounced alert refresh — prevents multiple in-flight requests when dispatch

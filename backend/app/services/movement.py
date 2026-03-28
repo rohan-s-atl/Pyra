@@ -187,9 +187,17 @@ def advance_returning(db: Session, unit: Unit, tick: int = 0) -> None:
     step = WAYPOINT_STEP_AIR if is_air_unit(unit.unit_type) else WAYPOINT_STEP_GROUND
     new_pos = advance_waypoint(unit.id, step)
     if new_pos is None:
-        # No cached route — server restarted or cache was cleared.
-        # Snap directly to base rather than leaving the unit stuck as 'returning'.
-        logger.info("[movement] No cached route for returning unit=%s — snapping to base", unit.id)
+        # No cached route yet. If the unit just became returning, give the route
+        # builder (runs every 10s) time to build the route before snapping.
+        # Only snap if the unit has been stuck returning for > 30 seconds.
+        last = unit.last_updated
+        if last is not None:
+            if last.tzinfo is None:
+                last = last.replace(tzinfo=UTC)
+            stuck_seconds = (datetime.now(UTC) - last).total_seconds()
+            if stuck_seconds < 30:
+                return  # Wait for route builder
+        logger.info("[movement] No cached route for returning unit=%s after grace period — snapping to base", unit.id)
         _arrive_at_base(db, unit, station)
         return
 

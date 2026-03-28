@@ -217,14 +217,47 @@ export default function IncidentMap({
     if (!unit || !['en_route', 'returning'].includes(unit.status) || !unit.assigned_incident_id) {
       setClickedRoute(null); return
     }
-    const incident = incidents.find(i => i.id === unit.assigned_incident_id)
-    if (!incident) { setClickedRoute(null); return }
 
     const ulat = unit.latitude
     const ulon = unit.longitude
     if (isNaN(ulat) || isNaN(ulon)) { setClickedRoute(null); return }
 
     const isAir = new Set(['helicopter', 'air_tanker']).has(unit.unit_type)
+    const token = localStorage.getItem('token') ?? ''
+
+    if (unit.status === 'returning') {
+      // Build a fresh route from current position to home station
+      const destLat = unit.station_lat
+      const destLon = unit.station_lon
+      if (!destLat || !destLon) { setClickedRoute(null); return }
+
+      if (isAir) {
+        setClickedRoute({ type: 'air', coords: [[ulat, ulon], [destLat, destLon]] })
+        return
+      }
+
+      fetch(`/api/units/${unit.id}/route`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ to_lat: destLat, to_lon: destLon }),
+      }).then(r => r.json()).then(data => {
+        const coords = Array.isArray(data.waypoints) && data.waypoints.length >= 2
+          ? data.waypoints.map(([lat, lon]) => [lat, lon])
+          : [[ulat, ulon], [destLat, destLon]]
+        setClickedRoute({ type: data.is_road_routed ? 'ground' : 'ground', coords })
+      }).catch(() => {
+        setClickedRoute({ type: 'ground', coords: [[ulat, ulon], [destLat, destLon]] })
+      })
+      return
+    }
+
+    // en_route — route to incident
+    const incident = incidents.find(i => i.id === unit.assigned_incident_id)
+    if (!incident) { setClickedRoute(null); return }
+
     if (isAir) {
       setClickedRoute({ type: 'air', coords: [[ulat, ulon], [incident.latitude, incident.longitude]] })
       return
@@ -235,8 +268,6 @@ export default function IncidentMap({
       setClickedRoute({ type: 'ground', coords: clickedRouteCache.current[key] }); return
     }
 
-    const token = localStorage.getItem('token') ?? ''
-    // POST destination coords so backend builds the OSRM route on demand
     fetch(`/api/units/${unit.id}/route`, {
       method: 'POST',
       headers: {
@@ -251,10 +282,10 @@ export default function IncidentMap({
         clickedRouteCache.current[key] = coords
         setClickedRoute({ type, coords })
       } else {
-        setClickedRoute({ type: isAir ? 'air' : 'ground', coords: [[ulat, ulon], [incident.latitude, incident.longitude]] })
+        setClickedRoute({ type: 'ground', coords: [[ulat, ulon], [incident.latitude, incident.longitude]] })
       }
     }).catch(() => {
-      setClickedRoute({ type: isAir ? 'air' : 'ground', coords: [[ulat, ulon], [incident.latitude, incident.longitude]] })
+      setClickedRoute({ type: 'ground', coords: [[ulat, ulon], [incident.latitude, incident.longitude]] })
     })
   }, [selectedUnit, units, incidents])
 
@@ -325,29 +356,32 @@ export default function IncidentMap({
           )
         })}
 
-        {/* En-route unit path when clicking a unit on map */}
-        {clickedRoute && clickedRoute.coords?.length >= 2 && (
-          <Polyline
-            positions={clickedRoute.coords}
-            pathOptions={{
-              color:     '#60a5fa',
-              weight:    clickedRoute.type === 'air' ? 2 : 3,
-              dashArray: '8 5',
-              opacity:   0.85,
-            }}
-          />
-        )}
+        {/* En-route / returning unit path when clicking a unit on map */}
+        {clickedRoute && clickedRoute.coords?.length >= 2 && (() => {
+          const unit = units.find(u => u.id === selectedUnit)
+          const lineColor = unit?.status === 'returning' ? '#a78bfa' : '#60a5fa'
+          return (
+            <Polyline
+              positions={clickedRoute.coords}
+              pathOptions={{
+                color:     lineColor,
+                weight:    clickedRoute.type === 'air' ? 2 : 3,
+                dashArray: '8 5',
+                opacity:   0.85,
+              }}
+            />
+          )
+        })()}
 
-        {/* Position history trails */}
-        {showUnits && units.filter(u => ['en_route','on_scene','returning'].includes(u.status)).map(unit => {
+        {/* Position history trails — en_route only, returning units don't need a trail */}
+        {showUnits && units.filter(u => u.status === 'en_route').map(unit => {
           const trail = trailSnapshot[unit.id] ?? []
           if (trail.length < 2) return null
-          const color = UNIT_STATUS_COLOR[unit.status] ?? '#878787'
           return (
             <Polyline
               key={`trail-${unit.id}`}
               positions={trail}
-              pathOptions={{ color, weight: 2, opacity: 0.45, dashArray: '4 4' }}
+              pathOptions={{ color: '#60a5fa', weight: 2, opacity: 0.3, dashArray: '4 4' }}
             />
           )
         })}

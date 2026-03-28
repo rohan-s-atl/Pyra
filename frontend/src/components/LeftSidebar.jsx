@@ -164,7 +164,7 @@ function UnitCard({ unit, confirmedLoadouts, onUnitClick }) {
           <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '13px', color: '#FBFBFB' }}>
             {unit.designation}
           </span>
-          {loadout ? (
+          {loadout && unit.status !== 'returning' ? (
             <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '8px', color: '#F56E0F', fontWeight: 700, marginLeft: 'auto', letterSpacing: '0.04em' }}>⬡ LOADED</span>
           ) : (
             <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', color: '#878787', marginLeft: 'auto' }}>📍</span>

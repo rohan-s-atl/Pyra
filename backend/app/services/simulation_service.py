@@ -101,6 +101,7 @@ def _tick() -> None:
     db: Session = SessionLocal()
     try:
         _run_phase("advance_positions",   _advance_positions,    db)
+        _run_phase("rotate_on_scene",     _rotate_on_scene_units, db)
         _run_phase("progress_containment",_progress_containment, db)
         _run_phase("vary_weather",        _vary_weather,         db)
         # Alert checks run every 15 ticks (~30s) — not every 2s.
@@ -271,13 +272,11 @@ def _advance_positions(db: Session) -> None:
     for unit in db.query(Unit).filter(Unit.status == "returning").all():
         mv.advance_returning(db, unit, _sim_tick)
 
-    for unit in db.query(Unit).filter(\
+    for unit in db.query(Unit).filter(
         Unit.status == "available",
         Unit.assigned_incident_id.is_(None),
     ).all():
         mv.pin_idle_unit(db, unit)
-
-    _rotate_on_scene_units(db)
 
 
 # Seconds a unit of each type stays on scene before rotating off (demo-speed)
