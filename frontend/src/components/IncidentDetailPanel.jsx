@@ -1,0 +1,1187 @@
+import { useEffect, useState, useCallback, useRef } from 'react'
+import { api, BASE_URL, streamBriefing, getDispatchAdvice, generateHandoffBriefing } from '../api/client'
+import { scoreBadges, computeUnitRoutes } from '../services/routeEngine'
+import { formatTimeShort, formatTimestamp } from '../utils/timeUtils'
+import { toast } from './Toast'
+import { useAuth } from '../context/AuthContext'
+import SitrepChat from './SitrepChat'
+import LoadoutConfigurator from './LoadoutConfigurator'
+import PostIncidentReview from './PostIncidentReview'
+import DispatchRecommendations from './DispatchRecommendations'
+
+// ── Briefing markdown renderer ───────────────────────────────────────────────
+function renderBriefing(text) {
+  if (!text) return null
+  return text.split('\n').map((line, i) => {
+    if (!line.trim()) return <div key={i} style={{ height: '5px' }} />
+    if (line.trim() === '---') return <div key={i} style={{ height: '1px', background: '#262626', margin: '8px 0' }} />
+    // ALLCAPS section header (ICS style: "SITUATION:", "WEATHER:", etc.)
+    if (/^[A-Z][A-Z\s\-\/]{2,}:/.test(line.trim())) {
+      const colonIdx = line.indexOf(':')
+      const header = line.slice(0, colonIdx)
+      const rest = line.slice(colonIdx + 1).trim()
+      return (
+        <div key={i} style={{ marginBottom: '4px' }}>
+          <span style={{ fontWeight: 700, color: '#F56E0F', fontSize: '11px', letterSpacing: '0.06em' }}>{header}:</span>
+          {rest && <span style={{ color: '#FBFBFB' }}> {rest}</span>}
+        </div>
+      )
+    }
+    // **bold** inline
+    const parts = line.split(/(\*\*[^*]+\*\*)/)
+    const rendered = parts.map((part, j) =>
+      part.startsWith('**') && part.endsWith('**')
+        ? <strong key={j} style={{ color: '#FBFBFB', fontWeight: 700 }}>{part.slice(2, -2)}</strong>
+        : <span key={j}>{part}</span>
+    )
+    return <div key={i} style={{ marginBottom: '3px', color: '#d4d4d4' }}>{rendered}</div>
+  })
+}
+
+
+const PRIORITY_COLOR = {
+  immediate:   '#ef4444',
+  within_1hr:  '#F56E0F',
+  standby:     '#878787',
+}
+
+const UNIT_ICON = {
+  engine:       '🚒',
+  hand_crew:    '👥',
+  dozer:        '🚜',
+  water_tender: '🚛',
+  helicopter:   '🚁',
+  air_tanker:   '✈️',
+  command_unit: '📡',
+  rescue:       '🚑',
+}
+
+const LOADOUT_LABEL = {
+  structure_protection:  'Structure Protection',
+  extended_suppression:  'Extended Suppression',
+  aerial_suppression:    'Aerial Suppression',
+  containment_support:   'Containment Support',
+  initial_attack:        'Initial Attack',
+  remote_access_support: 'Remote Access Support',
+}
+
+const SEVERITY_COLOR = {
+  critical: '#ef4444',
+  high:     '#F56E0F',
+  moderate: '#facc15',
+  low:      '#4ade80',
+}
+
+const AIR_TYPES    = new Set(['helicopter', 'air_tanker'])
+const AIR_STATIONS = new Set(['AAB', 'HB'])
+
+const UNIT_TYPE_ORDER = {
+  engine: 0, hand_crew: 1, helicopter: 2, air_tanker: 3,
+  dozer: 4, water_tender: 5, command_unit: 6, rescue: 7,
+}
+
+function isAirUnitAtAirBase(unit) {
+  if (!AIR_TYPES.has(unit.unit_type)) return true
+  return AIR_STATIONS.has(unit.station_type)
+}
+
+function distToIncident(unit, incident) {
+  try {
+    const lat = unit.latitude
+    const lon = unit.longitude
+    if (isNaN(lat) || isNaN(lon)) return 999
+    return Math.sqrt(((lat - incident.latitude) * 69) ** 2 + ((lon - incident.longitude) * 54) ** 2)
+  } catch { return 999 }
+}
+
+function sortUnitsForDispatch(units, incident) {
+  return [...units].sort((a, b) => {
+    const groupA = UNIT_TYPE_ORDER[a.unit_type] ?? 99
+    const groupB = UNIT_TYPE_ORDER[b.unit_type] ?? 99
+    if (groupA !== groupB) return groupA - groupB
+    return distToIncident(a, incident) - distToIncident(b, incident)
+  })
+}
+
+// formatTimeShort imported from utils/timeUtils
+
+// ── Route status badge ────────────────────────────────────────────────────────
+function RouteBadge({ status, statusColor }) {
+  return (
+    <span style={{
+      fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '9px',
+      color: '#151419', background: statusColor, borderRadius: '2px',
+      padding: '1px 5px', letterSpacing: '0.03em',
+    }}>
+      {status}
+    </span>
+  )
+}
+
+// ── Per-unit route card ───────────────────────────────────────────────────────
+function UnitRouteCard({ unitRoute }) {
+  const [expanded, setExpanded] = useState(false)
+  const borderColor = unitRoute.status === 'FASTEST' ? '#1a3a1a'
+    : unitRoute.status === 'CAUTION' ? '#3a3000'
+    : '#3a0000'
+
+  return (
+    <div style={{
+      background: '#1B1B1E', border: `1px solid ${borderColor}`,
+      borderRadius: '3px', padding: '7px 10px', marginBottom: '4px',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <span style={{ fontSize: '13px', flexShrink: 0 }}>{UNIT_ICON[unitRoute.unit_type] ?? '◉'}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+            <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '12px', color: '#FBFBFB' }}>
+              {unitRoute.designation}
+            </span>
+            <RouteBadge status={unitRoute.status} statusColor={unitRoute.statusColor} />
+            {unitRoute.isAir && (
+              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', color: '#60a5fa', letterSpacing: '0.02em' }}>
+                AERIAL
+              </span>
+            )}
+          </div>
+          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#878787' }}>
+            {unitRoute.distMiles < 1
+              ? `${Math.round(unitRoute.distMiles * 5280)} ft`
+              : `${unitRoute.distMiles.toFixed(1)} mi`
+            } · {unitRoute.etaMinutes} min · ETA ~{unitRoute.etaTimeStr}
+          </div>
+        </div>
+        <button
+          onClick={() => setExpanded(v => !v)}
+          style={{ background: 'none', border: 'none', color: '#878787', cursor: 'pointer', fontSize: '10px', padding: '2px 4px' }}
+        >
+          {expanded ? '▲' : '▼'}
+        </button>
+      </div>
+      {expanded && (
+        <div style={{
+          fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#aaa',
+          lineHeight: 1.5, marginTop: '6px', paddingTop: '6px',
+          borderTop: '1px solid #262626',
+        }}>
+          {unitRoute.explanation}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+export default function IncidentDetailPanel({
+  incident, units, allIncidents = [],
+  onClose, onDispatchSuccess, onUnitRoutesChange, onPreviewUnits, onConfirmLoadouts,
+  rightOffset = 0,
+}) {
+  const [recommendation, setRecommendation] = useState(null)
+  const [fireBehavior,   setFireBehavior]   = useState(null)
+  const [loading,        setLoading]        = useState(true)
+  const [dispatching,    setDispatching]    = useState(false)
+  const [dispatched,     setDispatched]     = useState(false)
+  const [confirmDispatch, setConfirmDispatch] = useState(false)
+  const [loadoutOpen,    setLoadoutOpen]    = useState(false)
+  const [pendingLoadouts, setPendingLoadouts] = useState([])
+  const [selectedUnits,  setSelectedUnits]  = useState([])
+  const [unitRoutes,     setUnitRoutes]     = useState([])       // selected units → map
+  const [allUnitRoutes,  setAllUnitRoutes]  = useState({})       // unitId → route, all available
+  const [routesLoading,  setRoutesLoading]  = useState(false)
+
+  // Briefing state
+  const [briefing,         setBriefing]         = useState('')
+  const [briefingLoading,  setBriefingLoading]  = useState(false)
+  const [briefingOpen,     setBriefingOpen]     = useState(false)
+  const briefingRef = useRef(null)
+
+  // Close-out state
+  const [closeoutOpen,     setCloseoutOpen]     = useState(false)
+  const [checklist,        setChecklist]        = useState(null)
+  const [checklistLoading, setChecklistLoading] = useState(false)
+  const [closeLoading,     setCloseLoading]     = useState(false)
+  const [handoffLoading,   setHandoffLoading]   = useState(false)
+
+  // Chat, review, dispatch advice state
+  const [chatOpen,         setChatOpen]         = useState(false)
+  const [reviewOpen,       setReviewOpen]       = useState(false)
+  const [dispatchAdvice,   setDispatchAdvice]   = useState(null)
+  const [adviceLoading,    setAdviceLoading]    = useState(false)
+
+  const alreadyAssigned = units.filter(u => u.assigned_incident_id === incident.id)
+
+  // Load recommendation on incident change
+  useEffect(() => {
+    setLoading(true)
+    setDispatched(false)
+    setSelectedUnits([])
+    setUnitRoutes([])
+    setAllUnitRoutes({})          // clear stale route badges from previous incident
+    setRoutesLoading(false)       // cancel any in-progress routing indicator
+    setDispatchAdvice(null)       // clear stale advice from previous incident
+    setAdviceLoading(false)
+    setBriefing('')               // clear stale briefing from previous incident
+    setBriefingOpen(false)
+    setBriefingLoading(false)
+    onUnitRoutesChange?.([])
+    onPreviewUnits?.([])
+
+    Promise.all([
+      api.recommendation(incident.id),
+      api.fireBehavior(incident.id).catch(() => null),
+    ]).then(([rec, fb]) => {
+      setRecommendation(rec)
+      setFireBehavior(fb)
+    }).catch(() => setRecommendation(null))
+      .finally(() => setLoading(false))
+  }, [incident.id])
+
+  // Instantly score ALL available units using straight-line path — no network
+  useEffect(() => {
+    const available = units.filter(u => u.status === 'available' && isAirUnitAtAirBase(u))
+    if (!available.length || !incident || !allIncidents.length) return
+    const badges = scoreBadges(available, incident, allIncidents)
+    setAllUnitRoutes(badges)
+  }, [incident, units, allIncidents])
+
+  // Recompute routes whenever selected units change
+  useEffect(() => {
+    const selected = units.filter(u => selectedUnits.includes(u.id))
+    onPreviewUnits?.(selected)
+
+    if (!selected.length) {
+      setUnitRoutes([])
+      onUnitRoutesChange?.([])
+      return
+    }
+
+    setRoutesLoading(true)
+    computeUnitRoutes(selected, incident, allIncidents)
+      .then(routes => {
+        setUnitRoutes(routes)
+        onUnitRoutesChange?.(routes)
+      })
+      .finally(() => setRoutesLoading(false))
+  }, [selectedUnits, units, incident, allIncidents])
+
+  async function handleDispatch(loadouts = []) {
+    if (selectedUnits.length === 0) return
+    setDispatching(true)
+    try {
+      await api.dispatch({
+        incident_id:     incident.id,
+        unit_ids:        selectedUnits,
+        loadout_profile: recommendation?.loadout_profile ?? 'initial_attack',
+        route_id:        '',
+      })
+      setDispatched(true)
+      toast(`${selectedUnits.length} unit${selectedUnits.length !== 1 ? 's' : ''} dispatched to ${incident.name}`, 'success')
+      onPreviewUnits?.([])
+      onUnitRoutesChange?.([])
+      onDispatchSuccess?.()
+    } catch (e) {
+      console.error('Dispatch failed', e)
+    } finally {
+      setDispatching(false)
+    }
+  }
+
+  const auth          = useAuth()
+  const canDispatch   = selectedUnits.length > 0 && !dispatching && auth?.role !== 'viewer'
+  const canBrief      = auth?.role !== 'viewer'
+  const canClose      = auth?.role === 'commander' || auth?.role === 'dispatcher'
+
+  async function handleOpenCloseout() {
+    setCloseoutOpen(true)
+    setChecklistLoading(true)
+    try {
+      const data = await api.closeoutChecklist(incident.id)
+      setChecklist(data)
+    } catch (e) {
+      toast('Failed to load checklist', 'error')
+    } finally {
+      setChecklistLoading(false)
+    }
+  }
+
+  async function handleGenerateHandoff() {
+    setHandoffLoading(true)
+    try {
+      await generateHandoffBriefing(incident.id, 12)
+      toast('Shift handoff briefing generated', 'success')
+      // Re-fetch checklist to update briefing_generated check
+      const data = await api.closeoutChecklist(incident.id)
+      setChecklist(data)
+    } catch (e) {
+      toast('Failed to generate handoff briefing', 'error')
+    } finally {
+      setHandoffLoading(false)
+    }
+  }
+
+  async function handleCloseIncident(force = false) {
+    setCloseLoading(true)
+    try {
+      await api.closeIncident(incident.id, force)
+      toast(`Incident "${incident.name}" marked OUT`, 'success')
+      setCloseoutOpen(false)
+      // Notify parent to refresh
+      onClose?.()
+    } catch (e) {
+      const detail = e.message ?? 'Failed to close incident'
+      toast(detail, 'error')
+    } finally {
+      setCloseLoading(false)
+    }
+  }
+
+  // Dispatch button ETA = slowest selected unit
+  const dispatchEta = (() => {
+    if (!unitRoutes.length) return null
+    const max = Math.max(...unitRoutes.map(r => r.etaMinutes))
+    if (!max) return null
+    const d = new Date()
+    d.setMinutes(d.getMinutes() + max)
+    return formatTimeShort(d)
+  })()
+
+  const filledUnitTypes = [...selectedUnits, ...alreadyAssigned.map(u => u.id)].reduce((acc, uid) => {
+    const unit = units.find(u => u.id === uid)
+    if (unit) acc[unit.unit_type] = (acc[unit.unit_type] || 0) + 1
+    return acc
+  }, {})
+
+  async function handleGenerateBriefing() {
+    if (briefing) setBriefing('')  // clear previous briefing on new generate
+    setBriefingLoading(true)
+    setBriefingOpen(true)
+    setTimeout(() => briefingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
+    await streamBriefing(
+      incident.id,
+      (chunk) => setBriefing(prev => prev + chunk),
+      () => setBriefingLoading(false),
+      (err) => { console.error('Briefing error:', err); setBriefingLoading(false) },
+    )
+  }
+
+  function copyBriefing() {
+    navigator.clipboard.writeText(briefing).catch(() => {})
+    toast('Briefing copied to clipboard', 'success')
+  }
+
+  // Fetch dispatch advice when units are selected — stable dep avoids flicker
+  const selectedUnitsKey = selectedUnits.slice().sort().join(',')
+  useEffect(() => {
+    if (selectedUnits.length === 0) { setDispatchAdvice(null); return }
+    if (auth?.role === 'viewer') return
+    let cancelled = false
+    setAdviceLoading(true)
+    setDispatchAdvice(null)
+    getDispatchAdvice(incident.id, selectedUnits)
+      .then(result => { if (!cancelled) setDispatchAdvice(result) })
+      .catch(() => { if (!cancelled) setDispatchAdvice(null) })
+      .finally(() => { if (!cancelled) setAdviceLoading(false) })
+    return () => { cancelled = true }
+  }, [selectedUnitsKey, incident.id, auth?.role]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function handleDownloadReport() {
+    const token = auth?.access_token
+    fetch(`${BASE_URL}/api/report/${incident.id}`, {
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Report failed')
+        return res.blob()
+      })
+      .then(blob => {
+        const url = URL.createObjectURL(blob)
+        const a   = document.createElement('a')
+        a.href     = url
+        a.download = `pyra_report_${incident.id}.pdf`
+        a.click()
+        URL.revokeObjectURL(url)
+      })
+      .catch(err => console.error('Report error:', err))
+  }
+
+  return (
+    <div style={{
+      position: 'absolute', top: 0, right: `${rightOffset}px`, bottom: 0, width: 'min(420px, 100vw)',
+      transition: 'right 0.2s ease',
+      animation: 'slideInRight 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+      background: '#151419', borderLeft: '1px solid #262626',
+      display: 'flex', flexDirection: 'column', zIndex: 1000, overflow: 'hidden',
+    }}>
+
+      {/* Header */}
+      <div style={{
+        padding: '12px 16px', borderBottom: '1px solid #262626',
+        flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      }}>
+        <div>
+          <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '15px', color: '#FBFBFB', letterSpacing: '0.01em' }}>
+            {incident.name}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '3px' }}>
+            <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '11px', color: SEVERITY_COLOR[incident.severity], letterSpacing: '0.04em' }}>
+              {incident.severity.toUpperCase()}
+            </span>
+            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#aaaaaa' }}>
+              {incident.fire_type.replace(/_/g, ' ').toUpperCase()}
+            </span>
+            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#aaaaaa' }}>
+              {incident.acres_burned?.toLocaleString()} ac
+            </span>
+          </div>
+        </div>
+        <button
+          onClick={onClose}
+          style={{ background: 'none', border: 'none', color: '#878787', cursor: 'pointer', fontSize: '18px', padding: '4px 8px' }}
+        >✕</button>
+      </div>
+
+      {/* Scrollable body */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
+
+        {loading && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '4px 0' }}>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '4px' }}>
+              <div className="pyra-skeleton" style={{ height: '52px', flex: 1 }} />
+              <div className="pyra-skeleton" style={{ height: '52px', flex: 1 }} />
+            </div>
+            <div className="pyra-skeleton" style={{ height: '11px', width: '40%' }} />
+            <div className="pyra-skeleton" style={{ height: '72px', width: '100%' }} />
+            <div className="pyra-skeleton" style={{ height: '11px', width: '40%', marginTop: '4px' }} />
+            {[1,2,3].map(i => <div key={i} className="pyra-skeleton" style={{ height: '54px', width: '100%' }} />)}
+          </div>
+        )}
+
+        {!loading && !recommendation && (
+          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: '#ef4444', padding: '20px 0' }}>
+            Failed to load recommendation.
+          </div>
+        )}
+
+        {!loading && recommendation && (
+          <>
+            {/* Confidence + Loadout */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+              <div style={{ background: '#1B1B1E', border: '1px solid #262626', borderRadius: '3px', padding: '6px 10px', flex: 1 }}>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '9px', color: '#878787', letterSpacing: '0.06em', marginBottom: '2px' }}>
+                  LOADOUT PROFILE
+                </div>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '13px', color: '#F56E0F' }}>
+                  {LOADOUT_LABEL[recommendation.loadout_profile] ?? recommendation.loadout_profile}
+                </div>
+              </div>
+              <div style={{ background: '#1B1B1E', border: '1px solid #262626', borderRadius: '3px', padding: '6px 10px', flex: 1 }}>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '9px', color: '#878787', letterSpacing: '0.06em', marginBottom: '2px' }}>
+                  CONFIDENCE
+                </div>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '13px', color: recommendation.confidence === 'high' ? '#4ade80' : recommendation.confidence === 'moderate' ? '#facc15' : '#878787' }}>
+                  {recommendation.confidence.toUpperCase()}
+                </div>
+              </div>
+            </div>
+
+            {/* Situation summary */}
+            <div style={{ marginBottom: '14px' }}>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '11px', color: '#878787', letterSpacing: '0.06em', marginBottom: '6px' }}>
+                SITUATION SUMMARY
+              </div>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#FBFBFB', lineHeight: 1.6, background: '#1B1B1E', borderRadius: '3px', padding: '10px', border: '1px solid #262626' }}>
+                {recommendation.summary}
+              </div>
+            </div>
+
+            {/* Fire Intelligence */}
+            {fireBehavior && (
+              <div style={{ marginBottom: '14px' }}>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '11px', color: '#878787', letterSpacing: '0.06em', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  FIRE INTELLIGENCE
+                  <span className="pyra-ai-badge" style={{ fontSize: '8px' }}>AI</span>
+                </div>
+
+                {/* FBI bar */}
+                <div style={{ background: '#1B1B1E', border: '1px solid #262626', borderRadius: '3px', padding: '10px', marginBottom: '4px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#878787', letterSpacing: '0.04em' }}>FIRE BEHAVIOR INDEX</span>
+                    <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '13px', color: fireBehavior.fire_behavior_index >= 0.75 ? '#ef4444' : fireBehavior.fire_behavior_index >= 0.5 ? '#F56E0F' : fireBehavior.fire_behavior_index >= 0.3 ? '#facc15' : '#4ade80' }}>
+                      {(fireBehavior.fire_behavior_index * 100).toFixed(0)}
+                    </span>
+                  </div>
+                  <div style={{ height: '4px', background: '#262626', borderRadius: '2px' }}>
+                    <div style={{
+                      height: '100%', borderRadius: '2px',
+                      width: `${fireBehavior.fire_behavior_index * 100}%`,
+                      background: fireBehavior.fire_behavior_index >= 0.75 ? '#ef4444' : fireBehavior.fire_behavior_index >= 0.5 ? '#F56E0F' : fireBehavior.fire_behavior_index >= 0.3 ? '#facc15' : '#4ade80',
+                      transition: 'width 0.4s ease',
+                    }} />
+                  </div>
+                </div>
+
+                {/* Stats grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', marginBottom: '4px' }}>
+                  {[
+                    { label: 'RATE OF SPREAD', value: fireBehavior.rate_of_spread_mph != null ? `${fireBehavior.rate_of_spread_mph} mph` : '—', color: fireBehavior.rate_of_spread_mph >= 5 ? '#ef4444' : fireBehavior.rate_of_spread_mph >= 2 ? '#F56E0F' : '#FBFBFB' },
+                    { label: 'BEHAVIOR', value: (fireBehavior.predicted_behavior ?? 'unknown').toUpperCase(), color: fireBehavior.predicted_behavior === 'extreme' ? '#ef4444' : fireBehavior.predicted_behavior === 'high' ? '#F56E0F' : fireBehavior.predicted_behavior === 'moderate' ? '#facc15' : '#4ade80' },
+                    { label: 'GROWTH (12HR)', value: fireBehavior.projected_growth_percent_12h != null ? `+${fireBehavior.projected_growth_percent_12h}%` : '—', color: fireBehavior.projected_growth_percent_12h >= 50 ? '#ef4444' : fireBehavior.projected_growth_percent_12h >= 20 ? '#F56E0F' : '#4ade80' },
+                    { label: 'SUPPRESSION EFF.', value: fireBehavior.suppression_effectiveness != null ? `${(fireBehavior.suppression_effectiveness * 100).toFixed(0)}%` : '—', color: fireBehavior.suppression_effectiveness >= 0.6 ? '#4ade80' : fireBehavior.suppression_effectiveness >= 0.3 ? '#facc15' : '#ef4444' },
+                  ].map(stat => (
+                    <div key={stat.label} style={{ background: '#1B1B1E', border: '1px solid #262626', borderRadius: '3px', padding: '7px 10px' }}>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', color: '#878787', letterSpacing: '0.04em', marginBottom: '3px' }}>{stat.label}</div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '13px', color: stat.color }}>{stat.value}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Terrain + AQI row */}
+                {(incident.elevation_m != null || incident.aqi != null) && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', marginBottom: '4px' }}>
+                    {incident.elevation_m != null && (
+                      <div style={{ background: '#1B1B1E', border: '1px solid #262626', borderRadius: '3px', padding: '7px 10px' }}>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', color: '#878787', letterSpacing: '0.04em', marginBottom: '3px' }}>TERRAIN</div>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '12px', color: '#FBFBFB' }}>
+                          {Math.round(incident.elevation_m)}m
+                          {incident.slope_percent != null && <span style={{ fontWeight: 400, color: incident.slope_percent >= 30 ? '#F56E0F' : '#878787', fontSize: '11px' }}> · {incident.slope_percent.toFixed(0)}% slope</span>}
+                        </div>
+                        {incident.aspect_cardinal && (
+                          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#878787', marginTop: '2px' }}>{incident.aspect_cardinal} aspect</div>
+                        )}
+                      </div>
+                    )}
+                    {incident.aqi != null && (
+                      <div style={{ background: '#1B1B1E', border: `1px solid ${incident.aqi >= 151 ? '#ef4444' : incident.aqi >= 101 ? '#F56E0F' : '#262626'}`, borderRadius: '3px', padding: '7px 10px' }}>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', color: '#878787', letterSpacing: '0.04em', marginBottom: '3px' }}>AIR QUALITY</div>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '13px', color: incident.aqi >= 151 ? '#ef4444' : incident.aqi >= 101 ? '#F56E0F' : incident.aqi >= 51 ? '#facc15' : '#4ade80' }}>
+                          AQI {incident.aqi}
+                        </div>
+                        {incident.aqi_category && (
+                          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#878787', marginTop: '2px' }}>{incident.aqi_category.replace(/_/g, ' ')}</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Behavior description */}
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#FBFBFB', lineHeight: 1.6, background: '#1B1B1E', borderRadius: '3px', padding: '8px 10px', border: '1px solid #262626' }}>
+                  {fireBehavior.projected_acres_12h != null
+                    ? `Projected size in 12 hours: ~${fireBehavior.projected_acres_12h.toLocaleString()} acres at current rate of spread.`
+                    : `Fire behavior classified as ${fireBehavior.predicted_behavior ?? 'unknown'}. Monitor conditions closely.`}
+                </div>
+              </div>
+            )}
+
+            {/* Recommended unit types */}
+            <div style={{ marginBottom: '14px' }}>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '11px', color: '#878787', letterSpacing: '0.06em', marginBottom: '6px' }}>
+                RECOMMENDED UNITS
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {recommendation.unit_recommendations.map((rec, i) => {
+                  const filled = (filledUnitTypes[rec.unit_type] ?? 0) >= rec.quantity
+                  return (
+                    <div key={i} style={{
+                      background:   filled ? 'rgba(74,222,128,0.08)' : '#1B1B1E',
+                      border:       `1px solid ${filled ? '#4ade80' : '#262626'}`,
+                      borderRadius: '3px', padding: '7px 10px',
+                      display:      'flex', alignItems: 'flex-start', gap: '10px',
+                    }}>
+                      <span style={{ fontSize: '15px', flexShrink: 0 }}>{UNIT_ICON[rec.unit_type] ?? '◉'}</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                          <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '13px', color: filled ? '#4ade80' : '#FBFBFB' }}>
+                            {rec.quantity}× {rec.unit_type.replace(/_/g, ' ').toUpperCase()}
+                          </span>
+                          <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '10px', color: filled ? '#4ade80' : (PRIORITY_COLOR[rec.priority] ?? '#878787'), letterSpacing: '0.03em' }}>
+                            {filled ? '✓ FILLED' : rec.priority.replace(/_/g, ' ').toUpperCase()}
+                          </span>
+                        </div>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#FBFBFB', lineHeight: 1.4 }}>
+                          {rec.rationale}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Already deployed */}
+            {alreadyAssigned.length > 0 && (
+              <div style={{ marginBottom: '14px' }}>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '11px', color: '#878787', letterSpacing: '0.06em', marginBottom: '6px' }}>
+                  ALREADY DEPLOYED
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  {alreadyAssigned.map(unit => (
+                    <div key={unit.id} style={{
+                      display: 'flex', alignItems: 'center', gap: '8px',
+                      padding: '5px 10px', background: '#1B1B1E',
+                      border: '1px solid #262626', borderRadius: '3px',
+                    }}>
+                      <span style={{ fontSize: '13px' }}>{UNIT_ICON[unit.unit_type] ?? '◉'}</span>
+                      <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '12px', color: '#FBFBFB', flex: 1 }}>
+                        {unit.designation}
+                      </span>
+                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: unit.status === 'on_scene' ? '#F56E0F' : unit.status === 'en_route' ? '#60a5fa' : '#a78bfa', letterSpacing: '0.02em' }}>
+                        {unit.status.replace(/_/g, ' ').toUpperCase()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Tactical notes */}
+            <div style={{ marginBottom: '14px' }}>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '11px', color: '#878787', letterSpacing: '0.06em', marginBottom: '6px' }}>
+                TACTICAL NOTES
+              </div>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#FBFBFB', lineHeight: 1.6, background: '#1B1B1E', borderRadius: '3px', padding: '10px', border: '1px solid #262626' }}>
+                {recommendation.tactical_notes}
+              </div>
+            </div>
+
+            {/* Dispatch Intelligence Engine — AI-ranked unit selection */}
+            <DispatchRecommendations
+              incident={incident}
+              onDispatchSuccess={onDispatchSuccess}
+              externalSelectedUnits={selectedUnits}
+              onSelectionChange={(unitIds) => setSelectedUnits(unitIds)}
+            />
+
+            {/* Unit selector */}
+            <div style={{ marginBottom: '14px' }}>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '11px', color: '#878787', letterSpacing: '0.06em', marginBottom: '6px' }}>
+                SELECT UNITS TO DISPATCH
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {(() => {
+                  const available = units.filter(u => u.status === 'available' && isAirUnitAtAirBase(u))
+                  const sorted = sortUnitsForDispatch(available, incident)
+                  let lastType = null
+                  return sorted.map(unit => {
+                    const isSelected = selectedUnits.includes(unit.id)
+                    const showHeader = unit.unit_type !== lastType
+                    lastType = unit.unit_type
+                    const distMiles = distToIncident(unit, incident)
+                    const distLabel = distMiles < 999
+                      ? distMiles < 1 ? `${Math.round(distMiles * 5280)} ft` : `${distMiles.toFixed(1)} mi`
+                      : null
+
+                    // Pre-computed route for this unit (shows badge before selection)
+                    const previewRoute = allUnitRoutes[unit.id]
+                    // Selected route (for ETA after selection)
+                    const unitRoute = unitRoutes.find(r => r.unitId === unit.id)
+
+                    return (
+                      <div key={unit.id}>
+                        {showHeader && (
+                          <div style={{
+                            fontFamily: 'Inter, sans-serif', fontWeight: 700,
+                            fontSize: '10px', color: '#878787', letterSpacing: '0.06em',
+                            textTransform: 'uppercase', marginTop: '8px', marginBottom: '3px', paddingLeft: '2px',
+                          }}>
+                            {unit.unit_type.replace(/_/g, ' ')}
+                          </div>
+                        )}
+                        <div
+                          onClick={() => setSelectedUnits(prev =>
+                            prev.includes(unit.id)
+                              ? prev.filter(id => id !== unit.id)
+                              : [...prev, unit.id]
+                          )}
+                          style={{
+                            background:   isSelected ? 'rgba(59,130,246,0.1)' : '#1B1B1E',
+                            border:       `1px solid ${isSelected ? '#3b82f6' : '#262626'}`,
+                            borderRadius: (isSelected && unitRoute) ? '3px 3px 0 0' : '3px',
+                            padding: '6px 10px',
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
+                            transition: 'all 0.15s',
+                          }}
+                        >
+                          <span style={{ fontSize: '13px' }}>{UNIT_ICON[unit.unit_type] ?? '◉'}</span>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '12px', color: '#FBFBFB' }}>
+                              {unit.designation}
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#4ade80' }}>AVAILABLE</span>
+                            {distLabel && (
+                              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#aaaaaa' }}>{distLabel}</span>
+                            )}
+                            {previewRoute && (
+                              <RouteBadge status={previewRoute.status} statusColor={previewRoute.statusColor} />
+                            )}
+                            {isSelected && routesLoading && !unitRoute && (
+                              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', color: '#878787' }}>routing...</span>
+                            )}
+                          </div>
+                        </div>
+                        {/* Inline route drawer — appears below the unit row when selected */}
+                        {isSelected && unitRoute && (
+                          <div style={{
+                            background: '#0f0f12',
+                            border: `1px solid ${unitRoute.statusColor}55`,
+                            borderTop: 'none',
+                            borderRadius: '0 0 3px 3px',
+                            padding: '8px 10px',
+                            marginBottom: '1px',
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '5px' }}>
+                              <RouteBadge status={unitRoute.status} statusColor={unitRoute.statusColor} />
+                              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#60a5fa' }}>
+                                ETA ~{unitRoute.etaTimeStr}
+                              </span>
+                            </div>
+                            <div style={{
+                              fontFamily: 'Inter, sans-serif', fontSize: '11px',
+                              color: '#FBFBFB', lineHeight: 1.5,
+                            }}>
+                              {unitRoute.explanation}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })
+                })()}
+                {units.filter(u => u.status === 'available' && isAirUnitAtAirBase(u)).length === 0 && (
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: '#878787' }}>
+                    No available units
+                  </div>
+                )}
+              </div>
+            </div>
+
+          </>
+        )}
+      </div>
+
+      {/* Dispatch button */}
+      {!loading && recommendation && (
+        <div style={{ padding: '12px 16px', borderTop: '1px solid #262626', flexShrink: 0 }}>
+
+          {/* Dispatch Advisor — shows when units selected */}
+          {(dispatchAdvice || adviceLoading) && selectedUnits.length > 0 && (
+            <div style={{
+              background: '#0f0f12',
+              border: `1px solid ${dispatchAdvice?.assessment === 'optimal' ? '#4ade8044' : dispatchAdvice?.assessment === 'suboptimal' ? '#ef444444' : '#26262644'}`,
+              borderRadius: '3px', padding: '8px 10px', marginBottom: '8px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                <div style={{
+                  width: '5px', height: '5px', borderRadius: '50%',
+                  background: adviceLoading ? '#F56E0F' : dispatchAdvice?.assessment === 'optimal' ? '#4ade80' : dispatchAdvice?.assessment === 'suboptimal' ? '#ef4444' : '#facc15',
+                  boxShadow: adviceLoading ? '0 0 4px #F56E0F' : 'none',
+                }} />
+                <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '9px', color: '#878787', letterSpacing: '0.08em' }}>
+                  DISPATCH ADVISOR
+                </span>
+                <span className="pyra-ai-badge">⬡ PYRA AI</span>
+                {dispatchAdvice && (
+                  <span style={{
+                    fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '9px', letterSpacing: '0.06em',
+                    color: dispatchAdvice.assessment === 'optimal' ? '#4ade80' : dispatchAdvice.assessment === 'suboptimal' ? '#ef4444' : '#facc15',
+                  }}>
+                    {dispatchAdvice.assessment.toUpperCase()}
+                  </span>
+                )}
+              </div>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#FBFBFB', lineHeight: 1.5 }}>
+                {adviceLoading ? 'Analyzing loadout...' : dispatchAdvice?.advice}
+              </div>
+            </div>
+          )}
+
+          {dispatched ? (
+            <div style={{
+              background: 'rgba(74,222,128,0.1)', border: '1px solid #4ade80',
+              borderRadius: '3px', padding: '10px 16px', textAlign: 'center',
+              fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '13px', color: '#4ade80',
+            }}>
+              ✓ UNITS DISPATCHED SUCCESSFULLY
+            </div>
+          ) : confirmDispatch ? (
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <div style={{ flex: 1, padding: '10px', background: 'rgba(245,110,15,0.1)', border: '1px solid #F56E0F55', borderRadius: '3px', fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#FBFBFB', display: 'flex', alignItems: 'center' }}>
+                Dispatch {selectedUnits.length} unit{selectedUnits.length !== 1 ? 's' : ''}?
+              </div>
+              <button onClick={() => { handleDispatch(pendingLoadouts); setConfirmDispatch(false) }}
+                className="pyra-btn-press"
+                style={{ padding: '10px 16px', background: '#F56E0F', border: 'none', borderRadius: '3px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '12px', color: '#FBFBFB' }}>
+                CONFIRM
+              </button>
+              <button onClick={() => setConfirmDispatch(false)}
+                style={{ padding: '10px 12px', background: 'transparent', border: '1px solid #333', borderRadius: '3px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: '12px', color: '#878787' }}>
+                CANCEL
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => canDispatch && setLoadoutOpen(true)}
+              disabled={!canDispatch}
+              className="pyra-btn-press" 
+              style={{
+                width: '100%', padding: '12px',
+                background:    canDispatch ? '#F56E0F' : '#262626',
+                border:        'none', borderRadius: '3px',
+                cursor:        canDispatch ? 'pointer' : 'not-allowed',
+                fontFamily:    'Inter, sans-serif', fontWeight: 700, fontSize: '13px',
+                color:         '#FBFBFB', letterSpacing: '0.03em', transition: 'background 0.15s',
+              }}
+            >
+              {dispatching
+                ? 'DISPATCHING...'
+                : auth?.role === 'viewer'
+                  ? 'DISPATCH — COMMANDER / DISPATCHER ONLY'
+                  : selectedUnits.length === 0
+                    ? 'SELECT UNITS TO DISPATCH'
+                    : `CONFIGURE LOADOUT & DISPATCH ${selectedUnits.length} UNIT${selectedUnits.length !== 1 ? 'S' : ''}`
+              }
+            </button>
+          )}
+
+          {/* Generate Briefing button */}
+          <button
+            onClick={handleGenerateBriefing}
+            disabled={briefingLoading || !canBrief}
+            style={{
+              width: '100%', padding: '10px', marginTop: '8px',
+              background: 'transparent',
+              border: `1px solid ${briefingLoading || !canBrief ? '#262626' : '#444'}`,
+              borderRadius: '3px',
+              cursor: briefingLoading || !canBrief ? 'not-allowed' : 'pointer',
+              fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '12px',
+              color: briefingLoading || !canBrief ? '#444' : '#878787',
+              letterSpacing: '0.03em', transition: 'all 0.15s',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+            }}
+            onMouseEnter={e => { if (!briefingLoading && canBrief) { e.currentTarget.style.borderColor = '#F56E0F'; e.currentTarget.style.color = '#F56E0F' }}}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = canBrief ? '#444' : '#262626'; e.currentTarget.style.color = canBrief ? '#878787' : '#444' }}
+          >
+            {briefingLoading ? (
+              <>
+                <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>⟳</span>
+                GENERATING BRIEFING...
+              </>
+            ) : !canBrief ? (
+              <>⬡ BRIEFING — COMMANDER ONLY</>
+            ) : (
+              <>⬡ GENERATE AI BRIEFING</>
+            )}
+          </button>
+
+          {/* Export PDF Report button */}
+          <button
+            onClick={handleDownloadReport}
+            style={{
+              width: '100%', padding: '10px', marginTop: '6px',
+              background: 'transparent', border: '1px solid #444',
+              borderRadius: '3px', cursor: 'pointer',
+              fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '12px',
+              color: '#878787', letterSpacing: '0.03em', transition: 'all 0.15s',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = '#4ade80'; e.currentTarget.style.color = '#4ade80' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '#444'; e.currentTarget.style.color = '#878787' }}
+          >
+            ↓ EXPORT PDF REPORT
+          </button>
+
+          {/* Close-out button — only shown when incident is not already out */}
+          {canClose && incident.status !== 'out' && (
+            <button
+              onClick={handleOpenCloseout}
+              style={{
+                width: '100%', padding: '10px', marginTop: '6px',
+                background: 'transparent', border: '1px solid #ef444466',
+                borderRadius: '3px', cursor: 'pointer',
+                fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '12px',
+                color: '#ef4444aa', letterSpacing: '0.03em', transition: 'all 0.15s',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#ef4444'; e.currentTarget.style.color = '#ef4444' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = '#ef444466'; e.currentTarget.style.color = '#ef4444aa' }}
+            >
+              ⬡ CLOSE OUT INCIDENT
+            </button>
+          )}
+
+          {/* Bottom row — SITREP Chat + Post-Incident Review */}
+          <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+            <button
+              onClick={() => setChatOpen(v => !v)}
+              style={{
+                flex: 1, padding: '9px',
+                background: chatOpen ? 'rgba(245,110,15,0.12)' : 'transparent',
+                border: `1px solid ${chatOpen ? '#F56E0F' : '#444'}`,
+                borderRadius: '3px', cursor: 'pointer',
+                fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '11px',
+                color: chatOpen ? '#F56E0F' : '#878787',
+                letterSpacing: '0.03em', transition: 'all 0.15s',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+              }}
+              onMouseEnter={e => { if (!chatOpen) { e.currentTarget.style.borderColor = '#F56E0F'; e.currentTarget.style.color = '#F56E0F' }}}
+              onMouseLeave={e => { if (!chatOpen) { e.currentTarget.style.borderColor = '#444'; e.currentTarget.style.color = '#878787' }}}
+            >
+              💬 SITREP CHAT
+            </button>
+            {auth?.role === 'commander' && (
+              <button
+                onClick={() => setReviewOpen(v => !v)}
+                style={{
+                  flex: 1, padding: '9px',
+                  background: reviewOpen ? 'rgba(96,165,250,0.12)' : 'transparent',
+                  border: `1px solid ${reviewOpen ? '#60a5fa' : '#444'}`,
+                  borderRadius: '3px', cursor: 'pointer',
+                  fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '11px',
+                  color: reviewOpen ? '#60a5fa' : '#878787',
+                  letterSpacing: '0.03em', transition: 'all 0.15s',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                }}
+                onMouseEnter={e => { if (!reviewOpen) { e.currentTarget.style.borderColor = '#60a5fa'; e.currentTarget.style.color = '#60a5fa' }}}
+                onMouseLeave={e => { if (!reviewOpen) { e.currentTarget.style.borderColor = '#444'; e.currentTarget.style.color = '#878787' }}}
+              >
+                📋 AAR REVIEW
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Briefing panel */}
+      {briefingOpen && (
+        <div ref={briefingRef} style={{
+          borderTop: '1px solid #262626',
+          background: '#0f0f12',
+          flexShrink: 0,
+          maxHeight: '380px',
+          display: 'flex',
+          flexDirection: 'column',
+        }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '10px 16px 8px',
+            borderBottom: '1px solid #1e1e22',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{
+                width: '6px', height: '6px', borderRadius: '50%',
+                background: briefingLoading ? '#F56E0F' : '#4ade80',
+                boxShadow: briefingLoading ? '0 0 6px #F56E0F' : '0 0 6px #4ade80',
+              }} />
+              <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '11px', color: '#FBFBFB', letterSpacing: '0.06em' }}>
+                ICS OPERATIONAL BRIEFING
+              </span>
+              <span className="pyra-ai-badge">⬡ PYRA AI</span>
+              {briefingLoading && (
+                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#F56E0F' }}>
+                  · GENERATING...
+                </span>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {briefing && !briefingLoading && (
+                <button
+                  onClick={copyBriefing}
+                  style={{
+                    background: 'none', border: '1px solid #333', borderRadius: '2px',
+                    padding: '2px 8px', cursor: 'pointer',
+                    fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#878787',
+                    transition: 'all 0.15s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#F56E0F'; e.currentTarget.style.color = '#F56E0F' }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.color = '#878787' }}
+                >
+                  COPY
+                </button>
+              )}
+              <button
+                onClick={() => setBriefingOpen(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#555', fontSize: '14px', padding: '0 2px' }}
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+          <div style={{
+            flex: 1, overflowY: 'auto', padding: '14px 16px',
+            fontFamily: 'Inter, sans-serif', fontSize: '12px',
+            color: '#FBFBFB', lineHeight: 1.7,
+          }}>
+            {!briefing && !briefingLoading && (
+              <span style={{ color: '#555' }}>Press Generate to create a briefing.</span>
+            )}
+            {(briefing || briefingLoading) && renderBriefing(briefing)}
+            {briefingLoading && (
+              <span style={{ color: '#F56E0F', animation: 'blink 1s step-end infinite' }}>▋</span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* SITREP Chat floating panel */}
+      {chatOpen && (
+        <SitrepChat incident={incident} onClose={() => setChatOpen(false)} />
+      )}
+
+      {/* Post-Incident Review floating panel */}
+      {reviewOpen && auth?.role === 'commander' && (
+        <PostIncidentReview incident={incident} onClose={() => setReviewOpen(false)} />
+      )}
+
+      {/* SITREP Chat floating panel */}
+      {chatOpen && (
+        <SitrepChat incident={incident} onClose={() => setChatOpen(false)} />
+      )}
+
+      {/* Post-Incident Review floating panel */}
+      {reviewOpen && auth?.role === 'commander' && (
+        <PostIncidentReview incident={incident} onClose={() => setReviewOpen(false)} />
+      )}
+
+      {/* Close-out modal */}
+      {closeoutOpen && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 5000,
+          background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          backdropFilter: 'blur(4px)',
+        }} onClick={e => { if (e.target === e.currentTarget) setCloseoutOpen(false) }}>
+          <div style={{
+            background: '#1a1920', border: '1px solid #ef444444',
+            borderRadius: '6px', padding: '20px 24px', minWidth: '360px', maxWidth: '440px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+          }}>
+            <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '13px', color: '#ef4444', letterSpacing: '0.06em', marginBottom: '4px' }}>
+              ⬡ INCIDENT CLOSE-OUT
+            </div>
+            <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#878787', marginBottom: '16px' }}>
+              {incident.name}
+            </div>
+
+            {checklistLoading && (
+              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#555', padding: '12px 0' }}>
+                Loading checklist...
+              </div>
+            )}
+
+            {checklist && !checklistLoading && (
+              <>
+                {/* Checklist items */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '16px' }}>
+                  {checklist.checks?.map(check => (
+                    <div key={check.key} style={{
+                      display: 'flex', alignItems: 'flex-start', gap: '10px',
+                      padding: '8px 10px',
+                      background: check.passed ? 'rgba(74,222,128,0.06)' : 'rgba(239,68,68,0.06)',
+                      border: `1px solid ${check.passed ? '#4ade8033' : '#ef444433'}`,
+                      borderRadius: '3px',
+                    }}>
+                      <span style={{ fontSize: '13px', flexShrink: 0, marginTop: '1px' }}>
+                        {check.passed ? '✅' : check.required ? '❌' : '⚠️'}
+                      </span>
+                      <div>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: 600, color: check.passed ? '#4ade80' : check.required ? '#ef4444' : '#facc15' }}>
+                          {check.label}{!check.required && ' (recommended)'}
+                        </div>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#878787', marginTop: '2px' }}>
+                          {check.detail}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Generate handoff button if briefing not done */}
+                {checklist.checks?.find(c => c.key === 'briefing_generated' && !c.passed) && (
+                  <button
+                    onClick={handleGenerateHandoff}
+                    disabled={handoffLoading}
+                    style={{
+                      width: '100%', padding: '8px', marginBottom: '8px',
+                      background: handoffLoading ? 'rgba(245,110,15,0.08)' : 'rgba(245,110,15,0.12)',
+                      border: '1px solid #F56E0F66', borderRadius: '3px', cursor: handoffLoading ? 'not-allowed' : 'pointer',
+                      fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '11px',
+                      color: '#F56E0F', letterSpacing: '0.03em',
+                    }}
+                  >
+                    {handoffLoading ? '⟳ Generating handoff briefing...' : '⬡ GENERATE SHIFT HANDOFF BRIEFING'}
+                  </button>
+                )}
+
+                {/* Action row */}
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => setCloseoutOpen(false)}
+                    style={{
+                      flex: 1, padding: '9px',
+                      background: 'transparent', border: '1px solid #333', borderRadius: '3px', cursor: 'pointer',
+                      fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '11px', color: '#878787',
+                    }}
+                  >
+                    CANCEL
+                  </button>
+
+                  {checklist.ready ? (
+                    <button
+                      onClick={() => handleCloseIncident(false)}
+                      disabled={closeLoading}
+                      style={{
+                        flex: 2, padding: '9px',
+                        background: closeLoading ? 'rgba(239,68,68,0.12)' : 'rgba(239,68,68,0.18)',
+                        border: '1px solid #ef4444', borderRadius: '3px',
+                        cursor: closeLoading ? 'not-allowed' : 'pointer',
+                        fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '11px', color: '#ef4444',
+                        letterSpacing: '0.04em',
+                      }}
+                    >
+                      {closeLoading ? 'CLOSING...' : '⬡ CONFIRM CLOSE-OUT'}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleCloseIncident(true)}
+                      disabled={closeLoading || auth?.role !== 'commander'}
+                      style={{
+                        flex: 2, padding: '9px',
+                        background: 'rgba(239,68,68,0.08)',
+                        border: '1px solid #ef444466', borderRadius: '3px',
+                        cursor: (closeLoading || auth?.role !== 'commander') ? 'not-allowed' : 'pointer',
+                        fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '11px',
+                        color: auth?.role !== 'commander' ? '#555' : '#ef4444aa',
+                        letterSpacing: '0.04em',
+                      }}
+                      title={auth?.role !== 'commander' ? 'Commander role required to force close' : 'Force close bypasses checklist'}
+                    >
+                      {closeLoading ? 'CLOSING...' : '⚠ FORCE CLOSE (COMMANDER)'}
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Loadout Configurator — slides over the panel when units selected */}
+      {loadoutOpen && (
+        <LoadoutConfigurator
+          incident={incident}
+          selectedUnits={selectedUnits}
+          units={units}
+          onBack={() => setLoadoutOpen(false)}
+          onConfirm={(loadouts) => {
+            setLoadoutOpen(false)
+            setPendingLoadouts(loadouts)
+            onConfirmLoadouts?.(loadouts)
+            setConfirmDispatch(true)
+          }}
+        />
+      )}
+    </div>
+  )
+}

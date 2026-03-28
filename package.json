@@ -1,0 +1,50 @@
+{
+  "name": "pyra",
+  "version": "1.0.0",
+  "description": "Pyra — Wildfire Command Intelligence Platform",
+  "main": "electron/main.js",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\" \"wait-on http://localhost:5173 && electron .\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && python -m uvicorn app.main:app --reload --port 8000",
+    "electron": "electron .",
+    "build": "npm run build:frontend && electron-builder",
+    "build:frontend": "cd frontend && npm run build",
+    "pack": "electron-builder --dir"
+  },
+  "build": {
+    "appId": "com.pyra.wildfire",
+    "productName": "Pyra",
+    "copyright": "Copyright © 2025 Pyra",
+    "directories": { "output": "dist-electron" },
+    "files": ["electron/**/*", "frontend/dist/**/*"],
+    "extraResources": [
+      {
+        "from": "backend",
+        "to": "backend",
+        "filter": ["**/*", "!**/__pycache__/**", "!**/.venv/**", "!**/venv/**", "!**/*.pyc"]
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.utilities",
+      "icon": "electron/assets/icon.icns",
+      "target": ["dmg", "zip"]
+    },
+    "win": {
+      "icon": "electron/assets/icon.ico",
+      "target": ["nsis", "portable"]
+    },
+    "linux": {
+      "icon": "electron/assets/icon.png",
+      "target": ["AppImage"]
+    }
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.2.1",
+    "concurrently": "^8.2.2",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1",
+    "wait-on": "^7.2.0"
+  }
+}
