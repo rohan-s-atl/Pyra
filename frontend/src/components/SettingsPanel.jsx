@@ -35,7 +35,7 @@ export default function SettingsPanel({ onClose }) {
     try {
       const res = await fetch(`${BASE_URL}/health`)
       const data = await res.json()
-      setTestResult({ ok: true, message: `Backend online — ${data.app} v${data.version}` })
+      setTestResult({ ok: true, message: `Backend online — ${data.app} v${data.version}${data.ai_ready ? ' · AI ready' : ' · AI key missing'}` })
     } catch {
       setTestResult({ ok: false, message: `Cannot reach backend at ${BASE_URL || 'http://localhost:8000'}` })
     } finally {

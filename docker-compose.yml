@@ -43,7 +43,6 @@ services:
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:5173}
       - ACCESS_TOKEN_EXPIRE_HOURS=${ACCESS_TOKEN_EXPIRE_HOURS:-8}
       - NASA_FIRMS_API_KEY=${NASA_FIRMS_API_KEY:-}
-      - AIRNOW_API_KEY=${AIRNOW_API_KEY:-}
       - LOCAL_OSRM_URL=http://osrm:5000/route/v1/driving
     depends_on:
       db:

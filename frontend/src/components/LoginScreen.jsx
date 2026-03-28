@@ -150,6 +150,7 @@ export default function LoginScreen({ onLogin }) {
             )}
 
             <button
+              id="pyra-login-btn"
               type="submit"
               disabled={loading || !username || !password}
               style={{
@@ -178,7 +179,7 @@ export default function LoginScreen({ onLogin }) {
           {Object.entries(ROLE_DESC).map(([role, desc]) => (
             <div
               key={role}
-              onClick={() => { setUsername(role); setPassword('pyra2025') }}
+              onClick={() => { setUsername(role); setPassword('pyra2025'); setTimeout(() => document.getElementById('pyra-login-btn')?.click(), 50) }}
               style={{
                 display: 'flex', alignItems: 'center', gap: '10px',
                 padding: '7px 8px', borderRadius: '3px', cursor: 'pointer',

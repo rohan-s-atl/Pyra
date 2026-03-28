@@ -37,11 +37,10 @@ logger = logging.getLogger(__name__)
 ARRIVAL_THRESHOLD_DEG = 0.015
 
 # Waypoints to advance per simulation tick
-# Waypoints advanced per 2-second tick, by unit type.
-# Ground units: 1 step (realistic road speed)
-# Air units: 4 steps (helicopters/tankers travel ~3-4x faster than engines)
+# Ground units: 1 step on even ticks (effectively 0.5 steps/tick = half speed)
+# Air units: 2 steps on even ticks (effectively 1 step/tick, was 4)
 WAYPOINT_STEP_GROUND = 1
-WAYPOINT_STEP_AIR    = 4
+WAYPOINT_STEP_AIR    = 2
 
 
 # ---------------------------------------------------------------------------
@@ -126,11 +125,14 @@ def snap_to_station(db: Session, unit: Unit) -> bool:
 # Movement: en_route
 # ---------------------------------------------------------------------------
 
-def advance_en_route(db: Session, unit: Unit) -> None:
+def advance_en_route(db: Session, unit: Unit, tick: int = 0) -> None:
     """
     Move an en_route unit one step along its cached route.
     Transitions to on_scene when the route end is reached.
+    Only advances on even ticks to halve effective speed.
     """
+    if tick % 2 != 0:
+        return
     step = WAYPOINT_STEP_AIR if is_air_unit(unit.unit_type) else WAYPOINT_STEP_GROUND
     new_pos = advance_waypoint(unit.id, step)
     if new_pos is None:
@@ -170,11 +172,14 @@ def _arrive_on_scene(db: Session, unit: Unit) -> None:
 # Movement: returning
 # ---------------------------------------------------------------------------
 
-def advance_returning(db: Session, unit: Unit) -> None:
+def advance_returning(db: Session, unit: Unit, tick: int = 0) -> None:
     """
     Move a returning unit one step toward its home station.
     Transitions to available when the route end is reached.
+    Only advances on even ticks to halve effective speed.
     """
+    if tick % 2 != 0:
+        return
     station = resolve_home_station(db, unit)
     if not station:
         return
@@ -182,7 +187,10 @@ def advance_returning(db: Session, unit: Unit) -> None:
     step = WAYPOINT_STEP_AIR if is_air_unit(unit.unit_type) else WAYPOINT_STEP_GROUND
     new_pos = advance_waypoint(unit.id, step)
     if new_pos is None:
-        logger.warning("[movement] No cached route for returning unit=%s", unit.id)
+        # No cached route — server restarted or cache was cleared.
+        # Snap directly to base rather than leaving the unit stuck as 'returning'.
+        logger.info("[movement] No cached route for returning unit=%s — snapping to base", unit.id)
+        _arrive_at_base(db, unit, station)
         return
 
     _set_position(unit, new_pos[0], new_pos[1])

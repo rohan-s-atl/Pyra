@@ -266,10 +266,10 @@ async def _build_for_unit(
 
 def _advance_positions(db: Session) -> None:
     for unit in db.query(Unit).filter(Unit.status == "en_route").all():
-        mv.advance_en_route(db, unit)
+        mv.advance_en_route(db, unit, _sim_tick)
 
     for unit in db.query(Unit).filter(Unit.status == "returning").all():
-        mv.advance_returning(db, unit)
+        mv.advance_returning(db, unit, _sim_tick)
 
     for unit in db.query(Unit).filter(\
         Unit.status == "available",

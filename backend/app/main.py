@@ -153,4 +153,5 @@ def health_check():
         "version": settings.app_version,
         "env": settings.env,
         "db": db_status,
+        "ai_ready": bool(settings.anthropic_api_key),
     }

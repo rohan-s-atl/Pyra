@@ -37,6 +37,8 @@ from typing import Callable, Optional
 
 import httpx
 
+from app.core.config import settings
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -45,8 +47,8 @@ logger = logging.getLogger(__name__)
 
 # Public OSRM is primary — free, no key, globally available
 PUBLIC_OSRM_URL = "https://router.project-osrm.org/route/v1/driving"
-# Local OSRM is secondary — only works if operator has it running
-LOCAL_OSRM_URL  = "http://localhost:5001/route/v1/driving"
+# Local OSRM is secondary — reads from settings so Docker env var works correctly
+LOCAL_OSRM_URL  = settings.local_osrm_url
 
 MAX_WAYPOINTS     = 120
 _ENDPOINT_COOLDOWN = 60.0   # seconds before retrying a failed endpoint

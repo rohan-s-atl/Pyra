@@ -37,11 +37,19 @@ export default function TopBar({
   const [optionsMenuOpen, setOptionsMenuOpen] = useState(false)
   const [optionsMenuPos, setOptionsMenuPos] = useState(null)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [aiReady, setAiReady] = useState(null) // null = unknown, true/false = known
   const optionsBtnRef = useRef(null)
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000)
     return () => clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    fetch('/health')
+      .then(r => r.json())
+      .then(d => setAiReady(!!d.ai_ready))
+      .catch(() => setAiReady(false))
   }, [])
 
   // Close on outside click
@@ -148,9 +156,11 @@ export default function TopBar({
         <div style={{ width: '1px', height: '32px', background: '#262626', flexShrink: 0 }} />
 
         {/* Agent status */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.3)', borderRadius: '3px', padding: '3px 10px', flexShrink: 0, whiteSpace: 'nowrap' }}>
-          <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ade80', boxShadow: '0 0 6px #4ade80' }} />
-          <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '11px', color: '#4ade80', letterSpacing: '0.04em' }}>AGENT ACTIVE</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: aiReady === false ? 'rgba(239,68,68,0.1)' : 'rgba(74,222,128,0.1)', border: `1px solid ${aiReady === false ? 'rgba(239,68,68,0.3)' : 'rgba(74,222,128,0.3)'}`, borderRadius: '3px', padding: '3px 10px', flexShrink: 0, whiteSpace: 'nowrap' }}>
+          <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: aiReady === false ? '#ef4444' : '#4ade80', boxShadow: `0 0 6px ${aiReady === false ? '#ef4444' : '#4ade80'}` }} />
+          <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '11px', color: aiReady === false ? '#ef4444' : '#4ade80', letterSpacing: '0.04em' }}>
+            {aiReady === false ? 'AI KEY MISSING' : 'AGENT ACTIVE'}
+          </span>
         </div>
 
         {/* OPTIONS button */}

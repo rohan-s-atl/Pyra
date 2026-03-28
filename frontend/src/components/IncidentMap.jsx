@@ -214,7 +214,7 @@ export default function IncidentMap({
   useEffect(() => {
     if (!selectedUnit) { setClickedRoute(null); return }
     const unit = units.find(u => u.id === selectedUnit)
-    if (!unit || unit.status !== 'en_route' || !unit.assigned_incident_id) {
+    if (!unit || !['en_route', 'returning'].includes(unit.status) || !unit.assigned_incident_id) {
       setClickedRoute(null); return
     }
     const incident = incidents.find(i => i.id === unit.assigned_incident_id)
@@ -379,7 +379,11 @@ export default function IncidentMap({
                     <div style={{ fontWeight: 700, marginBottom: '2px' }}>{UNIT_TYPE_SYMBOL[unit.unit_type]} {unit.designation}</div>
                     <div style={{ color }}>{unit.status.replace(/_/g, ' ').toUpperCase()}</div>
                     {unit.status === 'returning' && <div style={{ color: '#878787', fontSize: '10px' }}>← Returning to station</div>}
-                    {unit.assigned_incident_id && unit.status !== 'returning' && <div style={{ color: '#878787', fontSize: '10px' }}>→ {unit.assigned_incident_id}</div>}
+                    {unit.assigned_incident_id && unit.status !== 'returning' && (
+                      <div style={{ color: '#878787', fontSize: '10px' }}>
+                        → {incidents.find(i => i.id === unit.assigned_incident_id)?.name ?? unit.assigned_incident_id}
+                      </div>
+                    )}
                   </div>
                 </Tooltip>
               </CircleMarker>
