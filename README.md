@@ -190,7 +190,6 @@ cd backend
 python app/scripts/seed_data.py
 ```
 
-> **Note:** The Makefile `make seed` command has a wrong path. Run the script directly as above.
 
 ---
 
