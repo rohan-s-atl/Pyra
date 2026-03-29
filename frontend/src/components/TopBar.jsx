@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { formatClockTime, formatTimezone } from '../utils/timeUtils'
+import { BASE_URL } from '../api/client'
 
 const THREAT_COLOR = {
   low: '#4ade80',
@@ -46,7 +47,7 @@ export default function TopBar({
   }, [])
 
   useEffect(() => {
-    fetch('/health')
+    fetch(`${BASE_URL}/health`)
       .then(r => r.json())
       .then(d => setAiReady(!!d.ai_ready))
       .catch(() => setAiReady(false))
