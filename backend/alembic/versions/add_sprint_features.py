@@ -75,32 +75,24 @@ def upgrade() -> None:
     op.add_column('units', sa.Column('ics_type', sa.String(), nullable=True))
     op.create_index(op.f('ix_units_ics_type'), 'units', ['ics_type'])
 
-    # ── Additional performance indexes ─────────────────────────────────────────
-    # Recommendations query: incident_id is heavily filtered
-    try:
-        op.create_index('idx_recommendations_incident_generated',
-                        'recommendations', ['incident_id', 'generated_at'])
-    except Exception:
-        pass  # index may already exist
-
-    # Alert lookup by incident + acknowledged state
-    try:
-        op.create_index('idx_alert_incident_ack', 'alerts',
-                        ['incident_id', 'is_acknowledged'])
-    except Exception:
-        pass
-
-    # Audit log: actor + action lookups
-    try:
-        op.create_index('idx_audit_actor_action', 'audit_logs', ['actor', 'action'])
-    except Exception:
-        pass
-
-    # Units: composite for position queries
-    try:
-        op.create_index('idx_unit_position', 'units', ['latitude', 'longitude'])
-    except Exception:
-        pass
+    # ── Additional performance indexes (safe, idempotent) ──────────────────────
+    conn = op.get_bind()
+    conn.execute(sa.text(
+        "CREATE INDEX IF NOT EXISTS idx_recommendations_incident_generated "
+        "ON recommendations (incident_id, generated_at)"
+    ))
+    conn.execute(sa.text(
+        "CREATE INDEX IF NOT EXISTS idx_alert_incident_ack "
+        "ON alerts (incident_id, is_acknowledged)"
+    ))
+    conn.execute(sa.text(
+        "CREATE INDEX IF NOT EXISTS idx_audit_actor_action "
+        "ON audit_logs (actor, action)"
+    ))
+    conn.execute(sa.text(
+        "CREATE INDEX IF NOT EXISTS idx_unit_position "
+        "ON units (latitude, longitude)"
+    ))
 
 
 def downgrade() -> None:
