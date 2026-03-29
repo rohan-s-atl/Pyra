@@ -1,54 +1,33 @@
-<svg width="680" height="440" viewBox="0 0 680 440" xmlns="http://www.w3.org/2000/svg">
+<svg width="32" height="32" viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
 
-  <!-- Everything centered at x=340 -->
-  <!-- Letter-spacing adds trailing space equal to the spacing value after last char.
-       At letter-spacing=14, "PYRA" (4 chars) has 3 gaps between + 1 trailing = 4*14=56px extra.
-       So text visual center = x - 14/2 = x - 7. To visually center, use x=347. -->
-
-  <!-- Outer flame — centered at x=340 -->
+  <!-- Outer flame — tight crop, fills viewBox -->
   <path d="
-    M 340,50
-    C 365,80 410,120 415,170
-    C 420,220 400,275 340,295
-    C 280,275 260,220 265,170
-    C 270,120 315,80 340,50
+    M 50,2
+    C 68,22 92,45 94,72
+    C 96,98 80,116 50,118
+    C 20,116 4,98 6,72
+    C 8,45 32,22 50,2
     Z
-  " fill="none" stroke="#F56E0F" stroke-width="14" stroke-linejoin="round"/>
+  " fill="none" stroke="#F56E0F" stroke-width="7" stroke-linejoin="round"/>
 
   <!-- Middle inner flame -->
   <path d="
-    M 340,95
-    C 358,118 385,148 387,183
-    C 389,218 373,255 340,265
-    C 307,255 291,218 293,183
-    C 295,148 322,118 340,95
+    M 50,24
+    C 63,40 80,58 81,78
+    C 82,97 70,110 50,114
+    C 30,110 18,97 19,78
+    C 20,58 37,40 50,24
     Z
-  " fill="none" stroke="#F56E0F" stroke-width="12" stroke-linejoin="round"/>
+  " fill="none" stroke="#F56E0F" stroke-width="6" stroke-linejoin="round"/>
 
   <!-- Innermost core -->
   <path d="
-    M 340,148
-    C 350,163 360,180 358,198
-    C 356,216 348,228 340,232
-    C 332,228 324,216 322,198
-    C 320,180 330,163 340,148
+    M 50,58
+    C 56,68 62,78 61,90
+    C 60,100 55,107 50,108
+    C 45,107 40,100 39,90
+    C 38,78 44,68 50,58
     Z
-  " fill="none" stroke="#F56E0F" stroke-width="10" stroke-linejoin="round"/>
-
-  <!-- Wordmark — x=347 compensates for letter-spacing trailing gap -->
-  <text x="347" y="360" text-anchor="middle" font-family="'Arial', sans-serif" font-size="42" font-weight="700" letter-spacing="14" fill="#FBFBFB">PYRA</text>
-
-  <!-- Tagline — x=343 slight compensation for 5px letter-spacing -->
-  <text x="343" y="388" text-anchor="middle" font-family="'Arial', sans-serif" font-size="11" font-weight="400" letter-spacing="5" fill="#878787">INTELLIGENCE PLATFORM</text>
-
-  <!-- Registration corner marks — symmetric at x=150 and x=530 (340±190) -->
-  <line x1="150" y1="28" x2="185" y2="28" stroke="#262626" stroke-width="1"/>
-  <line x1="150" y1="28" x2="150" y2="63" stroke="#262626" stroke-width="1"/>
-  <line x1="530" y1="28" x2="495" y2="28" stroke="#262626" stroke-width="1"/>
-  <line x1="530" y1="28" x2="530" y2="63" stroke="#262626" stroke-width="1"/>
-  <line x1="150" y1="430" x2="185" y2="430" stroke="#262626" stroke-width="1"/>
-  <line x1="150" y1="430" x2="150" y2="395" stroke="#262626" stroke-width="1"/>
-  <line x1="530" y1="430" x2="495" y2="430" stroke="#262626" stroke-width="1"/>
-  <line x1="530" y1="430" x2="530" y2="395" stroke="#262626" stroke-width="1"/>
+  " fill="none" stroke="#F56E0F" stroke-width="5" stroke-linejoin="round"/>
 
 </svg>
