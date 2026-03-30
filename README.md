@@ -11,9 +11,11 @@ Pyra is a **decision-support system** — it surfaces data and recommendations b
 ## Screenshots
 
 > Live map with spread risk cones, unit positions, and the dispatch intelligence panel.
-![1](https://cdn.discordapp.com/attachments/1487454221971492914/1487594710385033286/image.png?ex=69c9b609&is=69c86489&hm=57ad3ccd1137ca8ece6f5b690e71bd75ebfdc82f38c5cbe397f066c4654880c3)
-![2](https://cdn.discordapp.com/attachments/1487454221971492914/1487594732753260544/image.png?ex=69c9b60e&is=69c8648e&hm=b79301bde15577d11d1bd85cb1c76177b8ce8e32e576c639c108e9d7f10b25e2)
-![3](https://cdn.discordapp.com/attachments/1487454221971492914/1487594760813281464/image.png?ex=69c9b615&is=69c86495&hm=3ec870d4407714725ed64e6066bbb40d992ff33b63b1de5de1658b1c9d6d6199)
+![1](https://cdn.discordapp.com/attachments/1487454221971492914/1487594710385033286/image.png)
+
+![2](https://cdn.discordapp.com/attachments/1487454221971492914/1487594732753260544/image.png)
+
+![3](https://cdn.discordapp.com/attachments/1487454221971492914/1487594760813281464/image.png)
 
 ---
 
