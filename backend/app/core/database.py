@@ -24,8 +24,14 @@ else:
     engine = create_engine(
         settings.database_url,
         connect_args=connect_args,
-        pool_size=10,
-        max_overflow=15,
+        # Railway Postgres hard limit: 25 connections total.
+        # pool_size=7 + max_overflow=10 = 17 max pooled connections.
+        # The remaining ~8 headroom covers health checks and Railway
+        # internal monitoring. Previously size=10+overflow=15=25 exactly
+        # hit the ceiling, leaving nothing for health checks — DB refused
+        # new connections and SQLAlchemy reported it as pool timeout.
+        pool_size=7,
+        max_overflow=10,
         pool_timeout=10,
         pool_recycle=1800,
         pool_pre_ping=True,

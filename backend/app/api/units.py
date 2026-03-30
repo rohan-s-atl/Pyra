@@ -137,11 +137,18 @@ async def build_unit_route(
     if unit.latitude is None or unit.longitude is None:
         raise HTTPException(status_code=422, detail="Unit has no current position")
 
+    # Snapshot needed values then close session — OSRM call can take several
+    # seconds and we must not hold a pool connection open during network I/O.
+    unit_type = unit.unit_type
+    from_lat  = unit.latitude
+    from_lon  = unit.longitude
+    db.close()
+
     route = await _build_route(
         unit_id=unit_id,
-        unit_type=unit.unit_type,
-        from_lat=unit.latitude,
-        from_lon=unit.longitude,
+        unit_type=unit_type,
+        from_lat=from_lat,
+        from_lon=from_lon,
         to_lat=body.to_lat,
         to_lon=body.to_lon,
         force=True,

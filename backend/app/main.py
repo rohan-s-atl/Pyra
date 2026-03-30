@@ -10,7 +10,8 @@ from contextlib import asynccontextmanager
 import logging
 import os
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
+from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
@@ -25,7 +26,7 @@ from app.api import (
 )
 from app.api.auth import seed_users
 from app.core.config import settings
-from app.core.database import SessionLocal, engine
+from app.core.database import SessionLocal, get_db
 from app.core.scheduler import start_scheduler
 
 import app.models  # noqa
@@ -45,13 +46,17 @@ def seed_default_users() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Use a pooled session for the startup DB check so it doesn't consume an
+    # extra connection outside the pool on every deploy/restart.
+    db = SessionLocal()
     try:
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
+        db.execute(text("SELECT 1"))
         logger.info("Database connection verified.")
     except Exception as exc:
         logger.error("Database connection failed on startup: %s", exc)
         raise
+    finally:
+        db.close()
 
     # FIX: only seed when ENV is explicitly a development value.
     # Previously ran whenever is_development was True, which includes
@@ -120,10 +125,12 @@ app.include_router(ingestion.router)
 
 
 @app.get("/health", tags=["System"])
-def health_check():
+def health_check(db: Session = Depends(get_db)):
+    # Use a pooled session (Depends(get_db)) instead of engine.connect() so the
+    # health check draws from the pool rather than opening an extra connection
+    # outside it. Previously this pushed past Railway's 25-connection hard limit.
     try:
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
+        db.execute(text("SELECT 1"))
         db_status = "connected"
     except Exception as e:
         logger.error("Health check DB error: %s", e)
