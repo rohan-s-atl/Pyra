@@ -8,7 +8,7 @@ import EvacZonesOverlay from './EvacZonesOverlay'
 import FirePerimetersOverlay from './FirePerimetersOverlay'
 import RiskHeatmapOverlay from './RiskHeatmapOverlay'
 import WaterSourcesOverlay from './WaterSourcesOverlay'
-import { api } from '../api/client'
+import { api, BASE_URL } from '../api/client'
 
 const SEVERITY_COLOR = {
   critical: '#ef4444',
@@ -236,7 +236,7 @@ export default function IncidentMap({
         return
       }
 
-      fetch(`/api/units/${unit.id}/route`, {
+      fetch(`${BASE_URL}/api/units/${unit.id}/route`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -268,7 +268,7 @@ export default function IncidentMap({
       setClickedRoute({ type: 'ground', coords: clickedRouteCache.current[key] }); return
     }
 
-    fetch(`/api/units/${unit.id}/route`, {
+    fetch(`${BASE_URL}/api/units/${unit.id}/route`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

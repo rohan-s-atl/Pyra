@@ -197,14 +197,22 @@ async def _build_pending_routes() -> None:
         return
 
     logger.info("[route_builder] Building %d route(s)", len(pending))
-    tasks = [
-        _build_for_unit(uid, utype, flat, flon, tlat, tlon, label)
-        for uid, utype, flat, flon, tlat, tlon, label in pending
-    ]
-    results = await asyncio.gather(*tasks, return_exceptions=True)
-    for r in results:
-        if isinstance(r, Exception):
-            logger.error("[route_builder] Route task raised: %s", r)
+
+    # Process in batches of 5 with a 1.5s delay between batches to stay
+    # within ORS free tier rate limit (40 req/min = ~1.5s between groups of 5)
+    BATCH_SIZE = 5
+    for i in range(0, len(pending), BATCH_SIZE):
+        batch = pending[i:i + BATCH_SIZE]
+        tasks = [
+            _build_for_unit(uid, utype, flat, flon, tlat, tlon, label)
+            for uid, utype, flat, flon, tlat, tlon, label in batch
+        ]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        for r in results:
+            if isinstance(r, Exception):
+                logger.error("[route_builder] Route task raised: %s", r)
+        if i + BATCH_SIZE < len(pending):
+            await asyncio.sleep(1.5)  # stay under ORS 40 req/min free tier
 
 
 async def _build_for_unit(
