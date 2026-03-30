@@ -1,3 +1,4 @@
+import { BASE_URL } from '../api/client'
 import { etaTimeString } from '../utils/timeUtils'
 
 /**
@@ -18,7 +19,7 @@ const AIR_TYPES = new Set(['helicopter', 'air_tanker'])
 async function fetchBackendRoute(unitId, toLat, toLon) {
   try {
     const token = localStorage.getItem('token') ?? ''
-    const res = await fetch(`/api/units/${unitId}/route`, {
+    const res = await fetch(`${BASE_URL}/api/units/${unitId}/route`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
