@@ -156,8 +156,12 @@ async def chat(
         .all()
     )
 
+    # Build the full system prompt from ORM objects while the session is still open
     system   = _build_system(incident, units_on, units_en, alerts)
     messages = [{"role": m.role, "content": m.content} for m in body.messages]
+    # Everything needed is now in plain strings — close the session so the
+    # connection is returned to the pool before the AI stream begins (up to 30s).
+    db.close()
 
     async def stream_generator():
         try:

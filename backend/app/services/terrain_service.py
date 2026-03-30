@@ -19,53 +19,68 @@ logger = logging.getLogger(__name__)
 async def enrich_incidents_terrain():
     """
     Background job — fetch terrain data for all active incidents and update the DB.
-    Only fetches for incidents that don't yet have terrain data or whose data is stale.
+
+    Phase 1: read incident list, close session.
+    Phase 2: sequential async terrain fetches with no connection held.
+    Phase 3: fresh session to write results.
     """
+    # Phase 1: read
     db: Session = SessionLocal()
+    try:
+        incident_snapshots = [
+            {"id": inc.id, "name": inc.name, "lat": inc.latitude, "lon": inc.longitude}
+            for inc in db.query(Incident).filter(
+                Incident.status.in_(["active", "contained"]),
+                Incident.elevation_m.is_(None),
+            ).all()
+        ]
+    finally:
+        db.close()
+
+    if not incident_snapshots:
+        logger.info("[terrain_service] All incidents already have terrain data.")
+        return {"updated": 0, "failed": 0}
+
+    logger.info("[terrain_service] Fetching terrain for %d incidents...", len(incident_snapshots))
+
+    # Phase 2: async fetches — no DB connection held open
+    fetch_results = []
+    for snap in incident_snapshots:
+        try:
+            terrain = await estimate_slope(snap["lat"], snap["lon"])
+            fetch_results.append((snap, terrain))
+            logger.info(
+                "[terrain_service] %s: %dm, slope=%s%%, aspect=%s",
+                snap["name"], terrain["elevation_m"],
+                terrain["slope_percent"], terrain["aspect_cardinal"],
+            )
+        except Exception as e:
+            logger.warning("[terrain_service] Failed for %s: %s", snap["name"], e)
+            fetch_results.append((snap, None))
+
+    # Phase 3: write
     updated = 0
     failed  = 0
-
+    db = SessionLocal()
     try:
-        # Target incidents missing terrain data
-        incidents = db.query(Incident).filter(
-            Incident.status.in_(["active", "contained"]),
-            Incident.elevation_m.is_(None),
-        ).all()
-
-        if not incidents:
-            logger.info("[terrain_service] All incidents already have terrain data.")
-            db.close()
-            return {"updated": 0, "failed": 0}
-
-        logger.info(f"[terrain_service] Fetching terrain for {len(incidents)} incidents...")
-
-        for incident in incidents:
-            try:
-                terrain = await estimate_slope(incident.latitude, incident.longitude)
-
-                incident.elevation_m     = terrain["elevation_m"]
-                incident.slope_percent   = terrain["slope_percent"]
-                incident.aspect_cardinal = terrain["aspect_cardinal"]
-                incident.updated_at      = datetime.now(UTC)
-                updated += 1
-
-                logger.info(
-                    f"[terrain_service] {incident.name}: "
-                    f"{terrain['elevation_m']}m, "
-                    f"slope={terrain['slope_percent']}%, "
-                    f"aspect={terrain['aspect_cardinal']}"
-                )
-
-            except Exception as e:
-                logger.warning(f"[terrain_service] Failed for {incident.name}: {e}")
+        for snap, terrain in fetch_results:
+            if terrain is None:
                 failed += 1
-
+                continue
+            incident = db.query(Incident).filter(Incident.id == snap["id"]).first()
+            if not incident:
+                failed += 1
+                continue
+            incident.elevation_m     = terrain["elevation_m"]
+            incident.slope_percent   = terrain["slope_percent"]
+            incident.aspect_cardinal = terrain["aspect_cardinal"]
+            incident.updated_at      = datetime.now(UTC)
+            updated += 1
         db.commit()
-        logger.info(f"[terrain_service] Done. Updated: {updated}, Failed: {failed}")
-
+        logger.info("[terrain_service] Done. Updated: %d, Failed: %d", updated, failed)
     except Exception as e:
         db.rollback()
-        logger.error(f"[terrain_service] Error: {e}")
+        logger.error("[terrain_service] Error writing terrain: %s", e)
     finally:
         db.close()
 

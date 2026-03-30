@@ -105,31 +105,46 @@ def _maybe_create_gust_alert(db, incident: Incident, wind_mph: float) -> None:
 async def update_incident_weather() -> dict:
     """
     Background job — fetch weather for all active incidents concurrently.
-    All fetches run in parallel via asyncio.gather; total time ≈ single fetch.
+    Phase 1: read incident coords from DB, then close the session.
+    Phase 2: fire all HTTP fetches concurrently with no session held open.
+    Phase 3: open a fresh session only to write results back.
     """
-    db = SessionLocal()
     updated = 0
     failed  = 0
 
+    # Phase 1: read — grab coords and IDs, release connection immediately
+    db = SessionLocal()
     try:
-        active_incidents = db.query(Incident).filter(
-            Incident.status.in_(["active", "contained"])
-        ).all()
+        incident_snapshots = [
+            {"id": inc.id, "lat": inc.latitude, "lon": inc.longitude, "name": inc.name}
+            for inc in db.query(Incident).filter(
+                Incident.status.in_(["active", "contained"])
+            ).all()
+        ]
+    finally:
+        db.close()
 
-        if not active_incidents:
-            return {"updated": 0, "failed": 0}
+    if not incident_snapshots:
+        return {"updated": 0, "failed": 0}
 
-        logger.info("[weather_service] Updating weather for %d incidents (concurrent)...",
-                    len(active_incidents))
+    logger.info("[weather_service] Updating weather for %d incidents (concurrent)...",
+                len(incident_snapshots))
 
-        # Fetch all concurrently
-        results = await asyncio.gather(
-            *[fetch_weather(inc.latitude, inc.longitude) for inc in active_incidents],
-            return_exceptions=True,
-        )
+    # Phase 2: concurrent HTTP — no DB connection held open
+    results = await asyncio.gather(
+        *[fetch_weather(s["lat"], s["lon"]) for s in incident_snapshots],
+        return_exceptions=True,
+    )
 
-        for incident, weather in zip(active_incidents, results):
+    # Phase 3: write — open a new session just for the DB updates
+    db = SessionLocal()
+    try:
+        for snapshot, weather in zip(incident_snapshots, results):
             if isinstance(weather, Exception) or weather is None:
+                failed += 1
+                continue
+            incident = db.query(Incident).filter(Incident.id == snapshot["id"]).first()
+            if not incident:
                 failed += 1
                 continue
             _update_incident_from_weather(incident, weather)
@@ -137,13 +152,11 @@ async def update_incident_weather() -> dict:
             wind = weather.get("wind_speed_mph") or 0
             if wind >= 35:
                 _maybe_create_gust_alert(db, incident, wind)
-
         db.commit()
         logger.info("[weather_service] Done. Updated: %d, Failed: %d", updated, failed)
-
     except Exception as exc:
         db.rollback()
-        logger.error("[weather_service] Error: %s", exc, exc_info=True)
+        logger.error("[weather_service] Error writing results: %s", exc, exc_info=True)
     finally:
         db.close()
 

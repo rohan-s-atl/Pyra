@@ -131,6 +131,10 @@ async def post_incident_review(
         f"Keep total length under 600 words. No bullet points."
     )
 
+    # All DB data is now in plain Python values — release the connection before
+    # the AI stream begins (up to 45s).
+    db.close()
+
     # ── Async streaming response ─────────────────────────────────────────────
     async def stream():
         try:

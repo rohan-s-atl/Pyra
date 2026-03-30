@@ -112,28 +112,46 @@ def _maybe_create_aqi_alert(db, incident: Incident, aqi_data: dict, severity: st
 async def update_incident_aqi() -> dict:
     """
     Background job — fetch AQI for all active incidents concurrently.
+    Phase 1: read coords from DB and close session.
+    Phase 2: concurrent HTTP fetches with no connection held.
+    Phase 3: fresh session to write results.
     """
-    db = SessionLocal()
     updated = 0
     failed  = 0
 
+    # Phase 1: read
+    db = SessionLocal()
     try:
-        incidents = db.query(Incident).filter(
-            Incident.status.in_(["active", "contained"])
-        ).all()
+        incident_snapshots = [
+            {"id": inc.id, "lat": inc.latitude, "lon": inc.longitude}
+            for inc in db.query(Incident).filter(
+                Incident.status.in_(["active", "contained"])
+            ).all()
+        ]
+    finally:
+        db.close()
 
-        if not incidents:
-            return {"updated": 0, "failed": 0}
+    if not incident_snapshots:
+        return {"updated": 0, "failed": 0}
 
-        logger.info("[aqi_service] Updating AQI for %d incidents (concurrent)...", len(incidents))
+    logger.info("[aqi_service] Updating AQI for %d incidents (concurrent)...",
+                len(incident_snapshots))
 
-        results = await asyncio.gather(
-            *[fetch_aqi(inc.latitude, inc.longitude) for inc in incidents],
-            return_exceptions=True,
-        )
+    # Phase 2: concurrent HTTP — no DB connection held open
+    results = await asyncio.gather(
+        *[fetch_aqi(s["lat"], s["lon"]) for s in incident_snapshots],
+        return_exceptions=True,
+    )
 
-        for incident, aqi_data in zip(incidents, results):
+    # Phase 3: write
+    db = SessionLocal()
+    try:
+        for snapshot, aqi_data in zip(incident_snapshots, results):
             if isinstance(aqi_data, Exception) or aqi_data is None:
+                failed += 1
+                continue
+            incident = db.query(Incident).filter(Incident.id == snapshot["id"]).first()
+            if not incident:
                 failed += 1
                 continue
             incident.aqi          = aqi_data["aqi"]
@@ -143,13 +161,11 @@ async def update_incident_aqi() -> dict:
             severity = _aqi_alert_severity(aqi_data["aqi"])
             if severity:
                 _maybe_create_aqi_alert(db, incident, aqi_data, severity)
-
         db.commit()
         logger.info("[aqi_service] Done. Updated: %d, Failed: %d", updated, failed)
-
     except Exception as exc:
         db.rollback()
-        logger.error("[aqi_service] Error: %s", exc)
+        logger.error("[aqi_service] Error writing results: %s", exc)
     finally:
         db.close()
 

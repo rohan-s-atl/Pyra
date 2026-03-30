@@ -16,7 +16,7 @@ import json
 import logging
 import asyncio
 
-from app.core.database import get_db
+from app.core.database import get_db, SessionLocal
 from app.core.config import settings
 from app.core.security import require_any_role
 from app.core.limiter import limiter
@@ -113,7 +113,9 @@ async def generate_briefing(
         Alert.is_acknowledged.is_(False),
     ).order_by(Alert.created_at.desc()).limit(10).all()
 
+    # Build prompt while session is open, then close before streaming (up to 30s AI call)
     prompt = _build_prompt(incident, units_on_scene, units_en_route, active_alerts)
+    db.close()
 
     async def stream_briefing():
         try:
@@ -205,17 +207,20 @@ async def generate_handoff_briefing(
     if not incident:
         raise HTTPException(status_code=404, detail=f"Incident '{incident_id}' not found")
 
-    # FIX: `since` is now actually applied to the query — previously it was
-    # computed but never used, causing ALL alerts to be included in the briefing.
     since = datetime.now(UTC) - timedelta(hours=period_hours)
 
     recent_alerts = db.query(Alert).filter(
         Alert.incident_id == incident_id,
-        Alert.created_at >= since,          # ← the fix
+        Alert.created_at >= since,
     ).all()
 
     units = db.query(Unit).filter(Unit.assigned_incident_id == incident_id).all()
-    prompt = _build_handoff_prompt(incident, recent_alerts, units, period_hours)
+
+    # Build prompt and snapshot incident name before closing the session
+    prompt        = _build_handoff_prompt(incident, recent_alerts, units, period_hours)
+    incident_name = incident.name
+    username      = current_user.username
+    db.close()  # Release connection before the AI call (up to 30s)
 
     try:
         content = await _generate_handoff_text(prompt, api_key)
@@ -225,23 +230,30 @@ async def generate_handoff_briefing(
         logger.error("Handoff briefing error: %s", exc)
         raise HTTPException(status_code=500, detail="AI request failed")
 
-    briefing = ShiftBriefing(
-        id=str(uuid.uuid4()),
-        incident_id=incident_id,
-        generated_at=datetime.now(UTC),
-        generated_by=current_user.username,
-        trigger="manual",
-        period_hours=str(period_hours),
-        content=content,
-    )
-    db.add(briefing)
-    db.commit()
+    # Re-open session only to persist the result
+    db2 = SessionLocal()
+    try:
+        briefing = ShiftBriefing(
+            id=str(uuid.uuid4()),
+            incident_id=incident_id,
+            generated_at=datetime.now(UTC),
+            generated_by=username,
+            trigger="manual",
+            period_hours=str(period_hours),
+            content=content,
+        )
+        db2.add(briefing)
+        db2.commit()
+        briefing_id  = briefing.id
+        generated_at = briefing.generated_at.isoformat()
+    finally:
+        db2.close()
 
     return {
-        "briefing_id":   briefing.id,
+        "briefing_id":   briefing_id,
         "incident_id":   incident_id,
-        "incident_name": incident.name,
-        "generated_at":  briefing.generated_at.isoformat(),
+        "incident_name": incident_name,
+        "generated_at":  generated_at,
         "period_hours":  period_hours,
         "trigger":       "manual",
         "content":       content,

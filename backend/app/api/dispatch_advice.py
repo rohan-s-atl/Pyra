@@ -113,6 +113,47 @@ def _rule_based_assessment(
     return {"advice": advice, "assessment": assessment, "loadout": loadout_str}
 
 
+def _rule_based_assessment_from_snapshot(
+    snapshot: dict,
+    selected_units: list,
+    loadout_str: str,
+    rec_str: str,
+) -> dict:
+    """Same as _rule_based_assessment but accepts a plain dict snapshot instead of
+    an ORM Incident object — used after the DB session has been released."""
+    type_counts = {}
+    for u in selected_units:
+        type_counts[u.unit_type] = type_counts.get(u.unit_type, 0) + 1
+
+    profile   = select_loadout_profile(snapshot)
+    rec_types = {r["unit_type"] for r in UNIT_RULES.get(profile, [])}
+    missing   = rec_types - set(type_counts.keys())
+
+    if not missing:
+        assessment = "optimal"
+        advice = (
+            f"OPTIMAL — Proposed dispatch ({loadout_str}) covers all recommended unit types "
+            f"for {profile.replace('_', ' ')} posture. No critical gaps identified."
+        )
+    elif len(missing) <= 1:
+        assessment = "adequate"
+        m = ", ".join(UNIT_TYPE_LABEL.get(t, t) for t in missing)
+        advice = (
+            f"ADEQUATE — Dispatch covers most recommended types; consider adding {m} "
+            f"for full {profile.replace('_', ' ')} posture."
+        )
+    else:
+        assessment = "suboptimal"
+        m = ", ".join(UNIT_TYPE_LABEL.get(t, t) for t in missing)
+        advice = (
+            f"SUBOPTIMAL — Missing recommended unit types: {m}. "
+            f"Add these before dispatch for {snapshot['severity'].upper()} "
+            f"{snapshot['fire_type'].replace('_', ' ')} conditions."
+        )
+
+    return {"advice": advice, "assessment": assessment, "loadout": loadout_str}
+
+
 # ---------------------------------------------------------------------------
 # Endpoint
 # ---------------------------------------------------------------------------
@@ -129,14 +170,14 @@ async def dispatch_advice(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_dispatcher_or_above),
 ):
+    from fastapi import HTTPException
+
     incident = db.query(Incident).filter(Incident.id == incident_id).first()
     if not incident:
-        from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Incident not found")
 
     selected_units = db.query(Unit).filter(Unit.id.in_(body.unit_ids)).all()
     if not selected_units:
-        from fastapi import HTTPException
         raise HTTPException(status_code=400, detail="No valid units provided")
 
     # Build loadout string
@@ -170,17 +211,35 @@ async def dispatch_advice(
         for r in rec_units
     ) or "No recommendation available"
 
+    # Snapshot everything needed for the prompt and fallback BEFORE the AI call
+    # so the DB session (and its connection) can be released before the await.
+    incident_snapshot = {
+        "name":                  incident.name,
+        "fire_type":             incident.fire_type,
+        "severity":              incident.severity,
+        "wind_speed_mph":        incident.wind_speed_mph,
+        "spread_direction":      incident.spread_direction,
+        "humidity_percent":      incident.humidity_percent,
+        "spread_risk":           incident.spread_risk,
+        "structures_threatened": incident.structures_threatened,
+    }
+    # db goes out of scope here and FastAPI's Depends will close it after the
+    # response, but we no longer touch it after this point — the connection is
+    # idle for the full AI call duration otherwise (up to 15 s).
+
     # ── No API key — use rule-based fallback ─────────────────────────────────
     if not settings.anthropic_api_key:
-        return _rule_based_assessment(incident, selected_units, loadout_str, rec_str)
+        return _rule_based_assessment_from_snapshot(
+            incident_snapshot, selected_units, loadout_str, rec_str
+        )
 
     prompt = (
         f"You are a CAL FIRE dispatch advisor AI. Evaluate this unit dispatch in exactly 2 sentences.\n\n"
-        f"INCIDENT: {incident.name}\n"
-        f"TYPE: {incident.fire_type.replace('_',' ').title()} | SEVERITY: {incident.severity.upper()}\n"
-        f"WIND: {incident.wind_speed_mph or 0:.0f} mph {incident.spread_direction or ''} | "
-        f"HUMIDITY: {incident.humidity_percent or 0:.0f}% | SPREAD RISK: {(incident.spread_risk or '').upper()}\n"
-        f"STRUCTURES THREATENED: {incident.structures_threatened or 0}\n"
+        f"INCIDENT: {incident_snapshot['name']}\n"
+        f"TYPE: {incident_snapshot['fire_type'].replace('_',' ').title()} | SEVERITY: {incident_snapshot['severity'].upper()}\n"
+        f"WIND: {incident_snapshot['wind_speed_mph'] or 0:.0f} mph {incident_snapshot['spread_direction'] or ''} | "
+        f"HUMIDITY: {incident_snapshot['humidity_percent'] or 0:.0f}% | SPREAD RISK: {(incident_snapshot['spread_risk'] or '').upper()}\n"
+        f"STRUCTURES THREATENED: {incident_snapshot['structures_threatened'] or 0}\n"
         f"ALREADY ON SCENE/EN ROUTE: {on_scene_str}\n"
         f"SYSTEM RECOMMENDATION: {rec_str}\n"
         f"PROPOSED DISPATCH: {loadout_str}\n\n"
@@ -201,7 +260,9 @@ async def dispatch_advice(
         advice = message.content[0].text.strip()
     except (asyncio.TimeoutError, Exception) as e:
         logger.warning("[dispatch_advice] AI call failed: %s — using rule-based fallback", e)
-        return _rule_based_assessment(incident, selected_units, loadout_str, rec_str)
+        return _rule_based_assessment_from_snapshot(
+            incident_snapshot, selected_units, loadout_str, rec_str
+        )
 
     upper = advice.upper()
     if "OPTIMAL" in upper and "SUB" not in upper:
