@@ -32,6 +32,18 @@ const UNIT_CAPACITY = {
   rescue:       { water_gal: 0,    foam_pct_max: 0  },
 }
 
+// Default loadout shown when unit is dispatched without going through configurator
+const DEFAULT_LOADOUTS = {
+  engine:       { water_pct: 100, foam_pct: 0, retardant_pct: 0, equipment: ['Hand tools (Pulaskis, McLeods)', 'Medical kit (ALS)'] },
+  water_tender: { water_pct: 100, foam_pct: 0, retardant_pct: 0, equipment: ['Portable tank (3000 gal)', 'Extra hose (200ft)'] },
+  helicopter:   { water_pct: 100, foam_pct: 0, retardant_pct: 0, equipment: ['Helibucket (300 gal)', 'Medical kit (flight medic)'] },
+  air_tanker:   { water_pct: 0,   foam_pct: 0, retardant_pct: 100, equipment: ['Fire retardant (Phos-Chek)', 'Air tactical radio package'] },
+  hand_crew:    { water_pct: 0,   foam_pct: 0, retardant_pct: 0, equipment: ['Chainsaws (2×)', 'Hand tools (full set)', 'Medical kit (ALS)'] },
+  dozer:        { water_pct: 0,   foam_pct: 0, retardant_pct: 0, equipment: ['Dozer blade (standard)', 'Fire shelter (operator)'] },
+  command_unit: { water_pct: 0,   foam_pct: 0, retardant_pct: 0, equipment: ['Satellite comms', 'GIS / mapping laptop'] },
+  rescue:       { water_pct: 0,   foam_pct: 0, retardant_pct: 0, equipment: ['ALS medical kit', 'Oxygen / airway kit'] },
+}
+
 const MAP_VIEWS = [
   { id: 'live',  icon: '⬡', label: 'Live Map',   desc: 'Fires + Units' },
   { id: 'fires', icon: '🔥', label: 'Fires Only', desc: 'Incidents & Risk' },
@@ -39,7 +51,7 @@ const MAP_VIEWS = [
 ]
 
 
-function UnitLoadoutTooltip({ unit, loadout, rect }) {
+function UnitLoadoutTooltip({ unit, loadout, rect, isDefault = false }) {
   if (!loadout || !rect) return null
   const cap = UNIT_CAPACITY[unit.unit_type] ?? {}
   const hasWater     = cap.water_gal > 0
@@ -75,8 +87,8 @@ function UnitLoadoutTooltip({ unit, loadout, rect }) {
         <div style={{ position: 'absolute', left: '-5px', top: '50%', transform: 'translateY(-50%)', width: 0, height: 0, borderTop: '5px solid transparent', borderBottom: '5px solid transparent', borderRight: '5px solid #F56E0F66' }} />
       )}
 
-      <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '9px', color: '#F56E0F', letterSpacing: '0.06em', marginBottom: '8px' }}>
-        ⬡ CONFIRMED LOADOUT · {unit.designation}
+      <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '9px', color: isDefault ? '#60a5fa' : '#F56E0F', letterSpacing: '0.06em', marginBottom: '8px' }}>
+        {isDefault ? '◈ STANDARD LOADOUT' : '⬡ CONFIRMED LOADOUT'} · {unit.designation}
       </div>
 
       {hasWater && (
@@ -136,26 +148,35 @@ function UnitLoadoutTooltip({ unit, loadout, rect }) {
 
 function UnitCard({ unit, confirmedLoadouts, onUnitClick }) {
   const [tooltipRect, setTooltipRect] = useState(null)
-  const loadout = confirmedLoadouts[unit.id] ?? null
+  const confirmedLoadout = confirmedLoadouts[unit.id] ?? null
+  const isActive = ['en_route', 'on_scene', 'staging'].includes(unit.status)
+  const isReturning = unit.status === 'returning'
+
+  // Show confirmed loadout if available, default if unit is active, nothing if returning/available
+  const loadout = isReturning ? null
+    : confirmedLoadout
+    ?? (isActive ? DEFAULT_LOADOUTS[unit.unit_type] ?? null : null)
+
+  const isDefault = loadout && !confirmedLoadout
   const cap = UNIT_CAPACITY[unit.unit_type] ?? {}
 
   return (
     <>
-      {tooltipRect && <UnitLoadoutTooltip unit={unit} loadout={loadout} rect={tooltipRect} />}
+      {tooltipRect && <UnitLoadoutTooltip unit={unit} loadout={loadout} rect={tooltipRect} isDefault={isDefault} />}
       <div
         onClick={() => onUnitClick?.(unit)}
         style={{
           padding: '6px 8px', marginBottom: '4px',
           background: '#1B1B1E', borderRadius: '3px',
-          border: `1px solid ${loadout ? '#F56E0F33' : '#262626'}`,
+          border: `1px solid ${loadout ? (isDefault ? '#60a5fa33' : '#F56E0F33') : '#262626'}`,
           cursor: 'pointer', transition: 'border-color 0.15s',
         }}
         onMouseEnter={e => {
-          e.currentTarget.style.borderColor = '#F56E0F'
+          e.currentTarget.style.borderColor = isDefault ? '#60a5fa' : loadout ? '#F56E0F' : '#444'
           if (loadout) setTooltipRect(e.currentTarget.getBoundingClientRect())
         }}
         onMouseLeave={e => {
-          e.currentTarget.style.borderColor = loadout ? '#F56E0F33' : '#262626'
+          e.currentTarget.style.borderColor = loadout ? (isDefault ? '#60a5fa33' : '#F56E0F33') : '#262626'
           setTooltipRect(null)
         }}
       >
@@ -164,8 +185,10 @@ function UnitCard({ unit, confirmedLoadouts, onUnitClick }) {
           <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '13px', color: '#FBFBFB' }}>
             {unit.designation}
           </span>
-          {loadout && unit.status !== 'returning' ? (
-            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '8px', color: '#F56E0F', fontWeight: 700, marginLeft: 'auto', letterSpacing: '0.04em' }}>⬡ LOADED</span>
+          {loadout && !isReturning ? (
+            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '8px', color: isDefault ? '#60a5fa' : '#F56E0F', fontWeight: 700, marginLeft: 'auto', letterSpacing: '0.04em' }}>
+              {isDefault ? '◈ STD' : '⬡ LOADED'}
+            </span>
           ) : (
             <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', color: '#878787', marginLeft: 'auto' }}>📍</span>
           )}
@@ -183,7 +206,7 @@ function UnitCard({ unit, confirmedLoadouts, onUnitClick }) {
           if (loadout.retardant_pct > 0) parts.push(`${loadout.retardant_pct}% retardant`)
           const eqCount = (loadout.equipment ?? []).length
           return (
-            <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#60a5fa', lineHeight: 1.4 }}>
+            <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: isDefault ? '#60a5fa' : '#60a5fa', lineHeight: 1.4 }}>
               {parts.join(' · ')}
               {eqCount > 0 && <span style={{ color: '#878787' }}> · {eqCount} items</span>}
             </div>
