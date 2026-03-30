@@ -10,11 +10,16 @@ Pyra is a **decision-support system** — it surfaces data and recommendations b
 
 ## Screenshots
 
-> Live map with spread risk cones, unit positions, and the dispatch intelligence panel.
+**> Live map with spread risk cones, unit positions, and the dispatch intelligence panel.**
+
 ![1](https://cdn.discordapp.com/attachments/1487454221971492914/1487594710385033286/image.png?ex=69c9b609&is=69c86489&hm=57ad3ccd1137ca8ece6f5b690e71bd75ebfdc82f38c5cbe397f066c4654880c3)
-> Live wildfire command map showing unit positions, water sources, active alerts, and real-time threat analytics.
+
+**> Live wildfire command map showing unit positions, water sources, active alerts, and real-time threat analytics.**
+
 ![2](https://media.discordapp.net/attachments/1487454221971492914/1487594732753260544/image.png?ex=69cbb04e&is=69ca5ece&hm=cce940945ed5b0737fbe351a0bf4bf4cb4fcc8af718a15517c48158c8115a40e&=&format=webp&quality=lossless&width=2192&height=1382)
-> AI dispatch interface with optimal routing, recommended unit deployment, and tactical decision support panel.
+
+**> AI dispatch interface with optimal routing, recommended unit deployment, and tactical decision support panel.**
+
 ![3](https://cdn.discordapp.com/attachments/1487454221971492914/1487594760813281464/image.png?ex=69c9b615&is=69c86495&hm=3ec870d4407714725ed64e6066bbb40d992ff33b63b1de5de1658b1c9d6d6199)
 
 ---
