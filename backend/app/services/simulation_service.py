@@ -16,7 +16,7 @@ from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
-from app.core.database import SessionLocal
+from app.core.database import SessionLocal, SimSessionLocal
 from app.models.alert import Alert
 from app.models.incident import Incident
 from app.models.resource import Resource
@@ -64,38 +64,44 @@ def _tick() -> None:
     global _sim_tick
     _sim_tick += 1
 
-    db: Session = SessionLocal()
+    # Each phase gets its own short-lived session so the DB connection is
+    # acquired and released per-phase rather than held open for the whole tick.
+    # This keeps pool usage at 1 connection at a time instead of accumulating
+    # open connections across phases when ticks run long or overlap slightly.
+    _run_phase("advance_positions",    _advance_positions)
+    _run_phase("rotate_on_scene",      _rotate_on_scene_units)
+    _run_phase("progress_containment", _progress_containment)
+    _run_phase("grow_acreage",         _grow_acreage)
+    _run_phase("vary_weather",         _vary_weather)
+
+    if _sim_tick % ALERT_CHECK_INTERVAL == 0:
+        _run_phase("weather_alerts",     _check_weather_alerts)
+        _run_phase("operational_alerts", _check_operational_alerts)
+
+    if _sim_tick % ROUTE_UPDATE_INTERVAL == 0:
+        _run_phase("route_conditions", _update_route_conditions)
+
+    if _sim_tick % PRUNE_INTERVAL == 0:
+        _run_phase("alert_pruning", _prune_old_alerts)
+
+
+def _run_phase(name: str, fn) -> None:
+    """
+    Run a single simulation phase in its own session.
+
+    Opening and closing the session per-phase means the connection returns to
+    the pool immediately after each phase completes — even if the phase fails.
+    A failed phase no longer poisons the session for subsequent phases.
+    """
+    db: Session = SimSessionLocal()
     try:
-        _run_phase("advance_positions",    _advance_positions,     db)
-        _run_phase("rotate_on_scene",      _rotate_on_scene_units, db)
-        _run_phase("progress_containment", _progress_containment,  db)
-        _run_phase("grow_acreage",         _grow_acreage,          db)
-        _run_phase("vary_weather",         _vary_weather,          db)
-
-        if _sim_tick % ALERT_CHECK_INTERVAL == 0:
-            _run_phase("weather_alerts",     _check_weather_alerts,     db)
-            _run_phase("operational_alerts", _check_operational_alerts, db)
-
-        if _sim_tick % ROUTE_UPDATE_INTERVAL == 0:
-            _run_phase("route_conditions", _update_route_conditions, db)
-
-        if _sim_tick % PRUNE_INTERVAL == 0:
-            _run_phase("alert_pruning", _prune_old_alerts, db)
-
+        fn(db)
         db.commit()
-    except Exception:
+    except Exception as exc:
         db.rollback()
-        raise
+        logger.error("[simulation] Phase '%s' failed (tick %d): %s", name, _sim_tick, exc)
     finally:
         db.close()
-
-
-def _run_phase(name: str, fn, db: Session) -> None:
-    try:
-        with db.begin_nested():
-            fn(db)
-    except Exception as exc:
-        logger.error("[simulation] Phase '%s' failed (tick %d): %s", name, _sim_tick, exc)
 
 
 async def run_route_builder() -> None:
@@ -112,8 +118,12 @@ async def run_route_builder() -> None:
 
 
 async def _build_pending_routes() -> None:
-    db: Session = SessionLocal()
+    # Phase 1: collect pending work in a short-lived session, then close it
+    # BEFORE doing any async OSRM network I/O. This is critical — holding a
+    # session open across awaits ties up a pool connection for the full
+    # duration of the HTTP calls (potentially many seconds).
     pending: list[tuple] = []
+    db: Session = SessionLocal()
     try:
         units = db.query(Unit).filter(Unit.status.in_(["en_route", "returning"])).all()
 
@@ -152,11 +162,12 @@ async def _build_pending_routes() -> None:
 
         db.commit()
     finally:
-        db.close()
+        db.close()  # Release connection BEFORE async I/O begins
 
     if not pending:
         return
 
+    # Phase 2: async OSRM calls with no session held open
     logger.info("[route_builder] Building %d route(s)", len(pending))
     BATCH_SIZE = 5
     for i in range(0, len(pending), BATCH_SIZE):
