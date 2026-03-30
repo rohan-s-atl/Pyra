@@ -272,22 +272,18 @@ async def _fetch_road_route(from_lat: float, from_lon: float,
         if result:
             return result
 
-    # Tier 2: public OSRM A
-    result = await _try_osrm(_PUBLIC_OSRM_A, from_lat, from_lon, to_lat, to_lon)
-    if result:
-        return result
-
-    # Tier 3: public OSRM B
+    # Tier 2: public OSRM B (DE mirror) — router.project-osrm.org removed,
+    # it 429s too aggressively on Railway egress IPs
     result = await _try_osrm(_PUBLIC_OSRM_B, from_lat, from_lon, to_lat, to_lon)
     if result:
         return result
 
-    # Tier 4: OpenRouteService — primary working option on Railway
+    # Tier 3: OpenRouteService — primary working option on Railway
     result = await _try_openrouteservice(from_lat, from_lon, to_lat, to_lon)
     if result:
         return result
 
-    # Tier 5: Mapbox
+    # Tier 4: Mapbox
     result = await _try_mapbox(from_lat, from_lon, to_lat, to_lon)
     if result:
         return result
