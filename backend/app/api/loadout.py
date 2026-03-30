@@ -242,14 +242,17 @@ async def get_loadout_advice(
         _cache_set(cache_key, result)
         return result
 
+    # Build prompt while session is open, then close before the AI call
+    prompt = _build_prompt(incident, units)
+    db.close()
+
     try:
         # ── Async Claude call — non-blocking ────────────────────────────────
         client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
-        prompt = _build_prompt(incident, units)
 
         message = await client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=2048,   # increased from 1200 — large unit selections were truncating JSON
+            model="claude-sonnet-4-6",
+            max_tokens=4096,   # Haiku at 2048 was truncating JSON for large unit selections
             messages=[{"role": "user", "content": prompt}],
         )
 

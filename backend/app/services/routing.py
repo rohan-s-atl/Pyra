@@ -258,6 +258,7 @@ async def _try_mapbox(from_lat: float, from_lon: float,
             data = res.json()
         routes = data.get("routes")
         if not routes:
+            logger.warning("[routing] Mapbox returned no routes")
             return None
         coords = routes[0]["geometry"]["coordinates"]
         logger.info("[routing] Mapbox success (%d waypoints)", len(coords))
@@ -269,19 +270,29 @@ async def _try_mapbox(from_lat: float, from_lon: float,
 
 async def _fetch_road_route(from_lat: float, from_lon: float,
                              to_lat: float, to_lon: float) -> Optional[list[list[float]]]:
+    # Try Mapbox first if token is configured — reliable and not rate-limited
+    # unlike public OSRM mirrors which are frequently down or throttled.
+    token = (settings.mapbox_token
+             or os.environ.get("MAPBOX_TOKEN")
+             or os.environ.get("MAPBOX_ACCESS_TOKEN"))
+    if token:
+        result = await _try_mapbox(from_lat, from_lon, to_lat, to_lon)
+        if result:
+            return result
+
+    # LOCAL_OSRM_URL — only try if remote (not localhost)
     if _local_osrm_is_remote():
         result = await _try_osrm(_LOCAL_OSRM, from_lat, from_lon, to_lat, to_lon, use_health=False)
         if result:
             return result
-    # Try both public mirrors before falling to ORS — preserves ORS quota
+
+    # Public mirrors as fallback when no Mapbox token
     for mirror in (_PUBLIC_OSRM_B, _PUBLIC_OSRM_A):
         result = await _try_osrm(mirror, from_lat, from_lon, to_lat, to_lon)
         if result:
             return result
-    result = await _try_openrouteservice(from_lat, from_lon, to_lat, to_lon)
-    if result:
-        return result
-    return await _try_mapbox(from_lat, from_lon, to_lat, to_lon)
+
+    return await _try_openrouteservice(from_lat, from_lon, to_lat, to_lon)
 
 
 async def build_route(unit_id: str, unit_type: str,
