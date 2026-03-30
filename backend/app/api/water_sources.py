@@ -45,9 +45,14 @@ router = APIRouter(prefix="/api/water-sources", tags=["Water Sources"])
 
 # ── Constants ──────────────────────────────────────────────────────────────────
 
-OVERPASS_URL = "https://overpass-api.de/api/interpreter"
+OVERPASS_URLS = [
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",   # EU mirror
+    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",  # RU mirror
+]
+
 OSRM_URLS = [
-    "http://localhost:5001/route/v1/driving",
+    "https://routing.openstreetmap.de/routed-car/route/v1/driving",
     "https://router.project-osrm.org/route/v1/driving",
 ]
 
@@ -61,7 +66,7 @@ FILL_RATE_GPM: dict[str, float] = {
     "unknown":     200.0,
 }
 
-REQUEST_TIMEOUT = 25.0   # was 12s — large relation queries need more time
+REQUEST_TIMEOUT = 10.0   # per mirror — fail fast, try next mirror
 MAX_HYDRANTS = 20        # separate cap so hydrants don't crowd out large bodies
 MAX_BODIES   = 15        # max large water bodies (lakes, rivers, reservoirs)
 MAX_TANKS    = 10
@@ -157,18 +162,25 @@ def _source_name(tags: dict, source_type: str) -> str:
 # ── Fetch ──────────────────────────────────────────────────────────────────────
 
 async def fetch_water_sources(lat: float, lon: float, radius_m: int = 6000) -> list[dict]:
-    """Query Overpass for water sources near (lat, lon)."""
+    """Query Overpass for water sources near (lat, lon). Tries multiple mirrors."""
     query = _build_overpass_query(lat, lon, radius_m)
-    try:
-        async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT) as client:
-            resp = await client.post(OVERPASS_URL, data={"data": query})
-            resp.raise_for_status()
-            data = resp.json()
-    except httpx.TimeoutException:
-        logger.warning("[water_sources] Overpass timed out after %.0fs", REQUEST_TIMEOUT)
-        return []
-    except Exception as exc:
-        logger.warning("[water_sources] Overpass query failed: %s", exc)
+    data  = None
+
+    for overpass_url in OVERPASS_URLS:
+        try:
+            async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT) as client:
+                resp = await client.post(overpass_url, data={"data": query})
+                resp.raise_for_status()
+                data = resp.json()
+                logger.debug("[water_sources] Overpass success via %s", overpass_url)
+                break
+        except httpx.TimeoutException:
+            logger.warning("[water_sources] Overpass timed out: %s — trying next mirror", overpass_url)
+        except Exception as exc:
+            logger.warning("[water_sources] Overpass failed (%s): %s — trying next mirror", overpass_url, exc)
+
+    if data is None:
+        logger.error("[water_sources] All Overpass mirrors failed")
         return []
 
     hydrants:   list[dict] = []

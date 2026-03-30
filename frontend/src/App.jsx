@@ -115,12 +115,13 @@ export default function App() {
   const refreshUnits = useCallback(() =>
     api.units().then(newUnits => {
       setUnits(newUnits)
-      // Clear loadout for any unit that has returned to available
+      // Clear loadout when unit starts returning (resources expended on scene)
+      // or when it becomes available again — either way it's empty
       setConfirmedLoadouts(prev => {
         const next = { ...prev }
         let changed = false
         for (const unit of newUnits) {
-          if (unit.status === 'available' && next[unit.id]) {
+          if ((unit.status === 'available' || unit.status === 'returning') && next[unit.id]) {
             delete next[unit.id]
             changed = true
           }
