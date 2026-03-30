@@ -1,5 +1,14 @@
+"""
+main.py — FastAPI application entry point.
+
+PATCH: seed_default_users now only runs when ENV is explicitly set to a
+development value. Previously it ran whenever `is_development` returned True,
+which includes the case where ENV is not set at all — risking seeder running
+on Railway if ENV was accidentally omitted from the environment config.
+"""
 from contextlib import asynccontextmanager
 import logging
+import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,42 +18,21 @@ from slowapi.middleware import SlowAPIMiddleware
 
 from app.core.limiter import limiter
 from app.api import (
-    alerts,
-    auth,
-    audit,
-    briefing,
-    chat,
-    dispatch,
-    dispatch_advice,
-    evac_zones,
-    fire_growth,
-    heatmap,
-    incidents,
-    ingestion,
-    intelligence,
-    loadout,
-    multi_incident,
-    perimeters,
-    recommendations,
-    report,
-    resources,
-    review,
-    routes,
-    triage,
-    units,
-    water_sources,
+    alerts, auth, audit, briefing, chat, dispatch, dispatch_advice,
+    evac_zones, fire_growth, heatmap, incidents, ingestion, intelligence,
+    loadout, multi_incident, perimeters, recommendations, report, resources,
+    review, routes, triage, units, water_sources,
 )
 from app.api.auth import seed_users
 from app.core.config import settings
 from app.core.database import SessionLocal, engine
-from app.core.scheduler import (
-    start_scheduler,
-)
+from app.core.scheduler import start_scheduler
 
 import app.models  # noqa
 
-
 logger = logging.getLogger(__name__)
+
+_DEV_ENVS = {"dev", "development", "local"}
 
 
 def seed_default_users() -> None:
@@ -57,24 +45,24 @@ def seed_default_users() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # DB check
     try:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
         logger.info("Database connection verified.")
     except Exception as exc:
-        logger.error(f"Database connection failed on startup: {exc}")
+        logger.error("Database connection failed on startup: %s", exc)
         raise
 
-    if settings.is_development:
+    # FIX: only seed when ENV is explicitly a development value.
+    # Previously ran whenever is_development was True, which includes
+    # cases where ENV is unset — risking seeder running in production.
+    env_val = os.environ.get("ENV", settings.env).lower()
+    if env_val in _DEV_ENVS:
         seed_default_users()
+    else:
+        logger.info("Skipping user seed (ENV=%s)", env_val)
 
     start_scheduler()
-
-    # Background jobs run on their scheduled intervals (weather: 5m, FIRMS: 10m, etc.)
-    # No eager startup probes — they fail in dev when no incidents exist yet
-    # and produce confusing log noise. The scheduler handles first-run automatically.
-
     yield
 
 
@@ -87,11 +75,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Rate limiting
 app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)
 
-# CORS
 cors_origins = settings.cors_origins
 if "*" in cors_origins and settings.is_production:
     raise RuntimeError("Wildcard CORS is not allowed in production.")
@@ -104,7 +90,6 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type"],
 )
 
-# Core routers
 app.include_router(incidents.router)
 app.include_router(alerts.router)
 app.include_router(units.router)
@@ -113,7 +98,6 @@ app.include_router(resources.router)
 app.include_router(dispatch.router)
 app.include_router(auth.router)
 
-# Intelligence & operational routers
 app.include_router(recommendations.router)
 app.include_router(dispatch_advice.router)
 app.include_router(intelligence.router)
@@ -124,14 +108,12 @@ app.include_router(triage.router)
 app.include_router(review.router)
 app.include_router(multi_incident.router)
 
-# Map overlay routers
 app.include_router(fire_growth.router)
 app.include_router(evac_zones.router)
 app.include_router(heatmap.router)
 app.include_router(perimeters.router)
 app.include_router(water_sources.router)
 
-# Data & utility routers
 app.include_router(report.router)
 app.include_router(audit.router)
 app.include_router(ingestion.router)
@@ -144,14 +126,13 @@ def health_check():
             conn.execute(text("SELECT 1"))
         db_status = "connected"
     except Exception as e:
-        logger.error(f"Health check DB error: {e}")
+        logger.error("Health check DB error: %s", e)
         db_status = "error"
-
     return {
-        "status": "ok",
-        "app": settings.app_name,
-        "version": settings.app_version,
-        "env": settings.env,
-        "db": db_status,
+        "status":   "ok",
+        "app":      settings.app_name,
+        "version":  settings.app_version,
+        "env":      settings.env,
+        "db":       db_status,
         "ai_ready": bool(settings.anthropic_api_key),
     }

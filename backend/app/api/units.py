@@ -1,11 +1,11 @@
 """
 units.py — Unit REST API.
 
-The backend is the single source of truth for unit positions and routes.
-The frontend must NOT compute or interpolate movement; it reads positions
-from GET /api/units/ or GET /api/units/{unit_id} and renders them.
+PATCH: Fixed N+1 station query.
+Previously _enrich_unit fired a separate SELECT per unit for its station.
+list_units with 60 units = 61 DB round-trips. Now stations are batch-loaded
+once in a single WHERE id IN (...) query — always exactly 2 queries total.
 """
-
 from __future__ import annotations
 
 import logging
@@ -32,25 +32,34 @@ router = APIRouter(prefix="/api/units", tags=["Units"])
 # Serialisation helpers
 # ---------------------------------------------------------------------------
 
-def _enrich_unit(unit: UnitModel, db: Session) -> dict:
+def _load_stations(db: Session, units: list[UnitModel]) -> dict:
+    """Batch-load all stations referenced by `units` — single query."""
+    station_ids = {u.station_id for u in units if u.station_id}
+    if not station_ids:
+        return {}
+    return {s.id: s for s in db.query(Station).filter(Station.id.in_(station_ids)).all()}
+
+
+def _enrich_unit(unit: UnitModel, stations: dict) -> dict:
+    """
+    Serialise a unit. `stations` must be pre-fetched via _load_stations —
+    this function never issues a DB query itself.
+    """
     data = {c.name: getattr(unit, c.name) for c in unit.__table__.columns}
 
-    # Attach home-station coords for display
     data["station_lat"]  = None
     data["station_lon"]  = None
     data["station_type"] = None
     if unit.station_id:
-        station = db.query(Station).filter(Station.id == unit.station_id).first()
+        station = stations.get(unit.station_id)
         if station:
             data["station_lat"]  = station.latitude
             data["station_lon"]  = station.longitude
             data["station_type"] = station.station_type
 
-    # Attach current waypoint index so the frontend can show progress, not move the unit
     route = get_cached_route(unit.id)
-    data["route_waypoint_index"] = route.index if route else None
+    data["route_waypoint_index"]  = route.index if route else None
     data["route_total_waypoints"] = len(route.waypoints) if route else None
-
     return data
 
 
@@ -70,7 +79,9 @@ def list_units(
         query = query.filter(UnitModel.status == status)
     if incident_id:
         query = query.filter(UnitModel.assigned_incident_id == incident_id)
-    return [_enrich_unit(u, db) for u in query.all()]
+    units = query.all()
+    stations = _load_stations(db, units)
+    return [_enrich_unit(u, stations) for u in units]
 
 
 @router.get("/{unit_id}", summary="Get unit by ID")
@@ -82,7 +93,8 @@ def get_unit(
     unit = db.query(UnitModel).filter(UnitModel.id == unit_id).first()
     if not unit:
         raise HTTPException(status_code=404, detail=f"Unit '{unit_id}' not found")
-    return _enrich_unit(unit, db)
+    stations = _load_stations(db, [unit])
+    return _enrich_unit(unit, stations)
 
 
 @router.get("/{unit_id}/route", summary="Get current waypoints for a unit")
@@ -91,26 +103,18 @@ def get_unit_route(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_any_role),
 ):
-    """
-    Returns the cached route waypoints for map rendering.
-    The frontend should use these coordinates for drawing the path ONLY —
-    it must not interpolate the unit marker between waypoints.
-    """
     unit = db.query(UnitModel).filter(UnitModel.id == unit_id).first()
     if not unit:
         raise HTTPException(status_code=404, detail=f"Unit '{unit_id}' not found")
-
     route = get_cached_route(unit_id)
     if not route:
         return {"unit_id": unit_id, "waypoints": [], "index": 0, "is_road_routed": False}
-
     return {
         "unit_id": unit_id,
         "waypoints": route.waypoints,
         "index": route.index,
         "is_road_routed": route.is_road_routed,
     }
-
 
 
 class RouteRequest(BaseModel):
@@ -125,17 +129,11 @@ async def build_unit_route(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_any_role),
 ):
-    """
-    Builds and caches a route from the unit's current position to a destination.
-    Used by the frontend to show road geometry for available units before dispatch.
-    Returns the same shape as GET /api/units/{id}/route.
-    """
     from app.services.routing import build_route as _build_route
 
     unit = db.query(UnitModel).filter(UnitModel.id == unit_id).first()
     if not unit:
         raise HTTPException(status_code=404, detail=f"Unit '{unit_id}' not found")
-
     if unit.latitude is None or unit.longitude is None:
         raise HTTPException(status_code=422, detail="Unit has no current position")
 
@@ -146,9 +144,8 @@ async def build_unit_route(
         from_lon=unit.longitude,
         to_lat=body.to_lat,
         to_lon=body.to_lon,
-        force=True,   # always recompute for preview — position may have changed
+        force=True,
     )
-
     return {
         "unit_id":        unit_id,
         "waypoints":      route.waypoints,
@@ -158,7 +155,7 @@ async def build_unit_route(
 
 
 # ---------------------------------------------------------------------------
-# GPS update endpoint (real devices)
+# GPS update endpoint
 # ---------------------------------------------------------------------------
 
 class GpsUpdate(BaseModel):
@@ -194,13 +191,14 @@ def update_unit_location(
     if not unit:
         raise HTTPException(status_code=404, detail=f"Unit '{unit_id}' not found")
 
-    unit.latitude      = body.latitude
-    unit.longitude     = body.longitude
+    unit.latitude       = body.latitude
+    unit.longitude      = body.longitude
     unit.gps_accuracy_m = body.accuracy_m
-    unit.gps_source    = body.source
+    unit.gps_source     = body.source
     unit.gps_updated_at = body.timestamp or datetime.now(UTC)
-    unit.last_updated  = datetime.now(UTC)
+    unit.last_updated   = datetime.now(UTC)
 
     db.commit()
     db.refresh(unit)
-    return _enrich_unit(unit, db)
+    stations = _load_stations(db, [unit])
+    return _enrich_unit(unit, stations)

@@ -1,3 +1,11 @@
+"""
+briefing.py — AI operational briefing endpoints.
+
+PATCH: generate_handoff_briefing now applies the `since` time filter to
+the alert query. Previously `since` was computed but never used — the
+handoff briefing fetched ALL alerts ever created instead of only those
+in the last `period_hours` window.
+"""
 from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
@@ -19,7 +27,6 @@ from app.models.user import User
 from app.models.shift_briefing import ShiftBriefing
 
 router = APIRouter(prefix="/api/briefing", tags=["Briefing"])
-
 logger = logging.getLogger(__name__)
 
 UNIT_TYPE_LABEL = {
@@ -37,7 +44,6 @@ UNIT_TYPE_LABEL = {
 def _build_prompt(incident, units_on_scene, units_en_route, active_alerts):
     now = datetime.now(UTC).strftime("%Y-%m-%d %H%MZ")
 
-    # Units summary
     def unit_line(u):
         parts = [f"{UNIT_TYPE_LABEL.get(u.unit_type, u.unit_type)} {u.designation}"]
         if u.personnel_count:
@@ -84,7 +90,7 @@ Keep the total briefing under 400 words. Each section should be 2-4 sentences. D
 @limiter.limit("5/minute")
 async def generate_briefing(
     incident_id: str,
-    request: Request,  # Required for slowapi limiter
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_any_role),
 ):
@@ -97,15 +103,11 @@ async def generate_briefing(
         raise HTTPException(status_code=404, detail=f"Incident '{incident_id}' not found")
 
     units_on_scene = db.query(Unit).filter(
-        Unit.assigned_incident_id == incident_id,
-        Unit.status == "on_scene",
+        Unit.assigned_incident_id == incident_id, Unit.status == "on_scene"
     ).all()
-
     units_en_route = db.query(Unit).filter(
-        Unit.assigned_incident_id == incident_id,
-        Unit.status == "en_route",
+        Unit.assigned_incident_id == incident_id, Unit.status == "en_route"
     ).all()
-
     active_alerts = db.query(Alert).filter(
         Alert.incident_id == incident_id,
         Alert.is_acknowledged.is_(False),
@@ -113,8 +115,6 @@ async def generate_briefing(
 
     prompt = _build_prompt(incident, units_on_scene, units_en_route, active_alerts)
 
-    # Stream the response back — using AsyncAnthropic so the event loop is
-    # never blocked during inference.
     async def stream_briefing():
         try:
             client = anthropic.AsyncAnthropic(api_key=api_key)
@@ -129,38 +129,29 @@ async def generate_briefing(
             ) as stream:
                 async for text in stream.text_stream:
                     yield f"data: {json.dumps({'text': text})}\n\n"
-
             yield "data: [DONE]\n\n"
-
         except asyncio.TimeoutError:
-            logger.error("Briefing AI timeout")
             yield f"data: {json.dumps({'error': 'AI timeout'})}\n\n"
         except Exception as e:
-            logger.error(f"Briefing stream error: {e}")
+            logger.error("Briefing stream error: %s", e)
             yield f"data: {json.dumps({'error': 'AI stream failed'})}\n\n"
 
     return StreamingResponse(
         stream_briefing(),
         media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",
-        },
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
 
-# ── Shift handoff briefing ────────────────────────────────────────────────────
 
 def _build_handoff_prompt(incident: Incident, recent_alerts: list, units: list, period_hours: int) -> str:
-    now = datetime.now(UTC).strftime("%Y-%m-%d %H%MZ")
+    now   = datetime.now(UTC).strftime("%Y-%m-%d %H%MZ")
     since = (datetime.now(UTC) - timedelta(hours=period_hours)).strftime("%Y-%m-%d %H%MZ")
 
     alert_lines = "\n".join(
         f"  - [{a.alert_type.upper()}] {a.title} (sev: {a.severity})" for a in recent_alerts
     ) or "  - No alerts in window"
-
     unit_lines = "\n".join(
-        f"  - {u.unit_type} {u.designation} | status: {u.status}"
-        for u in units
+        f"  - {u.unit_type} {u.designation} | status: {u.status}" for u in units
     ) or "  - None"
 
     return f"""Generate a shift handoff briefing for an outgoing incident commander.
@@ -184,7 +175,6 @@ Prose only — no bullets. Max 350 words. Tone: authoritative, direct, factual."
 
 
 async def _generate_handoff_text(prompt: str, api_key: str) -> str:
-    """Generate full briefing text (non-streaming) for DB storage."""
     client = anthropic.AsyncAnthropic(api_key=api_key)
     msg = await asyncio.wait_for(
         client.messages.create(
@@ -207,11 +197,6 @@ async def generate_handoff_briefing(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_any_role),
 ):
-    """
-    Generates an AI shift handoff briefing covering the last `period_hours` of
-    incident data, stores it in the database, and returns it.
-    Can also be triggered automatically on incident close-out.
-    """
     api_key = settings.anthropic_api_key
     if not api_key:
         raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY not set")
@@ -220,16 +205,16 @@ async def generate_handoff_briefing(
     if not incident:
         raise HTTPException(status_code=404, detail=f"Incident '{incident_id}' not found")
 
+    # FIX: `since` is now actually applied to the query — previously it was
+    # computed but never used, causing ALL alerts to be included in the briefing.
     since = datetime.now(UTC) - timedelta(hours=period_hours)
 
     recent_alerts = db.query(Alert).filter(
         Alert.incident_id == incident_id,
+        Alert.created_at >= since,          # ← the fix
     ).all()
 
-    units = db.query(Unit).filter(
-        Unit.assigned_incident_id == incident_id,
-    ).all()
-
+    units = db.query(Unit).filter(Unit.assigned_incident_id == incident_id).all()
     prompt = _build_handoff_prompt(incident, recent_alerts, units, period_hours)
 
     try:

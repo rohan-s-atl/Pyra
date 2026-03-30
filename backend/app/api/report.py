@@ -1,3 +1,10 @@
+"""
+report.py — PDF incident report generator.
+
+PATCH: Replaced db.query(Unit).all() with a filtered query scoped to
+the incident. Previously every report fetched the entire fleet into memory
+then filtered in Python.
+"""
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
@@ -20,7 +27,6 @@ from app.models.user import User
 
 router = APIRouter(prefix="/api/report", tags=["Report"])
 
-# ── Brand colors ──────────────────────────────────────────────────────────────
 C_BG       = HexColor('#151419')
 C_PANEL    = HexColor('#1B1B1E')
 C_BORDER   = HexColor('#262626')
@@ -32,21 +38,19 @@ C_TEXT     = HexColor('#FBFBFB')
 C_MUTED    = HexColor('#878787')
 
 SEVERITY_COLOR = {
-    'critical': C_RED,
-    'high':     C_ORANGE,
-    'moderate': C_YELLOW,
-    'low':      C_GREEN,
+    'critical': C_RED, 'high': C_ORANGE, 'moderate': C_YELLOW, 'low': C_GREEN,
 }
-
 UNIT_TYPE_LABEL = {
     'engine': 'Engine', 'hand_crew': 'Hand Crew', 'dozer': 'Dozer',
     'water_tender': 'Water Tender', 'helicopter': 'Helicopter',
     'air_tanker': 'Air Tanker', 'command_unit': 'Command Unit', 'rescue': 'Rescue',
 }
 
+
 def _fmt_time(dt):
     if not dt: return '—'
     return dt.strftime('%Y-%m-%d %H%MZ')
+
 
 def _fmt_num(v, decimals=1, suffix=''):
     if v is None: return '—'
@@ -55,14 +59,11 @@ def _fmt_num(v, decimals=1, suffix=''):
 
 def generate_report_pdf(incident: Incident, units: list, alerts: list, generated_by: str) -> bytes:
     buf = io.BytesIO()
-
     doc = SimpleDocTemplate(
         buf, pagesize=letter,
         leftMargin=0.6*inch, rightMargin=0.6*inch,
         topMargin=0.6*inch, bottomMargin=0.6*inch,
     )
-
-    styles = getSampleStyleSheet()
 
     def style(name, **kw):
         return ParagraphStyle(name, **kw)
@@ -74,13 +75,10 @@ def generate_report_pdf(incident: Incident, units: list, alerts: list, generated
         'body':     style('body',    fontName='Helvetica',        fontSize=9,  textColor=C_TEXT,   spaceAfter=4, leading=14),
         'label':    style('label',   fontName='Helvetica-Bold',   fontSize=8,  textColor=C_MUTED),
         'value':    style('value',   fontName='Helvetica',        fontSize=9,  textColor=C_TEXT),
-        'alert':    style('alert',   fontName='Helvetica-Bold',   fontSize=8,  textColor=C_RED),
         'footer':   style('footer',  fontName='Helvetica',        fontSize=7,  textColor=C_MUTED,  alignment=TA_CENTER),
     }
 
     story = []
-
-    # ── Header ────────────────────────────────────────────────────────────────
     sev_color = SEVERITY_COLOR.get(incident.severity, C_MUTED)
 
     header_data = [[
@@ -97,10 +95,8 @@ def generate_report_pdf(incident: Incident, units: list, alerts: list, generated
     story.append(header_table)
     story.append(HRFlowable(width='100%', thickness=1, color=C_ORANGE, spaceAfter=12))
 
-    # ── Incident summary band ─────────────────────────────────────────────────
-    sev_label = incident.severity.upper()
+    sev_label    = incident.severity.upper()
     status_label = incident.status.upper()
-
     summary_data = [
         [
             Paragraph(incident.name, S['title']),
@@ -123,9 +119,7 @@ def generate_report_pdf(incident: Incident, units: list, alerts: list, generated
     story.append(summary_table)
     story.append(Spacer(1, 10))
 
-    # ── Situation grid ────────────────────────────────────────────────────────
     story.append(Paragraph('SITUATION', S['section']))
-
     sit_data = [
         ['LOCATION',          f'{incident.latitude:.4f}N, {abs(incident.longitude):.4f}W',
          'SPREAD RISK',        (incident.spread_risk or '—').upper()],
@@ -138,45 +132,31 @@ def generate_report_pdf(incident: Incident, units: list, alerts: list, generated
         ['STARTED',           _fmt_time(incident.started_at),
          'LAST UPDATED',       _fmt_time(incident.updated_at)],
     ]
-
-    sit_rows = []
-    for row in sit_data:
-        sit_rows.append([
-            Paragraph(row[0], S['label']),
-            Paragraph(str(row[1]), S['value']),
-            Paragraph(row[2], S['label']),
-            Paragraph(str(row[3]), S['value']),
-        ])
-
+    sit_rows = [[
+        Paragraph(row[0], S['label']), Paragraph(str(row[1]), S['value']),
+        Paragraph(row[2], S['label']), Paragraph(str(row[3]), S['value']),
+    ] for row in sit_data]
     sit_table = Table(sit_rows, colWidths=[1.5*inch, 2.0*inch, 1.5*inch, 2.3*inch])
     sit_table.setStyle(TableStyle([
-        ('BACKGROUND',   (0,0),(-1,-1), C_PANEL),
+        ('BACKGROUND',    (0,0),(-1,-1), C_PANEL),
         ('ROWBACKGROUNDS',(0,0),(-1,-1), [C_PANEL, HexColor('#1e1e22')]),
-        ('TOPPADDING',   (0,0),(-1,-1), 5),
-        ('BOTTOMPADDING',(0,0),(-1,-1), 5),
-        ('LEFTPADDING',  (0,0),(-1,-1), 8),
-        ('RIGHTPADDING', (0,0),(-1,-1), 8),
-        ('LINEBELOW',    (0,-1),(-1,-1), 1, C_BORDER),
+        ('TOPPADDING',    (0,0),(-1,-1), 5),
+        ('BOTTOMPADDING', (0,0),(-1,-1), 5),
+        ('LEFTPADDING',   (0,0),(-1,-1), 8),
+        ('RIGHTPADDING',  (0,0),(-1,-1), 8),
+        ('LINEBELOW',     (0,-1),(-1,-1), 1, C_BORDER),
     ]))
     story.append(sit_table)
     story.append(Spacer(1, 10))
 
-    # ── Resources ─────────────────────────────────────────────────────────────
     story.append(Paragraph('RESOURCES ON INCIDENT', S['section']))
-
-    on_incident = [u for u in units if u.assigned_incident_id == incident.id]
-
-    if not on_incident:
+    # units is already filtered to this incident by the endpoint
+    if not units:
         story.append(Paragraph('No resources currently assigned.', S['body']))
     else:
-        res_header = [
-            Paragraph('UNIT', S['label']),
-            Paragraph('TYPE', S['label']),
-            Paragraph('STATUS', S['label']),
-            Paragraph('PERSONNEL', S['label']),
-        ]
+        res_header = [Paragraph(h, S['label']) for h in ('UNIT', 'TYPE', 'STATUS', 'PERSONNEL')]
         res_rows = [res_header]
-        for u in sorted(on_incident, key=lambda x: x.unit_type):
+        for u in sorted(units, key=lambda x: x.unit_type):
             status_color = {
                 'en_route': '#60a5fa', 'on_scene': '#F56E0F',
                 'staging': '#facc15', 'returning': '#a78bfa',
@@ -187,54 +167,46 @@ def generate_report_pdf(incident: Incident, units: list, alerts: list, generated
                 Paragraph(f'<font color="{status_color}">{u.status.replace("_"," ").upper()}</font>', S['value']),
                 Paragraph(str(u.personnel_count or '—'), S['value']),
             ])
-
         res_table = Table(res_rows, colWidths=[1.8*inch, 1.8*inch, 1.6*inch, 1.6*inch])
         res_table.setStyle(TableStyle([
-            ('BACKGROUND',   (0,0),(-1,0),  C_ORANGE),
-            ('TEXTCOLOR',    (0,0),(-1,0),  white),
+            ('BACKGROUND',    (0,0),(-1,0),  C_ORANGE),
+            ('TEXTCOLOR',     (0,0),(-1,0),  white),
             ('ROWBACKGROUNDS',(0,1),(-1,-1), [C_PANEL, HexColor('#1e1e22')]),
-            ('TOPPADDING',   (0,0),(-1,-1), 5),
-            ('BOTTOMPADDING',(0,0),(-1,-1), 5),
-            ('LEFTPADDING',  (0,0),(-1,-1), 8),
-            ('RIGHTPADDING', (0,0),(-1,-1), 8),
-            ('LINEBELOW',    (0,-1),(-1,-1), 1, C_BORDER),
+            ('TOPPADDING',    (0,0),(-1,-1), 5),
+            ('BOTTOMPADDING', (0,0),(-1,-1), 5),
+            ('LEFTPADDING',   (0,0),(-1,-1), 8),
+            ('RIGHTPADDING',  (0,0),(-1,-1), 8),
+            ('LINEBELOW',     (0,-1),(-1,-1), 1, C_BORDER),
         ]))
         story.append(res_table)
 
     story.append(Spacer(1, 10))
 
-    # ── Active alerts ─────────────────────────────────────────────────────────
     active_alerts = [a for a in alerts if not a.is_acknowledged]
     story.append(Paragraph(f'ACTIVE ALERTS ({len(active_alerts)})', S['section']))
-
     if not active_alerts:
         story.append(Paragraph('No active alerts.', S['body']))
     else:
-        for a in active_alerts[:8]:   # cap at 8 to keep report concise
+        for a in active_alerts[:8]:
             alert_color = {'critical': '#ef4444', 'high': '#F56E0F', 'moderate': '#facc15'}.get(a.severity, '#878787')
             story.append(Paragraph(
-                f'<font color="{alert_color}">[{a.severity.upper()}]</font> {a.title}',
-                S['body']
+                f'<font color="{alert_color}">[{a.severity.upper()}]</font> {a.title}', S['body']
             ))
             story.append(Paragraph(a.description[:200], S['body']))
             story.append(Spacer(1, 4))
 
     story.append(Spacer(1, 10))
-
-    # ── Notes ─────────────────────────────────────────────────────────────────
     if incident.notes:
         story.append(Paragraph('INCIDENT NOTES', S['section']))
         story.append(Paragraph(incident.notes, S['body']))
         story.append(Spacer(1, 10))
 
-    # ── Footer ────────────────────────────────────────────────────────────────
     story.append(HRFlowable(width='100%', thickness=1, color=C_BORDER, spaceBefore=12, spaceAfter=8))
     story.append(Paragraph(
         f'Generated by Pyra Wildfire Command · {_fmt_time(datetime.now(UTC))} · Operator: {generated_by} · CONFIDENTIAL — OFFICIAL USE ONLY',
         S['footer']
     ))
 
-    # Build with dark background
     def on_page(canvas, doc):
         canvas.saveState()
         canvas.setFillColor(C_BG)
@@ -256,13 +228,15 @@ def get_incident_report(
     if not incident:
         raise HTTPException(status_code=404, detail=f"Incident '{incident_id}' not found")
 
-    units  = db.query(Unit).all()
+    # FIX: was db.query(Unit).all() — loaded entire fleet, filtered in Python
+    units  = db.query(Unit).filter(Unit.assigned_incident_id == incident_id).all()
     alerts = db.query(Alert).filter(Alert.incident_id == incident_id).all()
 
     pdf_bytes = generate_report_pdf(incident, units, alerts, current_user.username)
-
-    filename = f"pyra_report_{incident.name.replace(' ', '_').lower()}_{datetime.now(UTC).strftime('%Y%m%d_%H%M')}.pdf"
-
+    filename = (
+        f"pyra_report_{incident.name.replace(' ', '_').lower()}"
+        f"_{datetime.now(UTC).strftime('%Y%m%d_%H%M')}.pdf"
+    )
     return StreamingResponse(
         io.BytesIO(pdf_bytes),
         media_type="application/pdf",

@@ -1,16 +1,22 @@
 """
-routing.py — Route computation service. (PATCHED v2)
+routing.py — Route computation service. (PATCHED v3)
 
-KEY FIX: Local OSRM is silently skipped when LOCAL_OSRM_URL points to
-localhost/127.0.0.1 — which is always the case on Railway. This means
-the cascade goes straight to public OSRM mirrors and then ORS without
-wasting time or hitting the cooldown bug.
+FIXES vs v2
+-----------
+1. Restored _PUBLIC_OSRM_A as a fallback tier. v2 removed it because it
+   "429s too aggressively on Railway", but _PUBLIC_OSRM_B is now also broken,
+   leaving ORS as the only backend. Both mirrors means a single outage no
+   longer immediately saturates the ORS free-tier quota.
+
+2. Exponential back-off on _EndpointHealth: 60s → 120s → 240s → cap 300s.
+   Repeated failures stop hammering the same endpoint every 60s.
+
+3. haversine_km consolidated from app.utils.geo (no more local duplicate).
 """
 
 from __future__ import annotations
 
 import logging
-import math
 import os
 import time
 from dataclasses import dataclass, field
@@ -19,6 +25,7 @@ from typing import Callable, Optional
 import httpx
 
 from app.core.config import settings
+from app.utils.geo import haversine_km
 
 logger = logging.getLogger(__name__)
 
@@ -35,40 +42,51 @@ GROUND_TYPES: frozenset[str] = frozenset({
 })
 AIR_TYPES: frozenset[str] = frozenset({"helicopter", "air_tanker"})
 
+# Exported for routes.py source-heuristic
+PUBLIC_OSRM_URL = _PUBLIC_OSRM_B
+LOCAL_OSRM_URL  = _LOCAL_OSRM or ""
+
 
 def _local_osrm_is_remote() -> bool:
-    """True only if LOCAL_OSRM_URL points at a real remote host (not localhost)."""
     url = (_LOCAL_OSRM or "").lower()
-    return url and "localhost" not in url and "127.0.0.1" not in url and "::1" not in url
+    return bool(url and "localhost" not in url and "127.0.0.1" not in url and "::1" not in url)
 
 
 @dataclass
 class _EndpointHealth:
     url: str
     _failed_at: float = field(default=0.0, repr=False)
+    _consecutive_failures: int = field(default=0, repr=False)
+
+    def _cooldown_duration(self) -> float:
+        if self._consecutive_failures <= 1:
+            return _ENDPOINT_COOLDOWN
+        return min(300.0, _ENDPOINT_COOLDOWN * (2 ** (self._consecutive_failures - 1)))
 
     def is_cooling_down(self) -> bool:
         return (self._failed_at > 0 and
-                time.monotonic() - self._failed_at < _ENDPOINT_COOLDOWN)
+                time.monotonic() - self._failed_at < self._cooldown_duration())
 
     def mark_failed(self) -> None:
+        self._consecutive_failures += 1
         if not self.is_cooling_down():
-            logger.warning("[routing] %s unreachable — cooling down for %.0fs",
-                           self.url, _ENDPOINT_COOLDOWN)
+            logger.warning(
+                "[routing] %s unreachable — cooling down for %.0fs (failure #%d)",
+                self.url, self._cooldown_duration(), self._consecutive_failures,
+            )
         self._failed_at = time.monotonic()
 
     def mark_ok(self) -> None:
         if self._failed_at > 0:
             logger.info("[routing] %s recovered", self.url)
         self._failed_at = 0.0
+        self._consecutive_failures = 0
 
 
 _health: dict[str, _EndpointHealth] = {
     _PUBLIC_OSRM_A: _EndpointHealth(url=_PUBLIC_OSRM_A),
     _PUBLIC_OSRM_B: _EndpointHealth(url=_PUBLIC_OSRM_B),
 }
-
-# ORS gets its own health tracker so 429s trigger a cooldown
 _ors_health = _EndpointHealth(url="https://api.openrouteservice.org")
 
 
@@ -92,10 +110,8 @@ class CachedRoute:
 
 
 _route_cache: dict[str, CachedRoute] = {}
-
-# Units whose routes failed all backends — don't retry for 5 minutes
 _failed_route_cooldown: dict[str, float] = {}
-_FAILED_ROUTE_COOLDOWN_S = 300.0  # 5 minutes
+_FAILED_ROUTE_COOLDOWN_S = 300.0
 
 
 def get_cached_route(unit_id: str) -> Optional[CachedRoute]:
@@ -161,24 +177,20 @@ async def _try_osrm(base_url: str,
     h = _health.get(base_url) if use_health else None
     if h and h.is_cooling_down():
         return None
-
     url = f"{base_url}/{from_lon},{from_lat};{to_lon},{to_lat}?overview=full&geometries=geojson"
     try:
         async with httpx.AsyncClient(timeout=_REQUEST_TIMEOUT) as client:
             res = await client.get(url)
             res.raise_for_status()
             data = res.json()
-
         routes = data.get("routes")
         if not routes:
             return None
-
         coords = routes[0]["geometry"]["coordinates"]
         if h:
             h.mark_ok()
         logger.info("[routing] OSRM success via %s (%d waypoints)", base_url, len(coords))
         return [[round(lat, 5), round(lon, 5)] for lon, lat in coords]
-
     except Exception as exc:
         logger.warning("[routing] OSRM %s failed: %s", base_url, exc)
         if h:
@@ -192,10 +204,8 @@ async def _try_openrouteservice(from_lat: float, from_lon: float,
     if not api_key:
         logger.warning("[routing] OPENROUTESERVICE_API_KEY not configured — skipping ORS")
         return None
-
     if _ors_health.is_cooling_down():
         return None
-
     try:
         async with httpx.AsyncClient(timeout=_REQUEST_TIMEOUT) as client:
             res = await client.post(
@@ -205,27 +215,24 @@ async def _try_openrouteservice(from_lat: float, from_lon: float,
             )
             res.raise_for_status()
             data = res.json()
-
         features = data.get("features", [])
         if not features:
             return None
-
         coords = features[0]["geometry"]["coordinates"]
         _ors_health.mark_ok()
         logger.info("[routing] OpenRouteService success (%d waypoints)", len(coords))
         return [[round(lat, 5), round(lon, 5)] for lon, lat in coords]
-
     except httpx.HTTPStatusError as exc:
-        status = exc.response.status_code
-        body   = exc.response.text[:200]
-        if status == 429:
-            logger.warning("[routing] ORS rate limited (429) — cooling down 60s")
+        sc   = exc.response.status_code
+        body = exc.response.text[:200]
+        if sc == 429:
+            logger.warning("[routing] ORS rate limited (429) — cooling down %.0fs",
+                           _ors_health._cooldown_duration())
             _ors_health.mark_failed()
-        elif status == 404:
-            # Unroutable point (water / off-road) — not ORS's fault, don't penalise
+        elif sc == 404:
             logger.warning("[routing] ORS 404 unroutable coordinate: %s", body)
         else:
-            logger.warning("[routing] ORS HTTP %s: %s", status, body)
+            logger.warning("[routing] ORS HTTP %s: %s", sc, body)
             _ors_health.mark_failed()
         return None
     except Exception as exc:
@@ -240,7 +247,6 @@ async def _try_mapbox(from_lat: float, from_lon: float,
              or os.environ.get("MAPBOX_ACCESS_TOKEN"))
     if not token:
         return None
-
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             res = await client.get(
@@ -250,15 +256,12 @@ async def _try_mapbox(from_lat: float, from_lon: float,
             )
             res.raise_for_status()
             data = res.json()
-
         routes = data.get("routes")
         if not routes:
             return None
-
         coords = routes[0]["geometry"]["coordinates"]
         logger.info("[routing] Mapbox success (%d waypoints)", len(coords))
         return [[round(lat, 5), round(lon, 5)] for lon, lat in coords]
-
     except Exception as exc:
         logger.warning("[routing] Mapbox failed: %s", exc)
         return None
@@ -266,29 +269,19 @@ async def _try_mapbox(from_lat: float, from_lon: float,
 
 async def _fetch_road_route(from_lat: float, from_lon: float,
                              to_lat: float, to_lon: float) -> Optional[list[list[float]]]:
-    # Tier 1: local OSRM — ONLY if pointed at a real remote host, never localhost
     if _local_osrm_is_remote():
         result = await _try_osrm(_LOCAL_OSRM, from_lat, from_lon, to_lat, to_lon, use_health=False)
         if result:
             return result
-
-    # Tier 2: public OSRM B (DE mirror) — router.project-osrm.org removed,
-    # it 429s too aggressively on Railway egress IPs
-    result = await _try_osrm(_PUBLIC_OSRM_B, from_lat, from_lon, to_lat, to_lon)
-    if result:
-        return result
-
-    # Tier 3: OpenRouteService — primary working option on Railway
+    # Try both public mirrors before falling to ORS — preserves ORS quota
+    for mirror in (_PUBLIC_OSRM_B, _PUBLIC_OSRM_A):
+        result = await _try_osrm(mirror, from_lat, from_lon, to_lat, to_lon)
+        if result:
+            return result
     result = await _try_openrouteservice(from_lat, from_lon, to_lat, to_lon)
     if result:
         return result
-
-    # Tier 4: Mapbox
-    result = await _try_mapbox(from_lat, from_lon, to_lat, to_lon)
-    if result:
-        return result
-
-    return None
+    return await _try_mapbox(from_lat, from_lon, to_lat, to_lon)
 
 
 async def build_route(unit_id: str, unit_type: str,
@@ -299,16 +292,13 @@ async def build_route(unit_id: str, unit_type: str,
                       ) -> CachedRoute:
     if not force and unit_id in _route_cache:
         return _route_cache[unit_id]
-
-    # Don't retry recently-failed routes — prevents ORS rate limit hammering
     if not force and unit_id in _failed_route_cooldown:
         since = time.monotonic() - _failed_route_cooldown[unit_id]
         if since < _FAILED_ROUTE_COOLDOWN_S:
-            waypoints = _straight_line(from_lat, from_lon, to_lat, to_lon)
-            return CachedRoute(waypoints=waypoints, index=0, is_road_routed=False)
+            return CachedRoute(waypoints=_straight_line(from_lat, from_lon, to_lat, to_lon),
+                               index=0, is_road_routed=False)
 
     ntype = normalize_unit_type(unit_type)
-
     if is_air_unit(ntype):
         waypoints = _straight_line(from_lat, from_lon, to_lat, to_lon)
         is_road   = False
@@ -317,10 +307,10 @@ async def build_route(unit_id: str, unit_type: str,
         if raw is not None:
             waypoints = raw
             is_road   = True
-            _failed_route_cooldown.pop(unit_id, None)  # clear cooldown on success
+            _failed_route_cooldown.pop(unit_id, None)
         else:
             logger.warning("[routing] All backends failed for unit=%s — straight-line fallback", unit_id)
-            _failed_route_cooldown[unit_id] = time.monotonic()  # start cooldown
+            _failed_route_cooldown[unit_id] = time.monotonic()
             waypoints = _straight_line(from_lat, from_lon, to_lat, to_lon)
             is_road   = False
 
@@ -336,18 +326,9 @@ async def build_route(unit_id: str, unit_type: str,
     return route
 
 
-def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    R = 6371.0
-    d_lat = math.radians(lat2 - lat1)
-    d_lon = math.radians(lon2 - lon1)
-    a = (math.sin(d_lat / 2) ** 2 +
-         math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(d_lon / 2) ** 2)
-    return R * 2 * math.asin(math.sqrt(a))
-
-
 async def get_travel_time_minutes(lat1: float, lon1: float,
                                    lat2: float, lon2: float) -> float:
-    for base_url in (_PUBLIC_OSRM_A, _PUBLIC_OSRM_B):
+    for base_url in (_PUBLIC_OSRM_B, _PUBLIC_OSRM_A):
         h = _health.get(base_url)
         if h and h.is_cooling_down():
             continue
@@ -363,6 +344,5 @@ async def get_travel_time_minutes(lat1: float, lon1: float,
         except Exception:
             if h:
                 h.mark_failed()
-
-    km = _haversine_km(lat1, lon1, lat2, lon2)
+    km = haversine_km(lat1, lon1, lat2, lon2)
     return round((km / 50.0) * 60.0, 2)

@@ -1,9 +1,15 @@
-from __future__ import annotations
+"""
+ext/composite_risk.py — Composite risk scoring model.
 
+PATCH: Removed score_incidents_for_heatmap — it was defined but never called
+anywhere. heatmap.py calls compute_risk_score directly.
+"""
+from __future__ import annotations
 from typing import Any
 
 _SEV = {'low': 0.2, 'moderate': 0.4, 'high': 0.7, 'critical': 0.9, 'extreme': 1.0}
 _SPR = {'low': 0.2, 'moderate': 0.45, 'high': 0.7, 'extreme': 0.95}
+
 
 def _num(v: Any, default: float = 0.0) -> float:
     try:
@@ -27,14 +33,14 @@ def compute_risk_score(
     units_on_scene: int | None,
     units_en_route: int | None,
 ) -> dict:
-    fbi = max(0.0, min(_num(fire_behavior_index), 1.0))
-    spread = _SPR.get((spread_risk or 'moderate').lower(), 0.45)
-    sev = _SEV.get((severity or 'moderate').lower(), 0.4)
-    structures = min(_num(structures_threatened) / 100.0, 1.0)
+    fbi         = max(0.0, min(_num(fire_behavior_index), 1.0))
+    spread      = _SPR.get((spread_risk or 'moderate').lower(), 0.45)
+    sev         = _SEV.get((severity or 'moderate').lower(), 0.4)
+    structures  = min(_num(structures_threatened) / 100.0, 1.0)
     containment = min(max(_num(containment_percent), 0.0), 100.0) / 100.0
-    acres = min(_num(acres_burned) / 5000.0, 1.0)
-    slope = min(_num(slope_percent) / 60.0, 1.0)
-    resources = min((int(units_on_scene or 0) + 0.6 * int(units_en_route or 0)) / 12.0, 1.0)
+    acres       = min(_num(acres_burned) / 5000.0, 1.0)
+    slope       = min(_num(slope_percent) / 60.0, 1.0)
+    resources   = min((int(units_on_scene or 0) + 0.6 * int(units_en_route or 0)) / 12.0, 1.0)
 
     raw = (
         fbi * 0.30 +
@@ -48,14 +54,10 @@ def compute_risk_score(
     )
     score = max(0.0, min(raw, 1.0))
 
-    if score >= 0.8:
-        label = 'extreme'
-    elif score >= 0.6:
-        label = 'high'
-    elif score >= 0.35:
-        label = 'moderate'
-    else:
-        label = 'low'
+    if score >= 0.8:   label = 'extreme'
+    elif score >= 0.6: label = 'high'
+    elif score >= 0.35: label = 'moderate'
+    else:              label = 'low'
 
     components = {
         'fire_behavior':    round(fbi * 0.30, 4),
@@ -81,32 +83,11 @@ def compute_risk_score(
         },
         # kept for backwards compat
         'drivers': {
-            'fire_behavior_index': round(fbi, 3),
-            'spread_risk_factor':  round(spread, 3),
-            'severity_factor':     round(sev, 3),
-            'structures_factor':   round(structures, 3),
-            'containment_factor':  round(1.0 - containment, 3),
+            'fire_behavior_index':    round(fbi, 3),
+            'spread_risk_factor':     round(spread, 3),
+            'severity_factor':        round(sev, 3),
+            'structures_factor':      round(structures, 3),
+            'containment_factor':     round(1.0 - containment, 3),
             'resource_relief_factor': round(resources, 3),
         },
     }
-
-
-def score_incidents_for_heatmap(incidents: list[dict]) -> list[dict]:
-    """Batch-score a list of incident dicts, adding risk_score and risk_level."""
-    results = []
-    for inc in incidents:
-        scored = compute_risk_score(
-            fire_behavior_index=inc.get('fire_behavior_index', 0.0),
-            spread_risk=inc.get('spread_risk'),
-            severity=inc.get('severity'),
-            structures_threatened=inc.get('structures_threatened'),
-            containment_percent=inc.get('containment_percent'),
-            acres_burned=inc.get('acres_burned'),
-            slope_percent=inc.get('slope_percent'),
-            aspect_cardinal=inc.get('aspect_cardinal'),
-            spread_direction=inc.get('spread_direction'),
-            units_on_scene=inc.get('units_on_scene', 0),
-            units_en_route=inc.get('units_en_route', 0),
-        )
-        results.append({**inc, 'risk_score': scored['risk_score'], 'risk_level': scored['risk_level']})
-    return results

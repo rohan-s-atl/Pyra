@@ -134,6 +134,9 @@ export default function IncidentMap({
   const showFires  = mapView === 'live' || mapView === 'fires'
   const showUnits  = mapView === 'live' || mapView === 'units'
 
+  // Snapshot of last-known positions for diff — avoids re-renders when nothing moved
+  const prevPositions = useRef({})
+
   // Animation loop — runs at 60fps, lerps each unit toward its target
   useEffect(() => {
     function animate() {
@@ -185,24 +188,33 @@ export default function IncidentMap({
 
   useEffect(() => {
     function handleUnits(u) {
-      setUnits(u)
-      recordPositions(u)
-      // Update interpolation targets for moving units
+      // Diff positions before updating state — avoids a full re-render every second
+      // when most units haven't moved. The 60fps animation loop runs independently.
+      let positionChanged = false
       u.forEach(unit => {
         const lat = unit.latitude
         const lon = unit.longitude
         if (!isNaN(lat) && !isNaN(lon)) {
           targetPositions.current[unit.id] = { lat, lon }
-          // Snap immediately if no current smooth position yet
           if (!smoothPositions.current[unit.id]) {
             smoothPositions.current[unit.id] = { lat, lon }
           }
+          const prev = prevPositions.current[unit.id]
+          if (!prev || Math.abs(prev.lat - lat) > 0.000005 || Math.abs(prev.lon - lon) > 0.000005) {
+            prevPositions.current[unit.id] = { lat, lon }
+            positionChanged = true
+          }
         }
       })
-      setDisplayUnits(u)
+      setUnits(u)
+      if (positionChanged) {
+        recordPositions(u)
+        setDisplayUnits(u)
+      }
     }
     api.units().then(handleUnits).catch(() => {})
-    const interval = setInterval(() => api.units().then(handleUnits).catch(() => {}), 1000)
+    // 2s matches the simulation tick — 1s was polling twice per tick with no benefit
+    const interval = setInterval(() => api.units().then(handleUnits).catch(() => {}), 2000)
     return () => clearInterval(interval)
   }, [])
 
@@ -263,7 +275,9 @@ export default function IncidentMap({
       return
     }
 
-    const key = `${unit.id}-${Math.round(ulat * 100)}-${Math.round(ulon * 100)}`
+    // FIX: include destination in key — old key caused wrong route to be drawn
+    // when the same unit was selected for a different incident (cross-incident cache hit)
+    const key = `${unit.id}-${Math.round(ulat * 100)}-${Math.round(ulon * 100)}-${Math.round(incident.latitude * 100)}-${Math.round(incident.longitude * 100)}`
     if (clickedRouteCache.current[key]) {
       setClickedRoute({ type: 'ground', coords: clickedRouteCache.current[key] }); return
     }

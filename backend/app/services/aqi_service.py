@@ -1,14 +1,15 @@
 """
-aqi_service.py — Fetches air quality index for active incidents using Open-Meteo Air Quality API.
+aqi_service.py — Fetches AQI for active incidents using Open-Meteo Air Quality API.
 
-Open-Meteo AQ API is free, no key required, provides US AQI (pm2.5-based).
-Run every 30 minutes via the scheduler.
+PATCH: Replaced sequential fetch loop with asyncio.gather for concurrent fetches.
 """
 
+import asyncio
 import logging
-import httpx
 import uuid
 from datetime import datetime, UTC
+
+import httpx
 
 from app.core.database import SessionLocal
 from app.models.incident import Incident
@@ -18,7 +19,6 @@ logger = logging.getLogger(__name__)
 
 
 def _aqi_from_pm25(pm25: float) -> int:
-    """Convert PM2.5 µg/m³ to US AQI (EPA breakpoints)."""
     breakpoints = [
         (0.0,   12.0,   0,   50),
         (12.1,  35.4,   51,  100),
@@ -60,12 +60,10 @@ def _aqi_description(aqi: int) -> str:
 
 
 async def fetch_aqi(lat: float, lon: float) -> dict | None:
-    """Fetch current AQI from Open-Meteo Air Quality API (no key required)."""
     url = (
         "https://air-quality-api.open-meteo.com/v1/air-quality"
         f"?latitude={lat}&longitude={lon}"
-        "&current=pm2_5,us_aqi"
-        "&timezone=auto"
+        "&current=pm2_5,us_aqi&timezone=auto"
     )
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
@@ -76,64 +74,19 @@ async def fetch_aqi(lat: float, lon: float) -> dict | None:
             current = data.get("current", {})
             us_aqi = current.get("us_aqi")
             pm25   = current.get("pm2_5")
-
             if us_aqi is not None:
                 aqi = int(us_aqi)
             elif pm25 is not None:
                 aqi = _aqi_from_pm25(float(pm25))
             else:
                 return None
-
             return {"aqi": aqi, "category": _aqi_category(aqi)}
     except Exception as exc:
-        logger.warning(f"[aqi_service] Open-Meteo AQ fetch failed: {exc}")
+        logger.warning("[aqi_service] Open-Meteo AQ fetch failed: %s", exc)
         return None
 
 
-async def update_incident_aqi():
-    """Background job — fetch AQI for all active incidents and update the DB."""
-    db = SessionLocal()
-    updated = 0
-    failed  = 0
-
-    try:
-        incidents = db.query(Incident).filter(
-            Incident.status.in_(["active", "contained"])
-        ).all()
-
-        logger.info(f"[aqi_service] Updating AQI for {len(incidents)} incidents...")
-
-        for incident in incidents:
-            try:
-                aqi_data = await fetch_aqi(incident.latitude, incident.longitude)
-                if aqi_data:
-                    incident.aqi          = aqi_data["aqi"]
-                    incident.aqi_category = aqi_data["category"]
-                    incident.updated_at   = datetime.now(UTC)
-                    updated += 1
-
-                    severity = _aqi_alert_severity(aqi_data["aqi"])
-                    if severity:
-                        _maybe_create_aqi_alert(db, incident, aqi_data, severity)
-                else:
-                    failed += 1
-            except Exception as exc:
-                logger.warning(f"[aqi_service] Failed for {incident.name}: {exc}")
-                failed += 1
-
-        db.commit()
-        logger.info(f"[aqi_service] Done. Updated: {updated}, Skipped/Failed: {failed}")
-
-    except Exception as exc:
-        db.rollback()
-        logger.error(f"[aqi_service] Error: {exc}")
-    finally:
-        db.close()
-
-    return {"updated": updated, "failed": failed}
-
-
-def _maybe_create_aqi_alert(db, incident: Incident, aqi_data: dict, severity: str):
+def _maybe_create_aqi_alert(db, incident: Incident, aqi_data: dict, severity: str) -> None:
     existing = db.query(Alert).filter(
         Alert.incident_id == incident.id,
         Alert.alert_type == "weather_shift",
@@ -143,9 +96,8 @@ def _maybe_create_aqi_alert(db, incident: Incident, aqi_data: dict, severity: st
     if existing:
         existing.description = _aqi_description(aqi_data["aqi"])
         return
-    alert_id = f"ALT-{str(uuid.uuid4())}"
     db.add(Alert(
-        id=alert_id,
+        id=f"ALT-{str(uuid.uuid4())}",
         incident_id=incident.id,
         alert_type="weather_shift",
         severity=severity,
@@ -155,3 +107,50 @@ def _maybe_create_aqi_alert(db, incident: Incident, aqi_data: dict, severity: st
         created_at=datetime.now(UTC),
         expires_at=None,
     ))
+
+
+async def update_incident_aqi() -> dict:
+    """
+    Background job — fetch AQI for all active incidents concurrently.
+    """
+    db = SessionLocal()
+    updated = 0
+    failed  = 0
+
+    try:
+        incidents = db.query(Incident).filter(
+            Incident.status.in_(["active", "contained"])
+        ).all()
+
+        if not incidents:
+            return {"updated": 0, "failed": 0}
+
+        logger.info("[aqi_service] Updating AQI for %d incidents (concurrent)...", len(incidents))
+
+        results = await asyncio.gather(
+            *[fetch_aqi(inc.latitude, inc.longitude) for inc in incidents],
+            return_exceptions=True,
+        )
+
+        for incident, aqi_data in zip(incidents, results):
+            if isinstance(aqi_data, Exception) or aqi_data is None:
+                failed += 1
+                continue
+            incident.aqi          = aqi_data["aqi"]
+            incident.aqi_category = aqi_data["category"]
+            incident.updated_at   = datetime.now(UTC)
+            updated += 1
+            severity = _aqi_alert_severity(aqi_data["aqi"])
+            if severity:
+                _maybe_create_aqi_alert(db, incident, aqi_data, severity)
+
+        db.commit()
+        logger.info("[aqi_service] Done. Updated: %d, Failed: %d", updated, failed)
+
+    except Exception as exc:
+        db.rollback()
+        logger.error("[aqi_service] Error: %s", exc)
+    finally:
+        db.close()
+
+    return {"updated": updated, "failed": failed}
