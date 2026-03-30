@@ -68,6 +68,9 @@ _health: dict[str, _EndpointHealth] = {
     _PUBLIC_OSRM_B: _EndpointHealth(url=_PUBLIC_OSRM_B),
 }
 
+# ORS gets its own health tracker so 429s trigger a cooldown
+_ors_health = _EndpointHealth(url="https://api.openrouteservice.org")
+
 
 @dataclass
 class CachedRoute:
@@ -89,6 +92,10 @@ class CachedRoute:
 
 
 _route_cache: dict[str, CachedRoute] = {}
+
+# Units whose routes failed all backends — don't retry for 5 minutes
+_failed_route_cooldown: dict[str, float] = {}
+_FAILED_ROUTE_COOLDOWN_S = 300.0  # 5 minutes
 
 
 def get_cached_route(unit_id: str) -> Optional[CachedRoute]:
@@ -186,6 +193,9 @@ async def _try_openrouteservice(from_lat: float, from_lon: float,
         logger.warning("[routing] OPENROUTESERVICE_API_KEY not configured — skipping ORS")
         return None
 
+    if _ors_health.is_cooling_down():
+        return None
+
     try:
         async with httpx.AsyncClient(timeout=_REQUEST_TIMEOUT) as client:
             res = await client.post(
@@ -201,12 +211,22 @@ async def _try_openrouteservice(from_lat: float, from_lon: float,
             return None
 
         coords = features[0]["geometry"]["coordinates"]
+        _ors_health.mark_ok()
         logger.info("[routing] OpenRouteService success (%d waypoints)", len(coords))
         return [[round(lat, 5), round(lon, 5)] for lon, lat in coords]
 
     except httpx.HTTPStatusError as exc:
-        logger.warning("[routing] ORS HTTP error %s: %s", exc.response.status_code,
-                       exc.response.text[:200])
+        status = exc.response.status_code
+        body   = exc.response.text[:200]
+        if status == 429:
+            logger.warning("[routing] ORS rate limited (429) — cooling down 60s")
+            _ors_health.mark_failed()
+        elif status == 404:
+            # Unroutable point (water / off-road) — not ORS's fault, don't penalise
+            logger.warning("[routing] ORS 404 unroutable coordinate: %s", body)
+        else:
+            logger.warning("[routing] ORS HTTP %s: %s", status, body)
+            _ors_health.mark_failed()
         return None
     except Exception as exc:
         logger.warning("[routing] ORS failed: %s", exc)
@@ -284,6 +304,13 @@ async def build_route(unit_id: str, unit_type: str,
     if not force and unit_id in _route_cache:
         return _route_cache[unit_id]
 
+    # Don't retry recently-failed routes — prevents ORS rate limit hammering
+    if not force and unit_id in _failed_route_cooldown:
+        since = time.monotonic() - _failed_route_cooldown[unit_id]
+        if since < _FAILED_ROUTE_COOLDOWN_S:
+            waypoints = _straight_line(from_lat, from_lon, to_lat, to_lon)
+            return CachedRoute(waypoints=waypoints, index=0, is_road_routed=False)
+
     ntype = normalize_unit_type(unit_type)
 
     if is_air_unit(ntype):
@@ -294,8 +321,10 @@ async def build_route(unit_id: str, unit_type: str,
         if raw is not None:
             waypoints = raw
             is_road   = True
+            _failed_route_cooldown.pop(unit_id, None)  # clear cooldown on success
         else:
             logger.warning("[routing] All backends failed for unit=%s — straight-line fallback", unit_id)
+            _failed_route_cooldown[unit_id] = time.monotonic()  # start cooldown
             waypoints = _straight_line(from_lat, from_lon, to_lat, to_lon)
             is_road   = False
 
