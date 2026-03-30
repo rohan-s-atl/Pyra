@@ -41,7 +41,12 @@ class Settings(BaseSettings):
     airnow_api_key: Optional[str] = None
 
     # Routing
+    # local_osrm_url: point at a self-hosted OSRM instance (Docker)
     local_osrm_url: str = "http://localhost:5001/route/v1/driving"
+    # openrouteservice_api_key: free at openrouteservice.org (2000 req/day)
+    openrouteservice_api_key: Optional[str] = None
+    # mapbox_token: optional premium fallback
+    mapbox_token: Optional[str] = None
 
     # CORS
     cors_origins: List[str] = [

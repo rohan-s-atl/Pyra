@@ -143,6 +143,11 @@ function UnitRouteCard({ unitRoute }) {
                 AERIAL
               </span>
             )}
+            {!unitRoute.isAir && unitRoute.isRoadRouted === false && (
+              <span title="Road routing unavailable — showing straight-line estimate. Add OPENROUTESERVICE_API_KEY to .env for road routes." style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', color: '#facc15', letterSpacing: '0.02em', cursor: 'help' }}>
+                ⚠ EST
+              </span>
+            )}
           </div>
           <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#878787' }}>
             {unitRoute.distMiles < 1

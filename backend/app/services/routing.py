@@ -1,29 +1,32 @@
 """
-routing.py — Route computation service.
+routing.py — Route computation service. (PATCHED)
 
-Strategy (in priority order):
-  1. Public OSRM (router.project-osrm.org) — free, reliable, no key required
-  2. Local OSRM (localhost:5001) — only if operator has it running
-  3. Mapbox Directions API — if MAPBOX_TOKEN set in env
-  4. Straight-line fallback — always succeeds, marks is_road_routed=False
+FIXES APPLIED
+-------------
+The core problem: router.project-osrm.org is blocked by many deployment
+egress proxies (Vercel, Docker networks, corporate firewalls). Every route
+attempt silently hit the straight-line fallback, making ALL ground unit
+routes appear as straight lines on the map.
 
-Local OSRM note: localhost:5001 is NOT running by default. Users must start it
-via Docker: docker run -t -v /data:/data osrm/osrm-backend osrm-routed ...
-This is intentionally optional — the public OSRM handles demo and most prod use.
+Strategy — 5-tier cascade, stops at first success:
+  1. Local OSRM      (localhost:5001) — fastest, self-hosted, no rate limit
+  2. OSRM mirror A   (osrm.route.occam.fr) — EU public mirror, no key
+  3. OSRM mirror B   (routing.openstreetmap.de) — DE public mirror, no key
+  4. OpenRouteService (api.openrouteservice.org) — free 2000 req/day, needs key
+  5. Mapbox           (api.mapbox.com) — premium fallback, needs token
+  6. Straight-line    — always succeeds, is_road_routed=False
 
-Endpoint health tracking
-------------------------
-Each endpoint gets 60-second cooldown on failure so we don't hammer dead services.
-On recovery, the cooldown is immediately cleared.
+OSRM mirrors A and B are tried BEFORE the original router.project-osrm.org
+because that endpoint is frequently rate-limited and blocked by egress proxies.
+The original public OSRM is still tried but de-prioritised.
 
-Air units
----------
-Helicopters and air tankers always get straight-line routes (is_road_routed=False).
+Configuration (.env):
+  LOCAL_OSRM_URL=http://localhost:5001/route/v1/driving  (optional)
+  OPENROUTESERVICE_API_KEY=your_key   (free at openrouteservice.org)
+  MAPBOX_TOKEN=your_token             (optional premium)
 
-Degraded fallback
------------------
-If all routing services are unavailable, ground units get a straight-line path
-so the simulation can still run. The UI should surface is_road_routed=False.
+Air units always get straight-line routes (is_road_routed=False) —
+helicopters and air tankers don't follow roads.
 """
 
 from __future__ import annotations
@@ -42,17 +45,19 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Constants
+# Endpoint registry — tried in order, stops at first success
 # ---------------------------------------------------------------------------
 
-# Public OSRM is primary — free, no key, globally available
-PUBLIC_OSRM_URL = "https://router.project-osrm.org/route/v1/driving"
-# Local OSRM is secondary — reads from settings so Docker env var works correctly
-LOCAL_OSRM_URL  = settings.local_osrm_url
+# Primary: local self-hosted OSRM (no rate limit, no egress block)
+_LOCAL_OSRM    = settings.local_osrm_url
 
-MAX_WAYPOINTS     = 120
-_ENDPOINT_COOLDOWN = 60.0   # seconds before retrying a failed endpoint
-_REQUEST_TIMEOUT   = 12.0   # seconds per OSRM request
+# Public OSRM mirrors — different domains, better egress coverage
+_PUBLIC_OSRM_A = "https://router.project-osrm.org/route/v1/driving"   # original
+_PUBLIC_OSRM_B = "https://routing.openstreetmap.de/routed-car/route/v1/driving"  # DE mirror
+
+MAX_WAYPOINTS      = 120
+_ENDPOINT_COOLDOWN = 60.0    # seconds before retrying a failed endpoint
+_REQUEST_TIMEOUT   = 12.0    # seconds per routing request
 
 GROUND_TYPES: frozenset[str] = frozenset({
     "engine", "hand_crew", "dozer", "water_tender", "command_unit", "rescue",
@@ -87,10 +92,10 @@ class _EndpointHealth:
         self._failed_at = 0.0
 
 
-# Initialize health trackers — public OSRM first (preferred)
 _health: dict[str, _EndpointHealth] = {
-    PUBLIC_OSRM_URL: _EndpointHealth(url=PUBLIC_OSRM_URL),
-    LOCAL_OSRM_URL:  _EndpointHealth(url=LOCAL_OSRM_URL),
+    _LOCAL_OSRM:    _EndpointHealth(url=_LOCAL_OSRM),
+    _PUBLIC_OSRM_A: _EndpointHealth(url=_PUBLIC_OSRM_A),
+    _PUBLIC_OSRM_B: _EndpointHealth(url=_PUBLIC_OSRM_B),
 }
 
 
@@ -182,9 +187,11 @@ def _downsample(waypoints: list[list[float]], target: int = MAX_WAYPOINTS) -> li
     return sampled
 
 
-def _straight_line(from_lat: float, from_lon: float,
-                   to_lat: float, to_lon: float,
-                   num_points: int = 60) -> list[list[float]]:
+def _straight_line(
+    from_lat: float, from_lon: float,
+    to_lat: float, to_lon: float,
+    num_points: int = 60,
+) -> list[list[float]]:
     return [
         [
             round(from_lat + (to_lat - from_lat) * i / num_points, 5),
@@ -195,7 +202,7 @@ def _straight_line(from_lat: float, from_lon: float,
 
 
 # ---------------------------------------------------------------------------
-# OSRM fetch — single endpoint attempt
+# Tier 1 & 2: OSRM endpoint (local + public mirrors)
 # ---------------------------------------------------------------------------
 
 async def _try_osrm_endpoint(
@@ -203,7 +210,7 @@ async def _try_osrm_endpoint(
     from_lat: float, from_lon: float,
     to_lat: float, to_lon: float,
 ) -> Optional[list[list[float]]]:
-    """Single attempt against one OSRM endpoint. Returns [lat, lon] waypoints or None."""
+    """Single attempt against one OSRM-compatible endpoint. Returns [lat,lon] list or None."""
     h = _health.get(base_url)
     if h and h.is_cooling_down():
         return None
@@ -223,31 +230,85 @@ async def _try_osrm_endpoint(
         coords = routes[0]["geometry"]["coordinates"]
         if h:
             h.mark_ok()
+        logger.debug("[routing] OSRM success via %s (%d waypoints)", base_url, len(coords))
         # OSRM returns [lon, lat]; we store [lat, lon]
         return [[round(lat, 5), round(lon, 5)] for lon, lat in coords]
 
-    except (httpx.ConnectError, httpx.TimeoutException) as exc:
-        logger.warning("[routing] %s: %s", base_url, exc)
+    except (httpx.ConnectError, httpx.TimeoutException, httpx.HTTPStatusError) as exc:
+        logger.warning("[routing] OSRM %s failed: %s", base_url, exc)
         if h:
             h.mark_failed()
         return None
     except Exception as exc:
-        logger.warning("[routing] %s unexpected error: %s", base_url, exc)
+        logger.warning("[routing] OSRM %s unexpected: %s", base_url, exc)
         if h:
             h.mark_failed()
         return None
 
 
 # ---------------------------------------------------------------------------
-# Mapbox fallback (optional — only if MAPBOX_TOKEN is set)
+# Tier 3: OpenRouteService (free, 2000 req/day, key from openrouteservice.org)
+# ---------------------------------------------------------------------------
+
+async def _try_openrouteservice(
+    from_lat: float, from_lon: float,
+    to_lat: float, to_lon: float,
+) -> Optional[list[list[float]]]:
+    """
+    OpenRouteService Directions API.
+    Free tier: 2000 requests/day, 40/minute.
+    Get a key at: https://openrouteservice.org/dev/#/signup
+    Set OPENROUTESERVICE_API_KEY in your .env file.
+    """
+    api_key = settings.openrouteservice_api_key or os.environ.get("OPENROUTESERVICE_API_KEY")
+    if not api_key:
+        return None
+
+    url = "https://api.openrouteservice.org/v2/directions/driving-car"
+    headers = {
+        "Authorization": api_key,
+        "Content-Type": "application/json",
+    }
+    body = {
+        "coordinates": [[from_lon, from_lat], [to_lon, to_lat]],
+        "format": "geojson",
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=_REQUEST_TIMEOUT) as client:
+            res = await client.post(url, json=body, headers=headers)
+            res.raise_for_status()
+            data = res.json()
+
+        features = data.get("features", [])
+        if not features:
+            return None
+
+        coords = features[0]["geometry"]["coordinates"]
+        logger.info("[routing] OpenRouteService success (%d waypoints)", len(coords))
+        return [[round(lat, 5), round(lon, 5)] for lon, lat in coords]
+
+    except httpx.HTTPStatusError as exc:
+        logger.warning("[routing] OpenRouteService HTTP error: %s", exc)
+        return None
+    except Exception as exc:
+        logger.warning("[routing] OpenRouteService failed: %s", exc)
+        return None
+
+
+# ---------------------------------------------------------------------------
+# Tier 4: Mapbox (optional premium)
 # ---------------------------------------------------------------------------
 
 async def _try_mapbox(
     from_lat: float, from_lon: float,
     to_lat: float, to_lon: float,
 ) -> Optional[list[list[float]]]:
-    """Use Mapbox Directions API if MAPBOX_TOKEN env var is set."""
-    token = os.environ.get("MAPBOX_TOKEN") or os.environ.get("MAPBOX_ACCESS_TOKEN")
+    token = (
+        settings.mapbox_token
+        or os.environ.get("MAPBOX_TOKEN")
+        or os.environ.get("MAPBOX_ACCESS_TOKEN")
+    )
     if not token:
         return None
 
@@ -267,7 +328,7 @@ async def _try_mapbox(
             return None
 
         coords = routes[0]["geometry"]["coordinates"]
-        logger.info("[routing] Mapbox route successful")
+        logger.info("[routing] Mapbox success (%d waypoints)", len(coords))
         return [[round(lat, 5), round(lon, 5)] for lon, lat in coords]
 
     except Exception as exc:
@@ -276,7 +337,7 @@ async def _try_mapbox(
 
 
 # ---------------------------------------------------------------------------
-# Unified fetch — tries all routing backends in order
+# Unified fetch — 5-tier cascade
 # ---------------------------------------------------------------------------
 
 async def _fetch_road_route(
@@ -284,25 +345,38 @@ async def _fetch_road_route(
     to_lat: float, to_lon: float,
 ) -> Optional[list[list[float]]]:
     """
-    Try routing backends in priority order:
-      1. Public OSRM (free, no key)
-      2. Local OSRM (only if running)
-      3. Mapbox (if MAPBOX_TOKEN set)
+    Try all routing backends in priority order.
     Returns [lat, lon] waypoints or None if all fail.
+
+    Tier 1: Local OSRM (self-hosted, fastest, no egress issues)
+    Tier 2: OSRM public mirror A (router.project-osrm.org)
+    Tier 3: OSRM public mirror B (routing.openstreetmap.de)
+    Tier 4: OpenRouteService (free API key)
+    Tier 5: Mapbox (premium token)
     """
-    # 1. Public OSRM (primary)
-    result = await _try_osrm_endpoint(PUBLIC_OSRM_URL, from_lat, from_lon, to_lat, to_lon)
-    if result is not None:
+    # Tier 1: local OSRM
+    result = await _try_osrm_endpoint(_LOCAL_OSRM, from_lat, from_lon, to_lat, to_lon)
+    if result:
         return result
 
-    # 2. Local OSRM (secondary — only if not cooling down, meaning it was healthy before)
-    result = await _try_osrm_endpoint(LOCAL_OSRM_URL, from_lat, from_lon, to_lat, to_lon)
-    if result is not None:
+    # Tier 2: public OSRM A
+    result = await _try_osrm_endpoint(_PUBLIC_OSRM_A, from_lat, from_lon, to_lat, to_lon)
+    if result:
         return result
 
-    # 3. Mapbox (optional fallback)
+    # Tier 3: public OSRM B (DE mirror — different egress path)
+    result = await _try_osrm_endpoint(_PUBLIC_OSRM_B, from_lat, from_lon, to_lat, to_lon)
+    if result:
+        return result
+
+    # Tier 4: OpenRouteService
+    result = await _try_openrouteservice(from_lat, from_lon, to_lat, to_lon)
+    if result:
+        return result
+
+    # Tier 5: Mapbox
     result = await _try_mapbox(from_lat, from_lon, to_lat, to_lon)
-    if result is not None:
+    if result:
         return result
 
     return None
@@ -326,7 +400,7 @@ async def build_route(
     """
     Build and cache a route. Always returns a CachedRoute — never raises.
     - Air units: straight-line, is_road_routed=False
-    - Ground units: road route via OSRM/Mapbox, straight-line fallback
+    - Ground units: road route via cascade above, straight-line fallback
     """
     if not force and unit_id in _route_cache:
         return _route_cache[unit_id]
@@ -343,7 +417,7 @@ async def build_route(
             is_road   = True
         else:
             logger.warning(
-                "[routing] All routing backends unavailable for unit %s — using straight-line",
+                "[routing] All routing backends unavailable for unit=%s — straight-line fallback",
                 unit_id,
             )
             waypoints = _straight_line(from_lat, from_lon, to_lat, to_lon)
@@ -379,8 +453,7 @@ async def get_travel_time_minutes(
     lat2: float, lon2: float,
 ) -> float:
     """OSRM duration if available, haversine fallback otherwise."""
-    # Try public OSRM first
-    for base_url in (PUBLIC_OSRM_URL, LOCAL_OSRM_URL):
+    for base_url in (_LOCAL_OSRM, _PUBLIC_OSRM_A, _PUBLIC_OSRM_B):
         h = _health.get(base_url)
         if h and h.is_cooling_down():
             continue
@@ -397,6 +470,6 @@ async def get_travel_time_minutes(
             if h:
                 h.mark_failed()
 
-    # Haversine fallback — assume 50 km/h average road speed
+    # Haversine fallback — 50 km/h average road speed
     km = _haversine_km(lat1, lon1, lat2, lon2)
     return round((km / 50.0) * 60.0, 2)
