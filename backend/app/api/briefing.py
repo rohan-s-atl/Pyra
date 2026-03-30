@@ -108,32 +108,26 @@ async def generate_briefing(
 
     active_alerts = db.query(Alert).filter(
         Alert.incident_id == incident_id,
-        Alert.is_acknowledged.is_(False),  # Fixed: use .is_(False) for proper SQLAlchemy comparison
-    ).all()
+        Alert.is_acknowledged.is_(False),
+    ).order_by(Alert.created_at.desc()).limit(10).all()
 
     prompt = _build_prompt(incident, units_on_scene, units_en_route, active_alerts)
 
-    try:
-        client = anthropic.Anthropic(api_key=api_key)
-    except Exception as e:
-        logger.error(f"Anthropic init failed: {e}")
-        raise HTTPException(status_code=500, detail="AI initialization failed")
-
-    # Stream the response back
+    # Stream the response back — using AsyncAnthropic so the event loop is
+    # never blocked during inference.
     async def stream_briefing():
         try:
-            async def ai_call():
-                return client.messages.stream(
-                    model="claude-sonnet-4-6",
-                    max_tokens=1024,
-                    system="You are a CAL FIRE incident commander generating ICS-style operational briefings. Write in plain English using standard ICS terminology. Be authoritative, concise, and direct.",
-                    messages=[{"role": "user", "content": prompt}],
-                )
-
-            stream_obj = await asyncio.wait_for(ai_call(), timeout=15)
-
-            with stream_obj as stream:
-                for text in stream.text_stream:
+            client = anthropic.AsyncAnthropic(api_key=api_key)
+            async with client.messages.stream(
+                model="claude-sonnet-4-6",
+                max_tokens=1024,
+                system=(
+                    "You are a CAL FIRE incident commander generating ICS-style operational briefings. "
+                    "Write in plain English using standard ICS terminology. Be authoritative, concise, and direct."
+                ),
+                messages=[{"role": "user", "content": prompt}],
+            ) as stream:
+                async for text in stream.text_stream:
                     yield f"data: {json.dumps({'text': text})}\n\n"
 
             yield "data: [DONE]\n\n"
@@ -141,7 +135,6 @@ async def generate_briefing(
         except asyncio.TimeoutError:
             logger.error("Briefing AI timeout")
             yield f"data: {json.dumps({'error': 'AI timeout'})}\n\n"
-
         except Exception as e:
             logger.error(f"Briefing stream error: {e}")
             yield f"data: {json.dumps({'error': 'AI stream failed'})}\n\n"
@@ -192,17 +185,16 @@ Prose only — no bullets. Max 350 words. Tone: authoritative, direct, factual."
 
 async def _generate_handoff_text(prompt: str, api_key: str) -> str:
     """Generate full briefing text (non-streaming) for DB storage."""
-    client = anthropic.Anthropic(api_key=api_key)
-
-    async def call():
-        return client.messages.create(
+    client = anthropic.AsyncAnthropic(api_key=api_key)
+    msg = await asyncio.wait_for(
+        client.messages.create(
             model="claude-sonnet-4-6",
             max_tokens=1024,
             system="You are a CAL FIRE incident commander generating ICS shift handoff briefings.",
             messages=[{"role": "user", "content": prompt}],
-        )
-
-    msg = await asyncio.wait_for(call(), timeout=30)
+        ),
+        timeout=30,
+    )
     return msg.content[0].text.strip()
 
 

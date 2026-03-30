@@ -7,7 +7,7 @@ import { toast } from './Toast'
 const SEVERITY_STYLE = {
   critical: { border: '#ef4444', text: '#ef4444', bg: 'rgba(239,68,68,0.08)' },
   warning:  { border: '#F56E0F', text: '#F56E0F', bg: 'rgba(245,110,15,0.08)' },
-  info:     { border: '#60a5fa', text: '#60a5fa', bg: 'rgba(96,165,250,0.08)' },
+  info:     { border: '#4ade80', text: '#4ade80', bg: 'rgba(74,222,128,0.08)' },
 }
 
 const TYPE_ICON = {
@@ -18,6 +18,7 @@ const TYPE_ICON = {
   water_source_constraint: '💧',
   evacuation_recommended:  '🚨',
   resource_shortage:       '📦',
+  containment_complete:    '✅',
 }
 
 const STATUS_COLOR = {
@@ -517,11 +518,11 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
           </span>
           {unacked.length > 0 && (
             <span style={{ background: '#F56E0F', color: '#FBFBFB', borderRadius: '2px', padding: '1px 6px', fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '11px' }}>
-              {unacked.length}
+              {unacked.length > 99 ? '99+' : unacked.length}
             </span>
           )}
           <div style={{ marginLeft: 'auto', display: 'flex', gap: '4px' }}>
-            {alerts.length > 10 && (
+            {alerts.length > 5 && (
               <button
                 title="Clear all alerts"
                 onClick={() => {

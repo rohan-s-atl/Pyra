@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { AuthContext } from './context/AuthContext'
 import TopBar from './components/TopBar'
 import IncidentMap from './components/IncidentMap'
@@ -22,6 +22,9 @@ export default function App() {
   const [alerts,          setAlerts]          = useState([])
   const [units,           setUnits]           = useState([])
   const [selectedId,      setSelectedId]      = useState(null)
+  // Containment modal — shown when a fire reaches 100% containment
+  const [containmentModal, setContainmentModal] = useState(null) // { incidentName, alertId }
+  const _seenContainmentAlerts = useRef(new Set())
   const [activeView,      setActiveView]      = useState('live')
   const [detailOpen,      setDetailOpen]      = useState(false)
   const [focusedUnit,     setFocusedUnit]     = useState(null)
@@ -90,7 +93,25 @@ export default function App() {
   }
 
   // ── Stable refresh callbacks (no stale closure in polling interval) ──────
-  const refreshAlerts    = useCallback(() => api.alerts().then(setAlerts).catch(() => {}), [])
+  const refreshAlerts    = useCallback(() => api.alerts().then(newAlerts => {
+    setAlerts(newAlerts)
+    // Detect new containment_complete alerts and trigger modal
+    for (const alert of newAlerts) {
+      if (
+        alert.alert_type === 'containment_complete' &&
+        !alert.is_acknowledged &&
+        !_seenContainmentAlerts.current.has(alert.id)
+      ) {
+        _seenContainmentAlerts.current.add(alert.id)
+        const incident = incidents.find(i => i.id === alert.incident_id)
+        setContainmentModal({
+          incidentName: incident?.name ?? alert.title,
+          alertId: alert.id,
+        })
+        break  // show one modal at a time
+      }
+    }
+  }).catch(() => {}), [incidents])
   const refreshUnits = useCallback(() =>
     api.units().then(newUnits => {
       setUnits(newUnits)
@@ -400,6 +421,58 @@ export default function App() {
 
         <ToastContainer toasts={toasts} />
         {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
+
+        {/* Containment modal — fires when an incident reaches 100% */}
+        {containmentModal && (
+          <div style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <div style={{
+              background: '#1B1B1E', border: '1px solid #4ade80',
+              borderRadius: '6px', padding: '28px 32px', maxWidth: '400px', width: '90vw',
+              boxShadow: '0 0 40px rgba(74,222,128,0.15)',
+              fontFamily: 'Inter, sans-serif', textAlign: 'center',
+            }}>
+              <div style={{ fontSize: '32px', marginBottom: '12px' }}>✅</div>
+              <div style={{
+                fontWeight: 700, fontSize: '15px', color: '#4ade80',
+                letterSpacing: '0.06em', marginBottom: '8px',
+              }}>
+                FIRE FULLY CONTAINED
+              </div>
+              <div style={{
+                fontSize: '13px', color: '#FBFBFB', marginBottom: '6px', fontWeight: 600,
+              }}>
+                {containmentModal.incidentName}
+              </div>
+              <div style={{ fontSize: '12px', color: '#878787', marginBottom: '20px', lineHeight: 1.6 }}>
+                This incident has reached 100% containment.
+                All units are being recalled to their home stations.
+              </div>
+              <button
+                onClick={() => {
+                  // Acknowledge the alert so it doesn't re-trigger
+                  if (containmentModal.alertId) {
+                    api.acknowledgeAlert(containmentModal.alertId).catch(() => {})
+                  }
+                  setContainmentModal(null)
+                  refreshAlertsDebounced()
+                  refreshIncidents()
+                }}
+                style={{
+                  background: '#4ade80', border: 'none', borderRadius: '4px',
+                  padding: '10px 32px', cursor: 'pointer',
+                  fontFamily: 'Inter, sans-serif', fontWeight: 700,
+                  fontSize: '13px', color: '#0f1f0f', letterSpacing: '0.04em',
+                }}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        )}
 
       </div>
     </AuthContext.Provider>

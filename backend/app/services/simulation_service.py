@@ -1,29 +1,16 @@
 """
-simulation_service.py — Simulation orchestrator.
+simulation_service.py — Simulation orchestrator. (PATCHED)
 
-Architecture
-------------
-The simulation tick (run every 2 seconds) must NEVER do network I/O.
-OSRM route building is async network I/O and is explicitly separated into a
-dedicated background job (`run_route_builder_job`) that runs every 10 seconds.
-
-Tick budget (target < 50 ms):
-  Phase 1  advance_positions       — pure in-memory + DB writes
-  Phase 2  progress_containment    — pure DB
-  Phase 3  vary_weather            — pure DB
-  Phase 4  weather_alerts          — pure DB
-  Phase 5  operational_alerts      — pure DB
-  Phase 6  route_conditions        — pure DB (every 300 ticks)
-
-Route builder job (separate, every 10 s):
-  - Queries units that need routes (en_route / returning with no cache entry)
-  - Fires OSRM calls; backoff if OSRM is down
-  - Populates the in-process route cache
-  - If OSRM is unreachable, writes a degraded straight-line route so units
-    can still move
-
-The `_running` guard on the tick prevents overlap if DB is slow.
-The route builder has its own `_route_builder_running` guard.
+FIXES APPLIED
+-------------
+1. Alert explosion — hard cap (MAX_UNACKED_ALERTS_PER_INCIDENT=15) + periodic
+   prune of acknowledged alerts prevents unbounded DB growth.
+2. Containment auto-removal — incidents reaching 100% are marked "contained",
+   all units recalled, and a one-shot notification alert is inserted.
+3. Acreage growth — active fires grow incrementally so satellite detections
+   show non-null acres_burned from the start.
+4. Alert check interval raised 15→30 ticks; route alert capped at 3/incident.
+5. Dedup title prefix extended to 40 chars.
 """
 
 from __future__ import annotations
@@ -34,6 +21,7 @@ import random
 import uuid
 from datetime import datetime, UTC
 
+from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
@@ -47,8 +35,6 @@ from app.services import movement as mv
 from app.services.routing import (
     build_route,
     get_cached_route,
-    invalidate_route,
-    normalize_unit_type,
     is_ground_unit,
     is_air_unit,
 )
@@ -59,28 +45,29 @@ logger = logging.getLogger(__name__)
 # Tuning
 # ---------------------------------------------------------------------------
 
-CONTAINMENT_GAIN_PER_UNIT = 0.02  # was 2.5 — 30 units now takes ~45min to reach 85%, not 32s
-WIND_VARIATION            = 2.0
-HUMIDITY_VARIATION        = 1.5
-WIND_ALERT_THRESHOLD      = 25.0
-HUMIDITY_ALERT_THRESHOLD  = 12.0
-ROUTE_UPDATE_INTERVAL     = 300   # ticks between route-condition updates
-ALERT_CHECK_INTERVAL      = 15    # ticks between alert checks (~30 seconds)
+CONTAINMENT_GAIN_PER_UNIT        = 0.02
+WIND_VARIATION                   = 2.0
+HUMIDITY_VARIATION               = 1.5
+WIND_ALERT_THRESHOLD             = 25.0
+HUMIDITY_ALERT_THRESHOLD         = 12.0
+ROUTE_UPDATE_INTERVAL            = 300
+ALERT_CHECK_INTERVAL             = 30    # raised from 15 — halves alert generation rate
+PRUNE_INTERVAL                   = 150   # ticks between DB alert pruning (~5 min)
+MAX_UNACKED_ALERTS_PER_INCIDENT  = 15    # hard cap on live alerts per incident
+MAX_ACKED_ALERTS_PER_INCIDENT    = 50    # keep history but prune oldest
+GLOBAL_ACKED_ALERT_PRUNE_LIMIT   = 500   # total acked alerts in DB before bulk purge
 
-_sim_tick:             int  = 0
-_running:              bool = False   # simulation tick overlap guard
-_route_builder_running: bool = False  # route builder overlap guard
+_sim_tick:              int  = 0
+_running:               bool = False
+_route_builder_running: bool = False
+_contained_notified:    set[str] = set()   # prevent duplicate "fully contained" alerts
 
 
 # ---------------------------------------------------------------------------
-# Entry point: simulation tick  (called every 2 s — NO network I/O here)
+# Entry point: simulation tick
 # ---------------------------------------------------------------------------
 
 async def run_simulation_cycle() -> None:
-    """
-    Fast synchronous-only tick.  Must complete well under 2 seconds.
-    Never calls OSRM or any other network endpoint.
-    """
     global _running
     if _running:
         logger.debug("[simulation] Previous tick still running — skipping")
@@ -100,18 +87,21 @@ def _tick() -> None:
 
     db: Session = SessionLocal()
     try:
-        _run_phase("advance_positions",   _advance_positions,    db)
-        _run_phase("rotate_on_scene",     _rotate_on_scene_units, db)
-        _run_phase("progress_containment",_progress_containment, db)
-        _run_phase("vary_weather",        _vary_weather,         db)
-        # Alert checks run every 15 ticks (~30s) — not every 2s.
-        # Running every tick creates thousands of dedup SELECT queries under load
-        # and races between savepoints on persistent conditions.
+        _run_phase("advance_positions",    _advance_positions,     db)
+        _run_phase("rotate_on_scene",      _rotate_on_scene_units, db)
+        _run_phase("progress_containment", _progress_containment,  db)
+        _run_phase("grow_acreage",         _grow_acreage,          db)
+        _run_phase("vary_weather",         _vary_weather,          db)
+
         if _sim_tick % ALERT_CHECK_INTERVAL == 0:
-            _run_phase("weather_alerts",      _check_weather_alerts, db)
-            _run_phase("operational_alerts",  _check_operational_alerts, db)
+            _run_phase("weather_alerts",     _check_weather_alerts,     db)
+            _run_phase("operational_alerts", _check_operational_alerts, db)
+
         if _sim_tick % ROUTE_UPDATE_INTERVAL == 0:
             _run_phase("route_conditions", _update_route_conditions, db)
+
+        if _sim_tick % PRUNE_INTERVAL == 0:
+            _run_phase("alert_pruning", _prune_old_alerts, db)
 
         db.commit()
         logger.debug("[simulation] Tick %d complete", _sim_tick)
@@ -123,11 +113,6 @@ def _tick() -> None:
 
 
 def _run_phase(name: str, fn, db: Session) -> None:
-    """
-    Execute one simulation phase inside a savepoint.
-    On failure: roll back the savepoint, log, and continue — other phases
-    in the same tick are unaffected.
-    """
     try:
         with db.begin_nested():
             fn(db)
@@ -139,15 +124,10 @@ def _run_phase(name: str, fn, db: Session) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Entry point: route builder  (called every 10 s — network I/O lives here)
+# Entry point: route builder (network I/O lives here)
 # ---------------------------------------------------------------------------
 
 async def run_route_builder() -> None:
-    """
-    Background job that builds OSRM routes for units that need them.
-    Runs on its own 10-second interval, completely separate from the tick.
-    Has its own overlap guard so a slow OSRM call can never pile up.
-    """
     global _route_builder_running
     if _route_builder_running:
         logger.debug("[route_builder] Previous run still active — skipping")
@@ -162,17 +142,7 @@ async def run_route_builder() -> None:
 
 
 async def _build_pending_routes() -> None:
-    """
-    Query units that need routes and build them concurrently.
-
-    IMPORTANT: all SQLAlchemy ORM objects are converted to plain dicts before
-    the session closes.  The async gather runs after db.close(), so any lazy
-    attribute access on a detached Unit/Incident would raise
-    "Instance is not bound to a Session".  We avoid this by extracting every
-    field we need as a plain Python value inside the session block.
-    """
     db: Session = SessionLocal()
-    # Each entry: (unit_id, unit_type, from_lat, from_lon, to_lat, to_lon, label)
     pending: list[tuple] = []
     try:
         units = db.query(Unit).filter(
@@ -181,18 +151,17 @@ async def _build_pending_routes() -> None:
 
         for unit in units:
             if get_cached_route(unit.id) is not None:
-                continue   # already cached
+                continue
 
             if unit.latitude is None or unit.longitude is None:
                 if not mv.snap_to_station(db, unit):
                     logger.warning("[route_builder] Unit=%s has no position — skipping", unit.id)
                     continue
 
-            # Extract plain values NOW while session is open
-            uid       = unit.id
-            utype     = unit.unit_type
-            from_lat  = unit.latitude
-            from_lon  = unit.longitude
+            uid      = unit.id
+            utype    = unit.unit_type
+            from_lat = unit.latitude
+            from_lon = unit.longitude
 
             if unit.status == "en_route" and unit.assigned_incident_id:
                 incident = db.query(Incident).filter(
@@ -202,14 +171,16 @@ async def _build_pending_routes() -> None:
                     pending.append((uid, utype, from_lat, from_lon,
                                     incident.latitude, incident.longitude, "incident"))
                 else:
-                    # Incident deleted — reset orphaned unit
-                    logger.warning("[route_builder] Unit=%s en_route to missing incident — resetting to available", uid)
+                    logger.warning(
+                        "[route_builder] Unit=%s en_route to missing incident — resetting", uid
+                    )
                     unit.status = "available"
                     unit.assigned_incident_id = None
 
             elif unit.status == "en_route" and not unit.assigned_incident_id:
-                # Stale unit left in en_route with no incident (e.g. from previous server run)
-                logger.warning("[route_builder] Unit=%s en_route with no incident — resetting to available", uid)
+                logger.warning(
+                    "[route_builder] Unit=%s en_route with no incident — resetting", uid
+                )
                 unit.status = "available"
 
             elif unit.status == "returning":
@@ -218,9 +189,9 @@ async def _build_pending_routes() -> None:
                     pending.append((uid, utype, from_lat, from_lon,
                                     station.latitude, station.longitude, "base"))
 
-        db.commit()   # persist any station_id corrections from resolve_home_station
+        db.commit()
     finally:
-        db.close()    # session closed here — no ORM objects used after this point
+        db.close()
 
     if not pending:
         return
@@ -237,21 +208,15 @@ async def _build_pending_routes() -> None:
 
 
 async def _build_for_unit(
-    unit_id: str,
-    unit_type: str,
+    unit_id: str, unit_type: str,
     from_lat: float, from_lon: float,
     to_lat: float, to_lon: float,
     destination_label: str,
 ) -> None:
-    """Build and cache a route using only plain primitive values — no ORM objects."""
-    route = await build_route(
-        unit_id, unit_type,
-        from_lat, from_lon,
-        to_lat, to_lon,
-    )
+    route = await build_route(unit_id, unit_type, from_lat, from_lon, to_lat, to_lon)
     if not route.is_road_routed and is_ground_unit(unit_type):
         logger.warning(
-            "[route_builder] Unit=%s dest=%s using degraded straight-line (OSRM unavailable)",
+            "[route_builder] Unit=%s dest=%s using degraded straight-line",
             unit_id, destination_label,
         )
     else:
@@ -279,7 +244,6 @@ def _advance_positions(db: Session) -> None:
         mv.pin_idle_unit(db, unit)
 
 
-# Seconds a unit of each type stays on scene before rotating off (demo-speed)
 _ON_SCENE_DURATION: dict[str, int] = {
     "helicopter":   30,
     "air_tanker":   30,
@@ -293,56 +257,129 @@ _ON_SCENE_DEFAULT = 40
 
 
 def _rotate_on_scene_units(db: Session) -> None:
-    """Rotate units off scene once they've exceeded their on-scene duration.
-    Units with no on_scene_since stamp (arrived before this feature) are
-    stamped now and will rotate on the next eligible tick.
-    """
     now = datetime.now(UTC)
-    on_scene_units = db.query(Unit).filter(Unit.status == "on_scene").all()
-
-    for unit in on_scene_units:
-        # Stamp units that arrived before on_scene_since existed
+    for unit in db.query(Unit).filter(Unit.status == "on_scene").all():
         if unit.on_scene_since is None:
             unit.on_scene_since = now
-            unit.last_updated = now
+            unit.last_updated   = now
             continue
 
         duration = _ON_SCENE_DURATION.get(unit.unit_type, _ON_SCENE_DEFAULT)
         ts = unit.on_scene_since
         if ts.tzinfo is None:
             ts = ts.replace(tzinfo=UTC)
-        elapsed = (now - ts).total_seconds()
-        if elapsed >= duration:
-            unit.status = "returning"
+        if (now - ts).total_seconds() >= duration:
+            unit.status         = "returning"
             unit.on_scene_since = None
-            unit.last_updated = now
+            unit.last_updated   = now
             logger.info(
-                "[simulation] Unit=%s rotating off scene after %.0fs (type=%s)",
-                unit.id, elapsed, unit.unit_type,
+                "[simulation] Unit=%s rotating off scene (type=%s)", unit.id, unit.unit_type
             )
 
 
 # ---------------------------------------------------------------------------
-# Phase 2: Containment
+# Phase 2: Containment + auto-removal at 100%
 # ---------------------------------------------------------------------------
 
 def _progress_containment(db: Session) -> None:
+    global _contained_notified
+
     for incident in db.query(Incident).filter(Incident.status == "active").all():
         on_scene = db.query(Unit).filter(
             Unit.assigned_incident_id == incident.id,
             Unit.status == "on_scene",
         ).count()
-        if on_scene > 0:
-            gain    = CONTAINMENT_GAIN_PER_UNIT * on_scene * random.uniform(0.3, 1.2)
-            current = incident.containment_percent or 0.0
-            incident.containment_percent = round(min(95.0, current + gain * 0.1), 1)
-            if incident.containment_percent >= 90.0:
-                incident.status = "contained"
-            incident.updated_at = datetime.now(UTC)
+
+        if on_scene <= 0:
+            continue
+
+        gain    = CONTAINMENT_GAIN_PER_UNIT * on_scene * random.uniform(0.3, 1.2)
+        current = incident.containment_percent or 0.0
+        new_pct = round(min(100.0, current + gain * 0.1), 1)
+        incident.containment_percent = new_pct
+        incident.updated_at          = datetime.now(UTC)
+
+        # ── Auto-contain at 100% ────────────────────────────────────────────
+        if new_pct >= 100.0 and incident.id not in _contained_notified:
+            incident.status              = "contained"
+            incident.containment_percent = 100.0
+            _contained_notified.add(incident.id)
+
+            # Recall all active units
+            for unit in db.query(Unit).filter(
+                Unit.assigned_incident_id == incident.id,
+                Unit.status.in_(["en_route", "on_scene", "staging"]),
+            ).all():
+                unit.status       = "returning"
+                unit.last_updated = datetime.now(UTC)
+
+            # One-shot notification alert
+            _insert_alert_direct(
+                db, incident,
+                alert_type  = "containment_complete",
+                severity    = "info",
+                title       = f"Fire Fully Contained — {incident.name}",
+                description = (
+                    f"{incident.name} has reached 100% containment. "
+                    f"All units are being recalled. Incident status set to CONTAINED."
+                ),
+            )
+            logger.info("[simulation] '%s' reached 100%% — status → contained", incident.name)
+
+        # Legacy 90% threshold
+        elif new_pct >= 90.0 and incident.status == "active":
+            incident.status = "contained"
 
 
 # ---------------------------------------------------------------------------
-# Phase 3: Weather variation
+# Phase 3: Acreage growth
+# ---------------------------------------------------------------------------
+
+_GROWTH_BASE: dict[str, float] = {
+    "critical": 0.06,
+    "high":     0.04,
+    "moderate": 0.02,
+    "low":      0.01,
+}
+
+_SEED_ACRES: dict[str, float] = {
+    "critical": 800.0,
+    "high":     200.0,
+    "moderate": 50.0,
+    "low":      5.0,
+}
+
+
+def _grow_acreage(db: Session) -> None:
+    """Grow acres_burned each tick and seed zero-acre fires with a starting estimate."""
+    for incident in db.query(Incident).filter(Incident.status == "active").all():
+        base      = _GROWTH_BASE.get(incident.severity, 0.02)
+        risk_mult = {"extreme": 3.0, "high": 2.0, "moderate": 1.0, "low": 0.5}.get(
+            incident.spread_risk or "moderate", 1.0
+        )
+        wind_mph  = incident.wind_speed_mph or 5.0
+        wind_mult = max(0.5, min(2.5, wind_mph / 15.0))
+
+        on_scene  = db.query(Unit).filter(
+            Unit.assigned_incident_id == incident.id,
+            Unit.status == "on_scene",
+        ).count()
+        suppress  = max(0.1, 1.0 - on_scene * 0.07)
+
+        growth  = base * risk_mult * wind_mult * suppress * random.uniform(0.5, 1.5)
+        current = incident.acres_burned
+
+        # Seed new or zero-acre incidents
+        if not current:
+            seed    = _SEED_ACRES.get(incident.severity, 20.0)
+            current = round(seed * random.uniform(0.5, 2.0), 1)
+
+        incident.acres_burned = round(current + growth, 1)
+        incident.updated_at   = datetime.now(UTC)
+
+
+# ---------------------------------------------------------------------------
+# Phase 4: Weather variation
 # ---------------------------------------------------------------------------
 
 def _vary_weather(db: Session) -> None:
@@ -359,11 +396,14 @@ def _vary_weather(db: Session) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Phase 4: Weather alerts
+# Phase 5: Weather alerts
 # ---------------------------------------------------------------------------
 
 def _check_weather_alerts(db: Session) -> None:
     for incident in db.query(Incident).filter(Incident.status == "active").all():
+        if _unacked_count(db, incident.id) >= MAX_UNACKED_ALERTS_PER_INCIDENT:
+            continue
+
         if incident.wind_speed_mph and incident.wind_speed_mph > WIND_ALERT_THRESHOLD:
             _maybe_add_alert(
                 db, incident, "weather_shift", "critical",
@@ -381,11 +421,15 @@ def _check_weather_alerts(db: Session) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Phase 5: Operational alerts
+# Phase 6: Operational alerts
 # ---------------------------------------------------------------------------
 
 def _check_operational_alerts(db: Session) -> None:
     for incident in db.query(Incident).filter(Incident.status == "active").all():
+        if _unacked_count(db, incident.id) >= MAX_UNACKED_ALERTS_PER_INCIDENT:
+            continue
+
+        # Water resupply check
         tenders = db.query(Unit).filter(
             Unit.assigned_incident_id == incident.id,
             Unit.unit_type == "water_tender",
@@ -404,6 +448,7 @@ def _check_operational_alerts(db: Session) -> None:
                 f"Identify and confirm water supply point before tender capacity is depleted.",
             )
 
+        # Structure threat check
         if (incident.structures_threatened and incident.structures_threatened > 0 and
                 incident.spread_risk in ("extreme", "high") and
                 incident.containment_percent is not None and
@@ -417,6 +462,7 @@ def _check_operational_alerts(db: Session) -> None:
                 f"Immediate structure protection deployment recommended.",
             )
 
+        # Engine depletion check
         total_engines     = db.query(Unit).filter(Unit.unit_type == "engine").count()
         available_engines = db.query(Unit).filter(
             Unit.unit_type == "engine", Unit.status == "available",
@@ -429,12 +475,17 @@ def _check_operational_alerts(db: Session) -> None:
                 f"Request mutual aid or await returning units before committing additional resources.",
             )
 
+        # Route exposure check — cap at 3 routes per incident to limit alert volume
         if incident.spread_direction and incident.spread_risk in ("extreme", "high"):
-            for route in db.query(Route).filter(
+            routes = db.query(Route).filter(
                 Route.incident_id == incident.id,
                 Route.is_currently_passable.is_(True),
                 Route.fire_exposure_risk.in_(["high", "moderate"]),
-            ).all():
+            ).limit(3).all()
+
+            for route in routes:
+                if _unacked_count(db, incident.id) >= MAX_UNACKED_ALERTS_PER_INCIDENT:
+                    break
                 _maybe_add_alert(
                     db, incident, "route_blocked", "warning",
                     f"Route Exposure Risk — {route.label[:40]}",
@@ -446,8 +497,16 @@ def _check_operational_alerts(db: Session) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Alert: deduplication + idempotent insert
+# Alert helpers
 # ---------------------------------------------------------------------------
+
+def _unacked_count(db: Session, incident_id: str) -> int:
+    return (
+        db.query(func.count(Alert.id))
+        .filter(Alert.incident_id == incident_id, Alert.is_acknowledged.is_(False))
+        .scalar() or 0
+    )
+
 
 def _maybe_add_alert(
     db: Session,
@@ -458,16 +517,10 @@ def _maybe_add_alert(
     description: str,
     dedup_key: str = "",
 ) -> None:
-    """
-    Insert an alert only if no unacknowledged alert of the same type exists.
+    if _unacked_count(db, incident.id) >= MAX_UNACKED_ALERTS_PER_INCIDENT:
+        return
 
-    ID  — uuid4, globally unique, no clock dependency.
-    Insert — ON CONFLICT DO NOTHING makes this safe for concurrent writers.
-    """
-    # Check for any existing unacknowledged alert of this type for this incident.
-    # Also match on the first 30 chars of title so "High Wind — 25.1mph" deduplicates
-    # against "High Wind — 25.3mph" (same alert, just slightly different value).
-    title_prefix = title[:30]
+    title_prefix = title[:40]
     query = db.query(Alert).filter(
         Alert.incident_id == incident.id,
         Alert.alert_type == alert_type,
@@ -480,8 +533,18 @@ def _maybe_add_alert(
     if query.first():
         return
 
-    alert_id = f"ALT-{uuid.uuid4()}"
+    _insert_alert_direct(db, incident, alert_type, severity, title, description)
 
+
+def _insert_alert_direct(
+    db: Session,
+    incident: Incident,
+    alert_type: str,
+    severity: str,
+    title: str,
+    description: str,
+) -> None:
+    alert_id = f"ALT-{uuid.uuid4()}"
     try:
         stmt = (
             pg_insert(Alert.__table__)
@@ -500,7 +563,6 @@ def _maybe_add_alert(
         )
         db.execute(stmt)
     except Exception:
-        # SQLite fallback (used in tests)
         db.add(Alert(
             id=alert_id,
             incident_id=incident.id,
@@ -515,7 +577,55 @@ def _maybe_add_alert(
 
 
 # ---------------------------------------------------------------------------
-# Phase 6: Route condition updates (infrequent — every 300 ticks)
+# Phase 7: Alert pruning
+# ---------------------------------------------------------------------------
+
+def _prune_old_alerts(db: Session) -> None:
+    total_acked = (
+        db.query(func.count(Alert.id))
+        .filter(Alert.is_acknowledged.is_(True))
+        .scalar() or 0
+    )
+
+    if total_acked > GLOBAL_ACKED_ALERT_PRUNE_LIMIT:
+        cutoff = total_acked - GLOBAL_ACKED_ALERT_PRUNE_LIMIT // 2
+        oldest_ids = (
+            db.query(Alert.id)
+            .filter(Alert.is_acknowledged.is_(True))
+            .order_by(Alert.created_at.asc())
+            .limit(cutoff)
+            .all()
+        )
+        ids = [r[0] for r in oldest_ids]
+        if ids:
+            db.query(Alert).filter(Alert.id.in_(ids)).delete(synchronize_session=False)
+            logger.info("[simulation] Pruned %d old acked alerts (global limit)", len(ids))
+        return
+
+    incidents = (
+        db.query(Alert.incident_id, func.count(Alert.id).label("cnt"))
+        .filter(Alert.is_acknowledged.is_(True))
+        .group_by(Alert.incident_id)
+        .having(func.count(Alert.id) > MAX_ACKED_ALERTS_PER_INCIDENT)
+        .all()
+    )
+    for inc_id, cnt in incidents:
+        excess = cnt - MAX_ACKED_ALERTS_PER_INCIDENT
+        oldest_ids = (
+            db.query(Alert.id)
+            .filter(Alert.incident_id == inc_id, Alert.is_acknowledged.is_(True))
+            .order_by(Alert.created_at.asc())
+            .limit(excess)
+            .all()
+        )
+        ids = [r[0] for r in oldest_ids]
+        if ids:
+            db.query(Alert).filter(Alert.id.in_(ids)).delete(synchronize_session=False)
+            logger.debug("[simulation] Pruned %d acked alerts for incident %s", len(ids), inc_id)
+
+
+# ---------------------------------------------------------------------------
+# Phase 8: Route condition updates (every 300 ticks)
 # ---------------------------------------------------------------------------
 
 def _update_route_conditions(db: Session) -> None:
@@ -544,12 +654,12 @@ def _update_route_conditions(db: Session) -> None:
                     incident.spread_risk in ("extreme", "high") and
                     random.random() < 0.10):
                 route.fire_exposure_risk = "moderate"
-                route.last_verified_at = now
+                route.last_verified_at   = now
             elif (route.fire_exposure_risk == "moderate" and
                   incident.spread_risk in ("extreme", "high") and
                   random.random() < 0.08):
                 route.fire_exposure_risk = "high"
-                route.last_verified_at = now
+                route.last_verified_at   = now
             elif (incident.containment_percent is not None and
                   incident.containment_percent > 60 and
                   route.fire_exposure_risk in ("high", "moderate") and

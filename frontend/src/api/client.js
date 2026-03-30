@@ -109,8 +109,12 @@ export const api = {
   // Incidents
   incidents: () => get('/api/incidents/'),
 
-  // Alerts
-  alerts: () => get('/api/alerts/'),
+  // Alerts — fetch newest 100, unacknowledged first via sort on backend
+  alerts: (limit = 100) => get(`/api/alerts/?limit=${limit}`),
+
+  // Alert stats — lightweight badge counts
+  alertStats: (incidentId) =>
+    get(`/api/alerts/stats${incidentId ? `?incident_id=${incidentId}` : ''}`),
 
   // Units
   units: () => get('/api/units/'),
@@ -171,6 +175,12 @@ export const api = {
   // Alert management
   clearAllAlerts: () => {
     return fetch(`${BASE_URL}/api/alerts/all`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    }).then(r => r.json())
+  },
+  clearAcknowledgedAlerts: () => {
+    return fetch(`${BASE_URL}/api/alerts/acknowledged`, {
       method: 'DELETE',
       headers: authHeaders(),
     }).then(r => r.json())

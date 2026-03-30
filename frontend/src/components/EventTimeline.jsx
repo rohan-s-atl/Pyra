@@ -12,6 +12,7 @@ const TYPE_COLOR = {
   water_source_constraint: '#60a5fa',
   evacuation_recommended:  '#ef4444',
   resource_shortage:       '#F56E0F',
+  containment_complete:    '#4ade80',
 }
 
 const TYPE_ICON = {
@@ -22,6 +23,7 @@ const TYPE_ICON = {
   water_source_constraint: '💧',
   evacuation_recommended:  '🚨',
   resource_shortage:       '📦',
+  containment_complete:    '✅',
 }
 
 const UNIT_TYPE_ICON = {
