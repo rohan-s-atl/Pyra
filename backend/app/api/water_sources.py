@@ -45,15 +45,10 @@ router = APIRouter(prefix="/api/water-sources", tags=["Water Sources"])
 
 # ── Constants ──────────────────────────────────────────────────────────────────
 
-OVERPASS_URLS = [
-    "https://overpass-api.de/api/interpreter",
-    "https://overpass.kumi.systems/api/interpreter",   # EU mirror
-    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",  # RU mirror
-]
-
+OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 OSRM_URLS = [
-    "https://routing.openstreetmap.de/routed-car/route/v1/driving",
-    "https://router.project-osrm.org/route/v1/driving",
+    "http://localhost:5001/route/v1/driving",          # local self-hosted (skipped on Railway)
+    "https://routing.openstreetmap.de/routed-car/route/v1/driving",  # DE mirror
 ]
 
 FILL_RATE_GPM: dict[str, float] = {
@@ -66,7 +61,7 @@ FILL_RATE_GPM: dict[str, float] = {
     "unknown":     200.0,
 }
 
-REQUEST_TIMEOUT = 10.0   # per mirror — fail fast, try next mirror
+REQUEST_TIMEOUT = 25.0   # was 12s — large relation queries need more time
 MAX_HYDRANTS = 20        # separate cap so hydrants don't crowd out large bodies
 MAX_BODIES   = 15        # max large water bodies (lakes, rivers, reservoirs)
 MAX_TANKS    = 10
@@ -162,25 +157,18 @@ def _source_name(tags: dict, source_type: str) -> str:
 # ── Fetch ──────────────────────────────────────────────────────────────────────
 
 async def fetch_water_sources(lat: float, lon: float, radius_m: int = 6000) -> list[dict]:
-    """Query Overpass for water sources near (lat, lon). Tries multiple mirrors."""
+    """Query Overpass for water sources near (lat, lon)."""
     query = _build_overpass_query(lat, lon, radius_m)
-    data  = None
-
-    for overpass_url in OVERPASS_URLS:
-        try:
-            async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT) as client:
-                resp = await client.post(overpass_url, data={"data": query})
-                resp.raise_for_status()
-                data = resp.json()
-                logger.debug("[water_sources] Overpass success via %s", overpass_url)
-                break
-        except httpx.TimeoutException:
-            logger.warning("[water_sources] Overpass timed out: %s — trying next mirror", overpass_url)
-        except Exception as exc:
-            logger.warning("[water_sources] Overpass failed (%s): %s — trying next mirror", overpass_url, exc)
-
-    if data is None:
-        logger.error("[water_sources] All Overpass mirrors failed")
+    try:
+        async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT) as client:
+            resp = await client.post(OVERPASS_URL, data={"data": query})
+            resp.raise_for_status()
+            data = resp.json()
+    except httpx.TimeoutException:
+        logger.warning("[water_sources] Overpass timed out after %.0fs", REQUEST_TIMEOUT)
+        return []
+    except Exception as exc:
+        logger.warning("[water_sources] Overpass query failed: %s", exc)
         return []
 
     hydrants:   list[dict] = []
@@ -268,10 +256,12 @@ def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
 
 async def _osrm_distance_km(
     from_lat: float, from_lon: float,
-    to_lat: float,   to_lon: float,
+    to_lat:   float, to_lon:   float,
 ) -> Optional[float]:
-    """Return road distance in km via OSRM, or None on failure."""
+    """Return road distance in km — tries OSRM mirrors then ORS, falls back to None."""
     coord_str = f"{from_lon},{from_lat};{to_lon},{to_lat}"
+
+    # Try OSRM mirrors first (faster, no key)
     for base_url in OSRM_URLS:
         url = f"{base_url}/{coord_str}?overview=false&alternatives=false"
         try:
@@ -283,6 +273,27 @@ async def _osrm_distance_km(
                         return d["routes"][0]["distance"] / 1000.0
         except Exception:
             continue
+
+    # Fallback: OpenRouteService
+    import os
+    from app.core.config import settings
+    api_key = settings.openrouteservice_api_key or os.environ.get("OPENROUTESERVICE_API_KEY")
+    if api_key:
+        try:
+            async with httpx.AsyncClient(timeout=8.0) as client:
+                resp = await client.post(
+                    "https://api.openrouteservice.org/v2/directions/driving-car",
+                    json={"coordinates": [[from_lon, from_lat], [to_lon, to_lat]], "format": "json"},
+                    headers={"Authorization": api_key, "Content-Type": "application/json"},
+                )
+                if resp.status_code == 200:
+                    d = resp.json()
+                    routes = d.get("routes", [])
+                    if routes:
+                        return routes[0]["summary"]["distance"] / 1000.0
+        except Exception:
+            pass
+
     return None
 
 

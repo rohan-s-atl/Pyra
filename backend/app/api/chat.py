@@ -163,22 +163,16 @@ async def chat(
         try:
             client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
 
-            async def do_stream():
-                async with client.messages.stream(
-                    model="claude-sonnet-4-6",
-                    max_tokens=512,
-                    system=system,
-                    messages=messages,
-                ) as s:
-                    async for text in s.text_stream:
-                        yield f"data: {json.dumps({'text': text})}\n\n"
-                yield "data: [DONE]\n\n"
+            async with client.messages.stream(
+                model="claude-sonnet-4-6",
+                max_tokens=512,
+                system=system,
+                messages=messages,
+            ) as s:
+                async for text in s.text_stream:
+                    yield f"data: {json.dumps({'text': text})}\n\n"
 
-            async for chunk in asyncio.wait_for(
-                _collect_stream(do_stream()),
-                timeout=_CHAT_TIMEOUT,
-            ):
-                yield chunk
+            yield "data: [DONE]\n\n"
 
         except asyncio.TimeoutError:
             logger.error("[chat] Stream timeout for incident=%s", incident_id)
@@ -192,9 +186,3 @@ async def chat(
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
-
-
-async def _collect_stream(agen):
-    """Adapter: yield from an async generator so asyncio.wait_for can wrap it."""
-    async for item in agen:
-        yield item

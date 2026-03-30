@@ -248,8 +248,8 @@ async def get_loadout_advice(
         prompt = _build_prompt(incident, units)
 
         message = await client.messages.create(
-            model="claude-haiku-4-5-20251001",   # fast + cheap for structured JSON
-            max_tokens=1200,
+            model="claude-haiku-4-5-20251001",
+            max_tokens=2048,   # increased from 1200 — large unit selections were truncating JSON
             messages=[{"role": "user", "content": prompt}],
         )
 
