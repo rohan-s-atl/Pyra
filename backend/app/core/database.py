@@ -13,16 +13,19 @@ if is_sqlite:
     )
 else:
     # PostgreSQL on Railway — sized for single-worker uvicorn + 2s simulation tick.
-    # pool_size=5:         5 persistent connections (sim now uses 1 at a time per phase)
-    # max_overflow=10:     10 additional burst connections for concurrent API requests
-    # pool_timeout=10:     fail fast — 30s was masking the real problem
+    # pool_size=10:        10 persistent connections — covers ~10 concurrent API clients
+    # max_overflow=15:     15 burst connections for request spikes
+    # pool_timeout=10:     fail fast — don't queue forever, surface pressure early
     # pool_recycle=1800:   recycle connections every 30min to avoid stale TCP
     # pool_pre_ping=True:  test connection health before use — prevents "lost connection" errors
+    # Note: sim tick uses 1 connection at a time (per-phase sessions), so the pool
+    # is sized for the API layer. With frontend polling deduplicated, peak concurrent
+    # connections should stay well under pool_size.
     engine = create_engine(
         settings.database_url,
         connect_args=connect_args,
-        pool_size=5,
-        max_overflow=10,
+        pool_size=10,
+        max_overflow=15,
         pool_timeout=10,
         pool_recycle=1800,
         pool_pre_ping=True,

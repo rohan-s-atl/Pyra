@@ -110,8 +110,9 @@ export default function IncidentMap({
   showWaterSources = false,
   onWaterSourceStatus = null,
   fireGrowthTimeMode = 'standard',
+  units: unitsProp = [],
 }) {
-  const [units,        setUnits]        = useState([])
+  const [units,        setUnits]        = useState(unitsProp)
   const [selectedUnit, setSelectedUnit] = useState(null)
   const [clickedRoute, setClickedRoute] = useState(null)
   const [zoomLevel,    setZoomLevel]    = useState(7)
@@ -186,37 +187,34 @@ export default function IncidentMap({
     })
   }
 
+  // Process units from parent prop — runs the same diff/interpolation logic
+  // that the old polling useEffect used, just fed by App.jsx's poll instead
+  // of a duplicate fetch here.
   useEffect(() => {
-    function handleUnits(u) {
-      // Diff positions before updating state — avoids a full re-render every second
-      // when most units haven't moved. The 60fps animation loop runs independently.
-      let positionChanged = false
-      u.forEach(unit => {
-        const lat = unit.latitude
-        const lon = unit.longitude
-        if (!isNaN(lat) && !isNaN(lon)) {
-          targetPositions.current[unit.id] = { lat, lon }
-          if (!smoothPositions.current[unit.id]) {
-            smoothPositions.current[unit.id] = { lat, lon }
-          }
-          const prev = prevPositions.current[unit.id]
-          if (!prev || Math.abs(prev.lat - lat) > 0.000005 || Math.abs(prev.lon - lon) > 0.000005) {
-            prevPositions.current[unit.id] = { lat, lon }
-            positionChanged = true
-          }
+    const u = unitsProp
+    if (!u || u.length === 0) return
+    let positionChanged = false
+    u.forEach(unit => {
+      const lat = unit.latitude
+      const lon = unit.longitude
+      if (!isNaN(lat) && !isNaN(lon)) {
+        targetPositions.current[unit.id] = { lat, lon }
+        if (!smoothPositions.current[unit.id]) {
+          smoothPositions.current[unit.id] = { lat, lon }
         }
-      })
-      setUnits(u)
-      if (positionChanged) {
-        recordPositions(u)
-        setDisplayUnits(u)
+        const prev = prevPositions.current[unit.id]
+        if (!prev || Math.abs(prev.lat - lat) > 0.000005 || Math.abs(prev.lon - lon) > 0.000005) {
+          prevPositions.current[unit.id] = { lat, lon }
+          positionChanged = true
+        }
       }
+    })
+    setUnits(u)
+    if (positionChanged) {
+      recordPositions(u)
+      setDisplayUnits(u)
     }
-    api.units().then(handleUnits).catch(() => {})
-    // 2s matches the simulation tick — 1s was polling twice per tick with no benefit
-    const interval = setInterval(() => api.units().then(handleUnits).catch(() => {}), 2000)
-    return () => clearInterval(interval)
-  }, [])
+  }, [unitsProp])
 
   // Fetch road route when user clicks an en-route unit
   useEffect(() => {

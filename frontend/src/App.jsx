@@ -174,7 +174,8 @@ export default function App() {
     if (!auth) return
 
     // Stagger polling: units fast (map movement), incidents medium, alerts slow
-    const unitId     = setInterval(refreshUnits,     3_000)   // unit positions every 3s
+    // IncidentMap no longer has its own poll — units come from here only.
+    const unitId     = setInterval(refreshUnits,     4_000)   // unit positions every 4s
     const incidentId = setInterval(refreshIncidents, 10_000)  // incidents every 10s
     const alertId    = setInterval(refreshAlerts,    30_000)  // alerts every 30s
     const id = { clear: () => { clearInterval(unitId); clearInterval(incidentId); clearInterval(alertId) } }
@@ -307,6 +308,7 @@ export default function App() {
           <div style={{ flex: 1, position: 'relative', minWidth: 0 }}>
             <IncidentMap
               incidents={incidents}
+              units={units}
               selectedId={selectedId}
               onSelect={handleSelectIncident}
               mapView={activeView}
