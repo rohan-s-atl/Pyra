@@ -695,7 +695,7 @@ export default function IncidentDetailPanel({
 
             {/* Unit selector */}
             <div style={{ marginBottom: '14px' }}>
-              <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '11px', color: '#5a6878', letterSpacing: '0.06em', marginBottom: '6px' }}>
+              <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '11px', color: '#a7b5c7', letterSpacing: '0.06em', marginBottom: '6px' }}>
                 SELECT UNITS TO DISPATCH
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -735,24 +735,50 @@ export default function IncidentDetailPanel({
                               : [...prev, unit.id]
                           )}
                           style={{
-                            background:   isSelected ? 'rgba(59,130,246,0.1)' : '#1B1B1E',
-                            border:       `1px solid ${isSelected ? '#3b82f6' : '#262626'}`,
-                            borderRadius: (isSelected && unitRoute) ? '3px 3px 0 0' : '3px',
-                            padding: '6px 10px',
+                            background: isSelected
+                              ? 'linear-gradient(180deg, rgba(26,44,66,0.94) 0%, rgba(20,32,48,0.92) 100%)'
+                              : 'linear-gradient(180deg, rgba(20,26,36,0.96) 0%, rgba(16,22,31,0.92) 100%)',
+                            border: `1px solid ${isSelected ? 'rgba(56,189,248,0.45)' : 'rgba(255,255,255,0.08)'}`,
+                            borderRadius: (isSelected && unitRoute) ? '18px 18px 0 0' : '18px',
+                            padding: '10px 12px',
                             cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
                             transition: 'all 0.15s',
+                            boxShadow: isSelected ? '0 18px 30px rgba(56,189,248,0.12), inset 0 1px 0 rgba(255,255,255,0.05)' : 'inset 0 1px 0 rgba(255,255,255,0.04)',
                           }}
                         >
-                          <span style={{ fontSize: '13px' }}>{UNIT_ICON[unit.unit_type] ?? '◉'}</span>
+                          <div style={{
+                            width: '36px', height: '36px', borderRadius: '12px',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            background: isSelected ? 'rgba(56,189,248,0.16)' : 'rgba(255,255,255,0.04)',
+                            border: `1px solid ${isSelected ? 'rgba(56,189,248,0.3)' : 'rgba(255,255,255,0.08)'}`,
+                            boxShadow: isSelected ? '0 0 18px rgba(56,189,248,0.14)' : 'none',
+                            flexShrink: 0,
+                          }}>
+                            <span style={{ fontSize: '15px' }}>{UNIT_ICON[unit.unit_type] ?? '◉'}</span>
+                          </div>
+                          <div style={{
+                            width: '6px', alignSelf: 'stretch', borderRadius: '999px',
+                            background: previewRoute?.statusColor ?? '#38bdf8',
+                            boxShadow: `0 0 12px ${previewRoute?.statusColor ?? '#38bdf8'}55`,
+                            opacity: isSelected ? 1 : 0.9,
+                            flexShrink: 0,
+                          }} />
                           <div style={{ flex: 1 }}>
-                            <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '12px', color: '#d4dce8' }}>
+                            <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '12px', color: '#d4dce8', marginBottom: '3px' }}>
                               {unit.designation}
+                            </div>
+                            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: '#8b9bb0', letterSpacing: '0.08em' }}>
+                              {unit.unit_type.replace(/_/g, ' ').toUpperCase()}
                             </div>
                           </div>
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-                            <span style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#4ade80' }}>AVAILABLE</span>
+                            <span style={{
+                              fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#4ade80',
+                              background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.24)',
+                              borderRadius: '999px', padding: '3px 8px', letterSpacing: '0.06em',
+                            }}>AVAILABLE</span>
                             {distLabel && (
-                              <span style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#aaaaaa' }}>{distLabel}</span>
+                              <span style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#a7b5c7' }}>{distLabel}</span>
                             )}
                             {previewRoute && (
                               <RouteBadge status={previewRoute.status} statusColor={previewRoute.statusColor} />
@@ -768,7 +794,7 @@ export default function IncidentDetailPanel({
                             background: 'rgba(255,255,255,0.04)',
                             border: `1px solid ${unitRoute.statusColor}55`,
                             borderTop: 'none',
-                            borderRadius: '0 0 12px 12px',
+                            borderRadius: '0 0 18px 18px',
                             padding: '8px 10px',
                             marginBottom: '1px',
                           }}>

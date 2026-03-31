@@ -27,13 +27,13 @@ const ZONE_META = {
 }
 
 // ── Control panel ──────────────────────────────────────────────────────────
-export function EvacZonesPanel({ data, visible, loading, onClose, onExport, activeZones, onToggleZone }) {
+export function EvacZonesPanel({ data, visible, loading, onClose, onExport, activeZones, onToggleZone, rightOffset = 12, bottomOffset = 44 }) {
 
   if (!visible) return null
 
   return (
     <div style={{
-      position: 'absolute', bottom: '44px', right: '12px', zIndex: 1000,
+      position: 'absolute', bottom: `${bottomOffset}px`, right: `${rightOffset}px`, zIndex: 1450,
       background: 'rgba(22,28,38,0.97)', border: '1px solid rgba(255,255,255,0.1)',
       borderRadius: '16px', width: '260px',
       maxHeight: 'calc(100vh - 140px)', display: 'flex', flexDirection: 'column',

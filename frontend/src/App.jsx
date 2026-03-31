@@ -249,9 +249,15 @@ export default function App() {
   const overlayGap = 12
   const shellInset = 12
   const topRailOffset = 86
+  const leftSidebarWidth = showLeftSidebar ? 272 : 0
+  const mapLeftInset = showLeftSidebar ? leftSidebarWidth + shellInset + overlayGap : shellInset
   const baseOverlayRight = showRightPanel ? shellInset + overlayPanelWidth + overlayGap : shellInset
   const commandPanelRight = baseOverlayRight
   const detailPanelRight = baseOverlayRight + (showCommand ? overlayPanelWidth + overlayGap : 0)
+  const mapRightInset = shellInset
+    + (showRightPanel ? overlayPanelWidth + overlayGap : 0)
+    + (showCommand ? overlayPanelWidth + overlayGap : 0)
+    + (detailOpen && selectedIncident ? overlayPanelWidth + overlayGap : 0)
 
   // ── Auth gate (MUST come first) ──────────────────────────────────────────
   if (!auth) return <LoginScreen onLogin={handleLogin} />
@@ -311,6 +317,10 @@ export default function App() {
             showSatellite={showSatellite}
             showWaterSources={showWaterSources}
             onWaterSourceStatus={setWaterSourceStatus}
+            overlayLeftOffset={mapLeftInset}
+            overlayRightOffset={mapRightInset}
+            overlayTopOffset={topRailOffset}
+            overlayBottomOffset={shellInset}
           />
         </div>
 
@@ -351,6 +361,8 @@ export default function App() {
               onExport={(data, zones) => exportEvacZones(data, zones)}
               activeZones={activeEvacZones}
               onToggleZone={ztype => setActiveEvacZones(prev => ({ ...prev, [ztype]: !prev[ztype] }))}
+              rightOffset={mapRightInset}
+              bottomOffset={shellInset + 18}
             />
           )}
 
@@ -361,6 +373,8 @@ export default function App() {
               onClose={() => setShowFireGrowth(false)}
               timeMode={fireGrowthTimeMode}
               onTimeModeChange={setFireGrowthTimeMode}
+              topOffset={topRailOffset}
+              rightOffset={mapRightInset}
             />
           )}
 

@@ -16,7 +16,7 @@ const SHORT_HORIZON_STYLE = {
 }
 
 // ── Timeline legend panel (fixed top-right of map) ────────────────────────
-export function FireGrowthLegend({ data, visible, onClose, timeMode, onTimeModeChange }) {
+export function FireGrowthLegend({ data, visible, onClose, timeMode, onTimeModeChange, topOffset = 86, rightOffset = 12 }) {
   if (!visible || !data) return null
 
   const wind = data.wind_speed_mph ?? 0
@@ -27,7 +27,7 @@ export function FireGrowthLegend({ data, visible, onClose, timeMode, onTimeModeC
 
   return (
     <div style={{
-      position: 'absolute', top: '12px', right: '12px', zIndex: 1000,
+      position: 'absolute', top: `${topOffset}px`, right: `${rightOffset}px`, zIndex: 1450,
       maxHeight: 'calc(50vh - 24px)', overflowY: 'auto',
       background: 'rgba(22,28,38,0.96)', border: '1px solid rgba(255,255,255,0.1)',
       borderRadius: '16px', padding: '12px 14px', minWidth: '220px',

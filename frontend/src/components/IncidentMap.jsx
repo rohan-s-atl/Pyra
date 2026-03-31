@@ -50,6 +50,14 @@ function ZoomTracker({ onZoomChange }) {
   return null
 }
 
+function MapHandle({ onReady }) {
+  const map = useMap()
+  useEffect(() => {
+    onReady?.(map)
+  }, [map, onReady])
+  return null
+}
+
 function MapController({ focusedUnit, focusedIncident, unitRoutes, selectedIncident, followUnit, followMode, fitAll, incidents }) {
   const map = useMap()
 
@@ -96,7 +104,7 @@ function MapController({ focusedUnit, focusedIncident, unitRoutes, selectedIncid
 function createCallsignIcon(designation, color) {
   return L.divIcon({
     className: '',
-    html: `<div style="font-family:Inter,sans-serif;font-weight:600;font-size:10px;color:${color};background:rgba(21,20,25,0.92);border:1px solid ${color};border-radius:2px;padding:1px 6px;white-space:nowrap;letter-spacing:0.02em;line-height:15px;pointer-events:none;transform:translateX(-50%);display:inline-block;">${designation}</div>`,
+    html: `<div style="font-family:IBM Plex Mono, monospace;font-weight:700;font-size:10px;color:${color};background:linear-gradient(180deg, rgba(10,14,20,0.96) 0%, rgba(18,24,34,0.94) 100%);border:1px solid ${color}66;border-radius:10px;padding:5px 10px;white-space:nowrap;letter-spacing:0.04em;line-height:1;pointer-events:none;transform:translateX(-50%);display:inline-block;box-shadow:0 10px 18px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.05);">${designation}</div>`,
     iconSize: [0, 0], iconAnchor: [0, 28],
   })
 }
@@ -111,12 +119,17 @@ export default function IncidentMap({
   onWaterSourceStatus = null,
   fireGrowthTimeMode = 'standard',
   units: unitsProp = [],
+  overlayLeftOffset = 14,
+  overlayRightOffset = 14,
+  overlayTopOffset = 86,
+  overlayBottomOffset = 12,
 }) {
   const [units,        setUnits]        = useState(unitsProp)
   const [selectedUnit, setSelectedUnit] = useState(null)
   const [clickedRoute, setClickedRoute] = useState(null)
   const [zoomLevel,    setZoomLevel]    = useState(7)
   const [followMode,   setFollowMode]   = useState(false)
+  const mapRef = useRef(null)
 
   const clickedRouteCache = useRef({})
   const posHistory        = useRef({})
@@ -314,6 +327,7 @@ export default function IncidentMap({
   return (
     <div style={{ position: 'absolute', inset: 0 }}>
       <MapContainer center={center} zoom={7} style={{ width: '100%', height: '100%' }} zoomControl={false}>
+        <MapHandle onReady={(map) => { mapRef.current = map }} />
         {showSatellite ? (
           <TileLayer
             url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
@@ -346,7 +360,7 @@ export default function IncidentMap({
         <WaterSourcesOverlay selectedIncident={selectedIncident} visible={showWaterSources} onStatusChange={onWaterSourceStatus} />
 
         {/* Predictive risk heatmap */}
-        <RiskHeatmapOverlay visible={showHeatmap} />
+        <RiskHeatmapOverlay visible={showHeatmap} rightOffset={overlayRightOffset} bottomOffset={overlayBottomOffset + 20} />
 
         {/* Per-unit computed routes */}
         {unitRoutes.map(ur => {
@@ -425,11 +439,11 @@ export default function IncidentMap({
                 center={[lat, lon]}
                 radius={isEmphasis ? 18 : 12}
                 pathOptions={{
-                  color,
+                  color: isEmphasis ? 'rgba(248,251,255,0.88)' : color,
                   fillColor: color,
                   fillOpacity: isEmphasis ? 0.12 : 0.08,
-                  opacity: 0,
-                  weight: 0,
+                  opacity: isEmphasis ? 0.95 : 0,
+                  weight: isEmphasis ? 2.1 : 0,
                 }}
               />
               <CircleMarker
@@ -448,14 +462,17 @@ export default function IncidentMap({
                 radius={isEmphasis ? 6.5 : 5.2}
                 pathOptions={{
                   color: isEmphasis ? '#f8fbff' : color,
-                  fillColor: isEmphasis ? '#f8fbff' : color,
-                  fillOpacity: isSelected ? 1 : 0.85,
+                  fillColor: color,
+                  fillOpacity: 0.96,
                   weight: isEmphasis ? 2 : 1.4,
                 }}
                 eventHandlers={{ click: (e) => {
                   e.originalEvent.stopPropagation()
                   const newSel = selectedUnit === unit.id ? null : unit.id
                   setSelectedUnit(newSel)
+                  if (newSel && mapRef.current) {
+                    mapRef.current.flyTo([lat, lon], Math.max(mapRef.current.getZoom(), 11), { duration: 0.9 })
+                  }
                   if (!newSel) setFollowMode(false)
                 }}}
               >
@@ -548,7 +565,7 @@ export default function IncidentMap({
 
         {/* Follow mode button */}
         {selectedUnit && (
-          <div style={{ position: 'absolute', bottom: '28px', right: '14px', zIndex: 1000 }}>
+          <div style={{ position: 'absolute', bottom: `${overlayBottomOffset + 16}px`, right: `${overlayRightOffset}px`, zIndex: 1250 }}>
             <button
               onClick={() => setFollowMode(v => !v)}
               style={{
@@ -575,7 +592,7 @@ export default function IncidentMap({
 
         {/* Map Legend */}
       <div style={{
-        position: 'absolute', bottom: '28px', left: '14px', zIndex: 1000,
+        position: 'absolute', bottom: `${overlayBottomOffset + 16}px`, left: `${overlayLeftOffset}px`, zIndex: 1250,
           background: 'rgba(20,26,36,0.92)', border: '1px solid rgba(255,255,255,0.1)',
           borderRadius: '16px', padding: '10px 12px',
           display: 'flex', flexDirection: 'column', gap: '5px', pointerEvents: 'none',

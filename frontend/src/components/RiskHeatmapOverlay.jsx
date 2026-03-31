@@ -85,7 +85,7 @@ function HeatmapLayer({ points }) {
   return null
 }
 
-export default function RiskHeatmapOverlay({ visible }) {
+export default function RiskHeatmapOverlay({ visible, rightOffset = 12, bottomOffset = 32 }) {
   const [points,  setPoints]  = useState([])
   const [meta,    setMeta]    = useState(null)
   const fetchedRef = useRef(false)
@@ -111,7 +111,7 @@ export default function RiskHeatmapOverlay({ visible }) {
       <HeatmapLayer points={points} />
       {/* Legend overlay */}
       <div style={{
-        position: 'absolute', bottom: '32px', right: '12px', zIndex: 1000,
+        position: 'absolute', bottom: `${bottomOffset}px`, right: `${rightOffset}px`, zIndex: 1250,
         background: 'rgba(22,28,38,0.94)', border: '1px solid rgba(255,255,255,0.1)',
         borderRadius: '14px', padding: '10px 12px',
         fontFamily: 'Inter, sans-serif', pointerEvents: 'none',
