@@ -178,6 +178,19 @@ def build_summary(incident: dict, loadout: str) -> str:
     return " ".join(lines)
 
 
+def _compute_overall_risk(incident: dict) -> str:
+    severity = (incident.get("severity") or "low").lower()
+    spread   = (incident.get("spread_risk") or "low").lower()
+
+    if severity == "critical" or spread == "extreme":
+        return "extreme"
+    if severity == "high" or spread == "high":
+        return "high"
+    if severity == "moderate" or spread == "moderate":
+        return "moderate"
+    return "low"
+
+
 def generate_recommendation(incident: dict, routes: list) -> dict:
     """
     Generate a structured recommendation for an incident.
@@ -228,4 +241,5 @@ def generate_recommendation(incident: dict, routes: list) -> dict:
         "unit_recommendations": unit_recs,
         "route_options":        route_options,
         "tactical_notes":       TACTICAL_NOTES.get(loadout, ""),
+        "overall_risk":         _compute_overall_risk(incident),
     }
