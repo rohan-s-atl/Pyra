@@ -342,6 +342,7 @@ export default function DispatchRecommendations({
   incident,
   onDispatchSuccess,
   onConfirmLoadouts,           // notify parent of loadouts so hover tooltip works
+  alreadyAssignedIds = [],     // unit IDs already on this incident — hide from list
   externalSelectedUnits,
   onSelectionChange,
 }) {
@@ -396,8 +397,11 @@ export default function DispatchRecommendations({
 
   // ── Derived lists ─────────────────────────────────────────────────────────
   const allRecommendedUnits = data?.recommended_units ?? []
-  // Filter out units that have already been dispatched in this session
-  const normalUnits = allRecommendedUnits.filter(u => !dispatchedUnitIds.has(u.unit_id))
+  // Filter out units dispatched this session OR already assigned to this incident
+  const assignedSet = new Set(alreadyAssignedIds.map(String))
+  const normalUnits = allRecommendedUnits.filter(u =>
+    !dispatchedUnitIds.has(u.unit_id) && !assignedSet.has(String(u.unit_id))
+  )
   const shortages   = data?.summary?.shortages ?? []
 
   // ── Handlers ──────────────────────────────────────────────────────────────
@@ -517,9 +521,9 @@ export default function DispatchRecommendations({
             <div style={S.summaryRow}>
               <span>
                 {normalUnits.length} unit{normalUnits.length !== 1 ? 's' : ''} remaining
-                {dispatchedUnitIds.size > 0 && (
+                {(dispatchedUnitIds.size + alreadyAssignedIds.length) > 0 && (
                   <span style={{ color: '#4ade80', marginLeft: '6px' }}>
-                    · {dispatchedUnitIds.size} dispatched
+                    · {dispatchedUnitIds.size + alreadyAssignedIds.length} deployed
                   </span>
                 )}
                 {data.summary.shortages?.length > 0 && normalUnits.length > 0 && (
@@ -563,10 +567,10 @@ export default function DispatchRecommendations({
             <div style={{
               fontFamily: 'Inter, sans-serif', fontSize: '12px',
               padding: '8px 0',
-              color: dispatchedUnitIds.size > 0 ? '#4ade80' : '#878787',
+              color: (dispatchedUnitIds.size + alreadyAssignedIds.length) > 0 ? '#4ade80' : '#878787',
             }}>
-              {dispatchedUnitIds.size > 0
-                ? '✓ All recommended units have been dispatched.'
+              {(dispatchedUnitIds.size + alreadyAssignedIds.length) > 0
+                ? '✓ All recommended units have been deployed.'
                 : 'No units available for dispatch.'}
             </div>
           )}

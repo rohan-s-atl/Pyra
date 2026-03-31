@@ -657,6 +657,7 @@ export default function IncidentDetailPanel({
               incident={incident}
               onDispatchSuccess={onDispatchSuccess}
               onConfirmLoadouts={onConfirmLoadouts}
+              alreadyAssignedIds={alreadyAssigned.map(u => u.id)}
               externalSelectedUnits={selectedUnits}
               onSelectionChange={(unitIds) => setSelectedUnits(unitIds)}
             />
