@@ -174,6 +174,17 @@ def get_dispatch_recommendation(db: Session, incident_id: str) -> dict:
     rec = generate_recommendation(incident_dict, routes_list)
     needed: list[dict] = rec.get("unit_recommendations", rec.get("recommended_units", []))
 
+    # Count units already assigned to this incident by type
+    # so we don't recommend units the incident already has
+    already_assigned = db.query(Unit).filter(
+        Unit.assigned_incident_id == incident.id,
+        Unit.status.in_(["en_route", "on_scene", "staging"]),
+    ).all()
+    already_by_type: dict[str, int] = {}
+    for u in already_assigned:
+        ntype = normalize_unit_type(u.unit_type)
+        already_by_type[ntype] = already_by_type.get(ntype, 0) + 1
+
     available_units = db.query(Unit).filter(
         Unit.status.in_(["available", "staging"]),
         Unit.assigned_incident_id.is_(None),
@@ -187,11 +198,18 @@ def get_dispatch_recommendation(db: Session, incident_id: str) -> dict:
         quantity  = req.get("quantity", 1)
         priority  = req.get("priority", "within_1hr")
 
+        ntype = normalize_unit_type(unit_type)
+        already_count = already_by_type.get(ntype, 0)
+        remaining_needed = max(0, quantity - already_count)
+
+        if remaining_needed == 0:
+            continue  # This type is fully covered — skip entirely
+
         candidates = [
             u for u in available_units
-            if normalize_unit_type(u.unit_type) == normalize_unit_type(unit_type)
+            if normalize_unit_type(u.unit_type) == ntype
         ]
-        ranked = rank_units_for_incident(candidates, incident, limit=quantity)
+        ranked = rank_units_for_incident(candidates, incident, limit=remaining_needed)
 
         for unit, score in ranked:
             eta = estimate_eta_minutes(unit, incident)
@@ -213,7 +231,7 @@ def get_dispatch_recommendation(db: Session, incident_id: str) -> dict:
             })
             available_units = [u for u in available_units if u.id != unit.id]
 
-        shortfall = quantity - len(ranked)
+        shortfall = remaining_needed - len(ranked)
         if shortfall > 0:
             shortage.append({"unit_type": unit_type, "shortfall": shortfall,
                              "missing": shortfall, "priority": priority})
