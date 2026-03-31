@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { api, BASE_URL, streamBriefing, getDispatchAdvice, generateHandoffBriefing } from '../api/client'
 import { scoreBadges, computeUnitRoutes } from '../services/routeEngine'
 import { formatTimeShort, formatTimestamp } from '../utils/timeUtils'
@@ -597,24 +598,41 @@ export default function IncidentDetailPanel({
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 {recommendation.unit_recommendations.map((rec, i) => {
                   const filled = (filledUnitTypes[rec.unit_type] ?? 0) >= rec.quantity
+                  const accent = filled ? '#4ade80' : (PRIORITY_COLOR[rec.priority] ?? '#ff4d1a')
                   return (
                     <div key={i} style={{
-                      background:   filled ? 'rgba(74,222,128,0.08)' : '#1B1B1E',
-                      border:       `1px solid ${filled ? '#4ade80' : '#262626'}`,
-                      borderRadius: '5px', padding: '7px 10px',
+                      background: filled
+                        ? 'linear-gradient(180deg, rgba(17,38,27,0.92) 0%, rgba(18,31,26,0.88) 100%)'
+                        : 'linear-gradient(180deg, rgba(20,26,36,0.96) 0%, rgba(16,22,31,0.92) 100%)',
+                      border: `1px solid ${filled ? '#4ade80' : 'rgba(255,255,255,0.08)'}`,
+                      borderRadius: '16px', padding: '10px 12px',
                       display:      'flex', alignItems: 'flex-start', gap: '10px',
+                      boxShadow: filled ? '0 14px 28px rgba(34,197,94,0.1), inset 0 1px 0 rgba(255,255,255,0.04)' : 'inset 0 1px 0 rgba(255,255,255,0.04)',
                     }}>
-                      <span style={{ fontSize: '15px', flexShrink: 0 }}>{UNIT_ICON[rec.unit_type] ?? '◉'}</span>
+                      <div style={{
+                        width: '34px', height: '34px', borderRadius: '12px', flexShrink: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: `${accent}18`,
+                        border: `1px solid ${accent}40`,
+                        boxShadow: `0 0 18px ${accent}18`,
+                        fontSize: '15px',
+                      }}>{UNIT_ICON[rec.unit_type] ?? '◉'}</div>
                       <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
-                          <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '13px', color: filled ? '#4ade80' : '#FBFBFB' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                          <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '13px', color: '#f8fbff' }}>
                             {rec.quantity}× {rec.unit_type.replace(/_/g, ' ').toUpperCase()}
                           </span>
-                          <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '10px', color: filled ? '#4ade80' : (PRIORITY_COLOR[rec.priority] ?? '#878787'), letterSpacing: '0.03em' }}>
+                          <span style={{
+                            fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '9px',
+                            color: accent, letterSpacing: '0.06em',
+                            background: `${accent}12`,
+                            border: `1px solid ${accent}30`,
+                            borderRadius: '999px', padding: '3px 7px',
+                          }}>
                             {filled ? '✓ FILLED' : rec.priority.replace(/_/g, ' ').toUpperCase()}
                           </span>
                         </div>
-                        <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#d4dce8', lineHeight: 1.4 }}>
+                        <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#c3d0df', lineHeight: 1.5 }}>
                           {rec.rationale}
                         </div>
                       </div>
@@ -823,14 +841,14 @@ export default function IncidentDetailPanel({
           {dispatched ? (
             <div style={{
               background: 'rgba(74,222,128,0.1)', border: '1px solid #4ade80',
-              borderRadius: '5px', padding: '10px 16px', textAlign: 'center',
+              borderRadius: '14px', padding: '10px 16px', textAlign: 'center',
               fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '13px', color: '#4ade80',
             }}>
               ✓ UNITS DISPATCHED SUCCESSFULLY
             </div>
           ) : confirmDispatch ? (
             <div style={{ display: 'flex', gap: '6px' }}>
-              <div style={{ flex: 1, padding: '10px', background: 'rgba(245,110,15,0.1)', border: '1px solid #ff4d1a55', borderRadius: '5px', fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#d4dce8', display: 'flex', alignItems: 'center' }}>
+              <div style={{ flex: 1, padding: '10px', background: 'rgba(245,110,15,0.1)', border: '1px solid #ff4d1a55', borderRadius: '14px', fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#d4dce8', display: 'flex', alignItems: 'center' }}>
                 Dispatch {selectedUnits.length} unit{selectedUnits.length !== 1 ? 's' : ''}?
               </div>
               <button onClick={() => { handleDispatch(pendingLoadouts); setConfirmDispatch(false) }}
@@ -850,8 +868,9 @@ export default function IncidentDetailPanel({
               className="pyra-btn-press" 
               style={{
                 width: '100%', padding: '12px',
-                background:    canDispatch ? '#ff4d1a' : '#262626',
-                border:        'none', borderRadius: '14px',
+                background: canDispatch ? 'linear-gradient(180deg, #ff5a24 0%, #e94916 100%)' : 'rgba(255,255,255,0.05)',
+                border: canDispatch ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(255,255,255,0.08)',
+                borderRadius: '16px',
                 cursor:        canDispatch ? 'pointer' : 'not-allowed',
                 fontFamily:    'Inter, sans-serif', fontWeight: 700, fontSize: '13px',
                 color:         '#FBFBFB', letterSpacing: '0.03em', transition: 'background 0.15s',
@@ -1059,7 +1078,7 @@ export default function IncidentDetailPanel({
       )}
 
       {/* Close-out modal */}
-      {closeoutOpen && (
+      {closeoutOpen && createPortal(
         <div style={{
           position: 'fixed', inset: 0, zIndex: 5000,
           background: 'rgba(5,8,12,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1067,8 +1086,9 @@ export default function IncidentDetailPanel({
         }} onClick={e => { if (e.target === e.currentTarget) setCloseoutOpen(false) }}>
           <div style={{
             background: 'rgba(20,26,36,0.97)', border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '18px', padding: '20px 24px', minWidth: '360px', maxWidth: '440px',
-            boxShadow: '0 20px 48px rgba(0,0,0,0.56)',
+            borderRadius: '22px', padding: '22px 24px', minWidth: '360px', maxWidth: '460px',
+            boxShadow: '0 30px 70px rgba(0,0,0,0.56)',
+            backdropFilter: 'blur(16px)',
           }}>
             <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '13px', color: '#ef4444', letterSpacing: '0.06em', marginBottom: '4px' }}>
               ⬡ INCIDENT CLOSE-OUT
@@ -1090,10 +1110,10 @@ export default function IncidentDetailPanel({
                   {checklist.checks?.map(check => (
                     <div key={check.key} style={{
                       display: 'flex', alignItems: 'flex-start', gap: '10px',
-                      padding: '8px 10px',
+                        padding: '8px 10px',
                       background: check.passed ? 'rgba(74,222,128,0.06)' : 'rgba(239,68,68,0.06)',
                       border: `1px solid ${check.passed ? '#4ade8033' : '#ef444433'}`,
-                      borderRadius: '5px',
+                      borderRadius: '14px',
                     }}>
                       <span style={{ fontSize: '13px', flexShrink: 0, marginTop: '1px' }}>
                         {check.passed ? '✅' : check.required ? '❌' : '⚠️'}
@@ -1102,7 +1122,7 @@ export default function IncidentDetailPanel({
                         <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 600, color: check.passed ? '#4ade80' : check.required ? '#ef4444' : '#facc15' }}>
                           {check.label}{!check.required && ' (recommended)'}
                         </div>
-                        <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#5a6878', marginTop: '2px' }}>
+                        <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#a7b5c7', marginTop: '2px' }}>
                           {check.detail}
                         </div>
                       </div>
@@ -1118,7 +1138,7 @@ export default function IncidentDetailPanel({
                     style={{
                       width: '100%', padding: '8px', marginBottom: '8px',
                       background: handoffLoading ? 'rgba(245,110,15,0.08)' : 'rgba(245,110,15,0.12)',
-                      border: '1px solid #ff4d1a66', borderRadius: '5px', cursor: handoffLoading ? 'not-allowed' : 'pointer',
+                      border: '1px solid #ff4d1a66', borderRadius: '14px', cursor: handoffLoading ? 'not-allowed' : 'pointer',
                       fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '11px',
                       color: '#ff4d1a', letterSpacing: '0.03em',
                     }}
@@ -1133,8 +1153,8 @@ export default function IncidentDetailPanel({
                     onClick={() => setCloseoutOpen(false)}
                     style={{
                       flex: 1, padding: '9px',
-                      background: 'transparent', border: '1px solid #333', borderRadius: '5px', cursor: 'pointer',
-                      fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '11px', color: '#5a6878',
+                      background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', cursor: 'pointer',
+                      fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '11px', color: '#c3d0df',
                     }}
                   >
                     CANCEL
@@ -1147,7 +1167,7 @@ export default function IncidentDetailPanel({
                       style={{
                         flex: 2, padding: '9px',
                         background: closeLoading ? 'rgba(239,68,68,0.12)' : 'rgba(239,68,68,0.18)',
-                        border: '1px solid #ef4444', borderRadius: '5px',
+                        border: '1px solid #ef4444', borderRadius: '14px',
                         cursor: closeLoading ? 'not-allowed' : 'pointer',
                         fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '11px', color: '#ef4444',
                         letterSpacing: '0.04em',
@@ -1162,7 +1182,7 @@ export default function IncidentDetailPanel({
                       style={{
                         flex: 2, padding: '9px',
                         background: 'rgba(239,68,68,0.08)',
-                        border: '1px solid #ef444466', borderRadius: '5px',
+                        border: '1px solid #ef444466', borderRadius: '14px',
                         cursor: (closeLoading || auth?.role !== 'commander') ? 'not-allowed' : 'pointer',
                         fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '11px',
                         color: auth?.role !== 'commander' ? '#555' : '#ef4444aa',
@@ -1177,7 +1197,8 @@ export default function IncidentDetailPanel({
               </>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Loadout Configurator — true pop-out workspace */}

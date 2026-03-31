@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { getLoadoutAdvice } from '../api/client'
 
 const UNIT_ICON = {
@@ -303,8 +304,8 @@ export default function LoadoutConfigurator({ incident, selectedUnits, units, on
 
   const finalLoadouts = selectedUnitObjects.map(getLoadout)
 
-  return (
-      <div style={{
+  return createPortal(
+    <div style={{
       position: 'fixed', inset: 0, zIndex: 5300,
       background: 'rgba(5,8,12,0.68)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -452,7 +453,7 @@ export default function LoadoutConfigurator({ incident, selectedUnits, units, on
             width: '100%', padding: '9px', marginTop: '6px',
             background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
             borderRadius: '12px', cursor: 'pointer',
-            fontFamily: 'var(--font-sans)', fontSize: '12px', color: '#5a6878',
+            fontFamily: 'var(--font-sans)', fontSize: '12px', color: '#c3d0df',
           }}
         >
           ← BACK TO UNIT SELECTION

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
@@ -415,7 +415,33 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
   const [showResolved, setShowResolved] = useState(false)
   const [pinnedIds, setPinnedIds] = useState(new Set())
   const [collapsed, setCollapsed] = useState(false)
+  const [feedRatio, setFeedRatio] = useState(0.62)
+  const [isResizing, setIsResizing] = useState(false)
+  const panelRef = useRef(null)
   const feedRef = useRef(null)
+
+  useEffect(() => {
+    if (!isResizing) return
+
+    function onMove(e) {
+      if (!panelRef.current) return
+      const rect = panelRef.current.getBoundingClientRect()
+      const relativeY = e.clientY - rect.top
+      const next = (relativeY - 132) / Math.max(rect.height - 250, 1)
+      setFeedRatio(Math.min(0.78, Math.max(0.28, next)))
+    }
+
+    function onUp() {
+      setIsResizing(false)
+    }
+
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+  }, [isResizing])
 
   async function handleAlertClick(alert) {
     if (activeAlertId === alert.id) {
@@ -544,7 +570,7 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
   }
 
   return (
-    <div style={{
+    <div ref={panelRef} style={{
       width: `${panelWidth}px`,
       minWidth: `${panelWidth}px`,
       maxWidth: `${panelWidth}px`,
@@ -617,7 +643,15 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
         )}
       </div>
 
-      <div ref={feedRef} style={{ flex: 1.2, overflowY: 'auto', padding: '8px 10px 10px' }}>
+      <div
+        ref={feedRef}
+        style={{
+          flex: `${feedRatio} 1 0`,
+          minHeight: '150px',
+          overflowY: 'auto',
+          padding: '8px 10px 10px',
+        }}
+      >
         {activityFeed.length === 0 && (
           <div style={{ padding: '18px', textAlign: 'center' }}>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: '18px', color: '#22c55e', opacity: 0.4, marginBottom: '5px' }}>✓</div>
@@ -743,7 +777,24 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
         })}
       </div>
 
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', padding: '10px 12px 8px' }}>
+      <div
+        onMouseDown={() => setIsResizing(true)}
+        style={{
+          height: '14px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'row-resize',
+          borderTop: '1px solid rgba(255,255,255,0.08)',
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          background: isResizing ? 'rgba(56,189,248,0.08)' : 'rgba(255,255,255,0.02)',
+          flexShrink: 0,
+        }}
+      >
+        <div style={{ width: '42px', height: '4px', borderRadius: '999px', background: isResizing ? '#38bdf8' : 'rgba(255,255,255,0.18)' }} />
+      </div>
+
+      <div style={{ flex: `${1 - feedRatio} 1 0`, minHeight: '160px', borderTop: '1px solid rgba(255,255,255,0.04)', padding: '10px 12px 8px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '9px', color: '#d4dce8', letterSpacing: '0.1em', marginBottom: '7px' }}>
           SYSTEM UNITS · {filteredUnits.length}
         </div>
@@ -766,7 +817,7 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
             </button>
           ))}
         </div>
-        <div style={{ maxHeight: '180px', overflowY: 'auto' }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
           {filteredUnits.length === 0 ? (
             <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#a7b5c7', padding: '8px 4px' }}>No units match this filter</div>
           ) : (
