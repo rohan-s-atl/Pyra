@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
 
 @config "../tailwind.config.js";
 
@@ -9,306 +9,118 @@
 * { box-sizing: border-box; }
 
 :root {
-  /* UI Scale - set by JS, fallback to 1 */
   --ui-scale: 1;
+  --bg:            #0d0f11;
+  --surface:       #12151a;
+  --surface-2:     #171b22;
+  --border:        #1f2530;
+  --border-2:      #252d38;
+  --text:          #d4dce8;
+  --text-dim:      #5a6878;
+  --text-muted:    #3a4558;
+  --fire:          #ff4d1a;
+  --fire-glow:     rgba(255,77,26,0.3);
+  --amber:         #f59e0b;
+  --safe:          #22c55e;
+  --info:          #38bdf8;
+  --critical:      #ef4444;
+  --glass-bg:      rgba(13,15,17,0.88);
+  --glass-border:  rgba(255,255,255,0.055);
+  --glass-blur:    14px;
+  --font-mono:     'IBM Plex Mono', monospace;
+  --font-sans:     'IBM Plex Sans', sans-serif;
 }
 
-body {
-  margin: 0;
-  padding: 0;
-  background: #151419;
-  color: #FBFBFB;
-  font-family: 'Inter', sans-serif;
+html, body {
+  margin: 0; padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
   font-size: 13px;
-  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
-  height: 100vh;
-  width: 100vw;
+  height: 100vh; width: 100vw;
 }
 
-/* ── Leaflet ─────────────────────────────────────────────────────────────────*/
-.leaflet-container { width: 100%; height: 100%; background: #151419; }
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 2px; }
 
+.leaflet-container { width: 100%; height: 100%; background: var(--bg); }
 .leaflet-tile {
-  filter: brightness(0.35) saturate(0.25) hue-rotate(160deg);
-  transition: opacity 0.3s ease !important;
+  filter: brightness(0.25) saturate(0.1) hue-rotate(195deg) contrast(1.15);
+  transition: opacity 0.4s ease !important;
 }
-
-.satellite-layer .leaflet-tile {
-  filter: brightness(0.9) saturate(0.95) !important;
-}
+.satellite-layer .leaflet-tile { filter: brightness(0.82) saturate(0.9) !important; }
 
 .leaflet-control-zoom {
-  border: 1px solid #262626 !important;
-  background: #1B1B1E !important;
+  border: 1px solid var(--border) !important;
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) !important;
+  border-radius: 6px !important;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.6) !important;
 }
 .leaflet-control-zoom a {
-  background: #1B1B1E !important;
-  color: #FBFBFB !important;
-  border-bottom: 1px solid #262626 !important;
-  transition: background 0.15s;
-}
-.leaflet-control-zoom a:hover { background: #262626 !important; }
-
-.leaflet-tooltip {
-  background: #1B1B1E !important;
-  border: 1px solid #262626 !important;
-  color: #FBFBFB !important;
-  font-family: 'Inter', sans-serif !important;
-  font-size: 11px !important;
-  border-radius: 2px !important;
-  padding: 6px 8px !important;
-  box-shadow: none !important;
-}
-.leaflet-tooltip-top:before { border-top-color: #262626 !important; }
-
-.leaflet-tooltip-permanent,
-.leaflet-tooltip-permanent::before,
-.leaflet-tooltip-permanent::after {
   background: transparent !important;
-  border: none !important;
-  padding: 0 !important;
-  box-shadow: none !important;
-  margin: 0 !important;
-  color: inherit !important;
+  color: var(--text-dim) !important;
+  border-bottom: 1px solid var(--border) !important;
+  transition: all 0.15s;
+  font-family: var(--font-mono) !important;
 }
-.leaflet-tooltip-permanent:before { display: none !important; }
-.leaflet-tooltip-permanent div { background: transparent !important; padding: 0 !important; }
-.leaflet-attribution-flag { display: none !important; }
-.leaflet-control-attribution {
-  background: rgba(21,20,25,0.8) !important;
-  color: #878787 !important;
-  font-size: 9px !important;
+.leaflet-control-zoom a:hover { background: var(--surface-2) !important; color: var(--text) !important; }
+.leaflet-control-zoom-out { border-bottom: none !important; }
+
+.leaflet-popup-content-wrapper {
+  background: var(--glass-bg) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6) !important;
+  backdrop-filter: blur(var(--glass-blur)) !important;
 }
+.leaflet-popup-tip { background: var(--surface) !important; }
+.leaflet-popup-content { color: var(--text) !important; font-family: var(--font-sans) !important; }
 
-/* ── Scrollbars ──────────────────────────────────────────────────────────────*/
-::-webkit-scrollbar { width: 3px; }
-::-webkit-scrollbar-track { background: #151419; }
-::-webkit-scrollbar-thumb { background: #262626; border-radius: 2px; }
-
-/* ── Keyframes ───────────────────────────────────────────────────────────────*/
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
+@keyframes fire-ring-critical {
+  0%,100% { transform: scale(1);    opacity: 0.85; }
+  50%      { transform: scale(1.4); opacity: 0.2;  }
 }
-
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0; }
+@keyframes fire-ring-high {
+  0%,100% { transform: scale(1);    opacity: 0.65; }
+  50%      { transform: scale(1.28);opacity: 0.15; }
 }
-
-@keyframes slideInRight {
-  from { transform: translateX(24px); opacity: 0; }
-  to   { transform: translateX(0);    opacity: 1; }
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0);   }
 }
-
-@keyframes slideInLeft {
-  from { transform: translateX(-24px); opacity: 0; }
-  to   { transform: translateX(0);     opacity: 1; }
+@keyframes slide-right {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0);    }
 }
-
-@keyframes slideInUp {
-  from { transform: translateY(16px); opacity: 0; }
-  to   { transform: translateY(0);    opacity: 1; }
+@keyframes slide-left {
+  from { opacity: 0; transform: translateX(8px); }
+  to   { opacity: 1; transform: translateX(0);   }
+}
+@keyframes status-blink {
+  0%,100% { opacity: 1; }
+  50%      { opacity: 0.25; }
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+.glass-panel {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
 }
-
-@keyframes shimmer {
-  0%   { background-position: -400px 0; }
-  100% { background-position:  400px 0; }
+.tac-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border) 15%, var(--border) 85%, transparent);
 }
-
-@keyframes toastIn {
-  from { opacity: 0; transform: translateY(10px) scale(0.96); }
-  to   { opacity: 1; transform: translateY(0)    scale(1); }
-}
-
-@keyframes toastOut {
-  from { opacity: 1; transform: translateY(0)    scale(1); }
-  to   { opacity: 0; transform: translateY(6px)  scale(0.96); }
-}
-
-@keyframes pulseGlow {
-  0%, 100% { box-shadow: 0 0 4px currentColor; }
-  50%       { box-shadow: 0 0 10px currentColor; }
-}
-
-@keyframes pressScale {
-  0%   { transform: scale(1); }
-  50%  { transform: scale(0.97); }
-  100% { transform: scale(1); }
-}
-
-/* ── Panel entrance animations ───────────────────────────────────────────────*/
-.pyra-panel-slide  { animation: slideInRight 0.22s cubic-bezier(0.16, 1, 0.3, 1); }
-.pyra-panel-left   { animation: slideInLeft  0.22s cubic-bezier(0.16, 1, 0.3, 1); }
-.pyra-panel-fade   { animation: fadeIn       0.18s ease; }
-.pyra-panel-up     { animation: slideInUp    0.22s cubic-bezier(0.16, 1, 0.3, 1); }
-
-/* ── Skeleton shimmer ────────────────────────────────────────────────────────*/
-.pyra-skeleton {
-  background: linear-gradient(90deg, #1B1B1E 25%, #262626 50%, #1B1B1E 75%);
-  background-size: 400px 100%;
-  animation: shimmer 1.4s ease-in-out infinite;
-  border-radius: 3px;
-}
-
-/* ── Button press micro-interaction ─────────────────────────────────────────*/
-.pyra-btn-press:active { animation: pressScale 0.12s ease; }
-
-/* ── AI attribution badge ────────────────────────────────────────────────────*/
-.pyra-ai-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-family: 'Inter', sans-serif;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  color: #F56E0F;
-  opacity: 0.7;
-}
-
-/* ══════════════════════════════════════════════════════════════════════════ */
-/* ══ RESPONSIVE BREAKPOINTS ═════════════════════════════════════════════════ */
-/* ══════════════════════════════════════════════════════════════════════════ */
-
-/* Compact screens: < 1024px */
-@media (max-width: 1023px) {
-  /* Hide left sidebar on small screens */
-  .pyra-left-sidebar {
-    display: none !important;
-  }
-  
-  /* Make right panel narrower */
-  .pyra-right-panel {
-    width: 280px !important;
-    min-width: 280px !important;
-  }
-  
-  /* Make detail panel full width on mobile */
-  .pyra-detail-panel {
-    width: 100% !important;
-    max-width: 420px !important;
-  }
-  
-  /* Reduce TopBar padding */
-  .pyra-topbar {
-    padding: 6px 10px !important;
-    gap: 8px !important;
-  }
-  
-  /* Hide some TopBar elements */
-  .pyra-topbar-stats {
-    display: none !important;
-  }
-}
-
-/* Tablet: 768px - 1023px */
-@media (min-width: 768px) and (max-width: 1023px) {
-  .pyra-right-panel {
-    width: 320px !important;
-    min-width: 320px !important;
-  }
-}
-
-/* Mobile: < 768px */
-@media (max-width: 767px) {
-  /* Full-width panels */
-  .pyra-right-panel {
-    position: absolute !important;
-    top: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    z-index: 500 !important;
-  }
-  
-  .pyra-detail-panel {
-    width: 100% !important;
-    max-width: 100% !important;
-  }
-  
-  /* Smaller timeline */
-  .pyra-timeline {
-    max-height: 100px !important;
-  }
-  
-  /* Reduce TopBar height */
-  .pyra-topbar {
-    min-height: 48px !important;
-  }
-  
-  /* Hide time display on very small screens */
-  .pyra-topbar-time {
-    display: none !important;
-  }
-}
-
-/* Large screens: > 1440px - no scaling needed */
-@media (min-width: 1441px) {
-  /* Reset any zoom/scale */
-  .pyra-app {
-    zoom: 1 !important;
-    transform: none !important;
-  }
-}
-
-/* Very large screens: > 1920px */
-@media (min-width: 1921px) {
-  /* Optionally increase some sizes */
-  .pyra-right-panel {
-    width: 380px !important;
-  }
-  
-  .pyra-left-sidebar {
-    width: 220px !important;
-  }
-  
-  .pyra-detail-panel {
-    width: 460px !important;
-  }
-}
-
-/* ── Print styles ────────────────────────────────────────────────────────────*/
-@media print {
-  body {
-    background: white !important;
-    color: black !important;
-  }
-  
-  .pyra-topbar,
-  .pyra-timeline,
-  .pyra-left-sidebar {
-    display: none !important;
-  }
-}
-
-/* ── Reduced motion ──────────────────────────────────────────────────────────*/
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
-/* ── High contrast mode ──────────────────────────────────────────────────────*/
-@media (prefers-contrast: high) {
-  :root {
-    --border-color: #555;
-  }
-  
-  .pyra-panel,
-  .pyra-card {
-    border-width: 2px !important;
-  }
+.label-mono {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
 }

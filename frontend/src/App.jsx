@@ -237,16 +237,19 @@ export default function App() {
   if (!auth) return <LoginScreen onLogin={handleLogin} />
 
   if (loading) return (
-    <div style={{ height: '100vh', width: '100vw', background: '#151419', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ color: '#3a4a5a', fontFamily: 'Inter, sans-serif', fontSize: '12px', letterSpacing: '0.06em' }}>
-        INITIALIZING PYRA...
+    <div style={{ height: '100vh', width: '100vw', background: '#0d0f11', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'linear-gradient(135deg, #ff4d1a, #c0320a)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 24px rgba(255,77,26,0.4)' }}>
+        <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '14px' }}>P</span>
+      </div>
+      <div style={{ color: '#3a4558', fontFamily: 'var(--font-mono)', fontSize: '10px', letterSpacing: '0.12em', animation: 'status-blink 1.5s ease-in-out infinite' }}>
+        INITIALIZING PYRA…
       </div>
     </div>
   )
 
   if (error) return (
-    <div style={{ height: '100vh', width: '100vw', background: '#151419', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ color: '#ef4444', fontFamily: 'Inter, sans-serif', fontSize: '12px', textAlign: 'center', padding: '0 2rem' }}>
+    <div style={{ height: '100vh', width: '100vw', background: '#0d0f11', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ color: '#ef4444', fontFamily: 'var(--font-mono)', fontSize: '11px', textAlign: 'center', padding: '0 2rem', letterSpacing: '0.06em' }}>
         {error}
       </div>
     </div>
@@ -258,11 +261,10 @@ export default function App() {
         style={{ 
           height: '100vh', 
           width: '100vw', 
-          background: '#151419', 
+          background: '#0d0f11', 
           display: 'flex', 
           flexDirection: 'column', 
           overflow: 'hidden',
-          // Use CSS custom property for scale factor (components can use this)
           '--ui-scale': uiScale,
         }}
       >
@@ -351,20 +353,18 @@ export default function App() {
               />
             )}
 
-            {/* Water source status chip */}
             {showWaterSources && waterSourceStatus && (waterSourceStatus.loading || waterSourceStatus.noResults) && (
               <div style={{
-                position: 'absolute', top: '64px', left: '50%', transform: 'translateX(-50%)',
+                position: 'absolute', top: '60px', left: '50%', transform: 'translateX(-50%)',
                 zIndex: 1000, pointerEvents: 'none',
-                background: 'rgba(21,20,25,0.92)', border: '1px solid #60a5fa44',
-                borderRadius: '20px', padding: '5px 14px',
-                fontFamily: 'Inter, sans-serif', fontSize: '11px',
-                color: waterSourceStatus.loading ? '#60a5fa' : '#878787',
-                backdropFilter: 'blur(8px)', whiteSpace: 'nowrap',
+                background: 'rgba(13,15,17,0.92)', border: '1px solid rgba(56,189,248,0.2)',
+                borderRadius: '20px', padding: '5px 16px',
+                fontFamily: 'var(--font-mono)', fontSize: '10px', letterSpacing: '0.07em',
+                color: waterSourceStatus.loading ? '#38bdf8' : '#3a4558',
+                backdropFilter: 'blur(10px)', whiteSpace: 'nowrap',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
               }}>
-                {waterSourceStatus.loading
-                  ? '💧 Searching for water sources...'
-                  : '💧 No water sources found within 8 km'}
+                {waterSourceStatus.loading ? '◎ SEARCHING WATER SOURCES…' : '◎ NO WATER SOURCES WITHIN 8 KM'}
               </div>
             )}
 
@@ -425,53 +425,52 @@ export default function App() {
         <ToastContainer toasts={toasts} />
         {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
 
-        {/* Containment modal — fires when an incident reaches 100% */}
+        {/* Containment modal */}
         {containmentModal && (
           <div style={{
             position: 'fixed', inset: 0, zIndex: 9999,
-            background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)',
+            background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <div style={{
-              background: '#1B1B1E', border: '1px solid #4ade80',
-              borderRadius: '6px', padding: '28px 32px', maxWidth: '400px', width: '90vw',
-              boxShadow: '0 0 40px rgba(74,222,128,0.15)',
-              fontFamily: 'Inter, sans-serif', textAlign: 'center',
+              background: 'rgba(13,15,17,0.96)',
+              border: '1px solid rgba(34,197,94,0.35)',
+              borderRadius: '12px', padding: '32px 36px', maxWidth: '380px', width: '90vw',
+              boxShadow: '0 0 60px rgba(34,197,94,0.12), 0 16px 48px rgba(0,0,0,0.6)',
+              backdropFilter: 'blur(16px)',
+              fontFamily: 'var(--font-sans)', textAlign: 'center',
+              animation: 'fade-up 0.3s ease-out',
             }}>
-              <div style={{ fontSize: '32px', marginBottom: '12px' }}>✅</div>
-              <div style={{
-                fontWeight: 700, fontSize: '15px', color: '#4ade80',
-                letterSpacing: '0.06em', marginBottom: '8px',
-              }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', boxShadow: '0 0 24px rgba(34,197,94,0.2)' }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '20px', color: '#22c55e' }}>✓</span>
+              </div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '12px', color: '#22c55e', letterSpacing: '0.1em', marginBottom: '10px' }}>
                 FIRE FULLY CONTAINED
               </div>
-              <div style={{
-                fontSize: '13px', color: '#FBFBFB', marginBottom: '6px', fontWeight: 600,
-              }}>
+              <div style={{ fontWeight: 600, fontSize: '15px', color: '#d4dce8', marginBottom: '8px' }}>
                 {containmentModal.incidentName}
               </div>
-              <div style={{ fontSize: '12px', color: '#878787', marginBottom: '20px', lineHeight: 1.6 }}>
-                This incident has reached 100% containment.
-                All units are being recalled to their home stations.
+              <div style={{ fontSize: '12px', color: '#5a6878', marginBottom: '24px', lineHeight: 1.6 }}>
+                This incident has reached 100% containment. All units are being recalled to home stations.
               </div>
               <button
                 onClick={() => {
-                  // Acknowledge the alert so it doesn't re-trigger
-                  if (containmentModal.alertId) {
-                    api.acknowledgeAlert(containmentModal.alertId).catch(() => {})
-                  }
+                  if (containmentModal.alertId) api.acknowledgeAlert(containmentModal.alertId).catch(() => {})
                   setContainmentModal(null)
                   refreshAlertsDebounced()
                   refreshIncidents()
                 }}
                 style={{
-                  background: '#4ade80', border: 'none', borderRadius: '4px',
-                  padding: '10px 32px', cursor: 'pointer',
-                  fontFamily: 'Inter, sans-serif', fontWeight: 700,
-                  fontSize: '13px', color: '#0f1f0f', letterSpacing: '0.04em',
+                  background: '#22c55e', border: 'none', borderRadius: '6px',
+                  padding: '11px 36px', cursor: 'pointer',
+                  fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '11px',
+                  color: '#0a0f0a', letterSpacing: '0.08em',
+                  boxShadow: '0 0 20px rgba(34,197,94,0.3)', transition: 'all 0.15s',
                 }}
+                onMouseEnter={e => e.currentTarget.style.background = '#16a34a'}
+                onMouseLeave={e => e.currentTarget.style.background = '#22c55e'}
               >
-                OK
+                ACKNOWLEDGE
               </button>
             </div>
           </div>

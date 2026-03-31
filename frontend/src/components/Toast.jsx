@@ -26,9 +26,9 @@ export function toast(message, type = 'success', duration = 3000) {
 }
 
 const TYPE_STYLE = {
-  success: { border: '#4ade80', icon: '✓', color: '#4ade80' },
+  success: { border: '#22c55e', icon: '✓', color: '#22c55e' },
   error: { border: '#ef4444', icon: '✕', color: '#ef4444' },
-  info: { border: '#60a5fa', icon: '⬡', color: '#60a5fa' },
+  info: { border: '#38bdf8', icon: '⬡', color: '#38bdf8' },
   warning: { border: '#facc15', icon: '⚠', color: '#facc15' },
 }
 
@@ -45,15 +45,15 @@ export function ToastContainer({ toasts }) {
         const s = TYPE_STYLE[t.type] ?? TYPE_STYLE.info
         return (
           <div key={t.id} style={{
-            background: '#1B1B1E',
+            background: 'var(--surface)',
             border: `1px solid ${s.border}`,
             borderRadius: '4px',
             padding: '8px 16px',
             display: 'flex', alignItems: 'center', gap: '8px',
             boxShadow: `0 4px 16px rgba(0,0,0,0.4), 0 0 0 1px ${s.border}22`,
             animation: 'toastIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-            fontFamily: 'Inter, sans-serif', fontSize: '12px',
-            fontWeight: 500, color: '#FBFBFB',
+            fontFamily: 'var(--font-sans)', fontSize: '12px',
+            fontWeight: 500, color: '#d4dce8',
             letterSpacing: '0.02em',
             whiteSpace: 'nowrap',
           }}>

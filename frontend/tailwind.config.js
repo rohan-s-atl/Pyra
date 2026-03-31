@@ -7,21 +7,24 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        display: ['Barlow Condensed', 'sans-serif'],
-        body: ['DM Mono', 'monospace'],
+        mono: ['IBM Plex Mono', 'monospace'],
+        sans: ['IBM Plex Sans', 'sans-serif'],
       },
       colors: {
         pyra: {
-          bg:      '#0a0c0f',
-          surface: '#111418',
-          border:  '#1e2530',
-          muted:   '#2a3240',
-          text:    '#c8d4e0',
-          dim:     '#5a6a7a',
-          fire:    '#ff4e1a',
-          amber:   '#f59e0b',
-          safe:    '#22c55e',
-          info:    '#38bdf8',
+          bg:       '#0d0f11',
+          surface:  '#12151a',
+          surface2: '#171b22',
+          border:   '#1f2530',
+          border2:  '#252d38',
+          text:     '#d4dce8',
+          dim:      '#5a6878',
+          muted:    '#3a4558',
+          fire:     '#ff4d1a',
+          amber:    '#f59e0b',
+          safe:     '#22c55e',
+          info:     '#38bdf8',
+          critical: '#ef4444',
         }
       }
     },

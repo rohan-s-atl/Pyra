@@ -4,46 +4,34 @@ import { formatClockTime, formatTimezone } from '../utils/timeUtils'
 import { BASE_URL } from '../api/client'
 
 const THREAT_COLOR = {
-  low: '#4ade80',
-  moderate: '#60a5fa',
-  high: '#F56E0F',
-  extreme: '#ef4444',
+  low:      '#22c55e',
+  moderate: '#38bdf8',
+  high:     '#f59e0b',
+  extreme:  '#ef4444',
 }
 
 export default function TopBar({
-  incidents,
-  units,
-  showEvacZones,
-  onToggleEvacZones,
-  showFireGrowth,
-  onToggleFireGrowth,
-  showPerimeters,
-  onTogglePerimeters,
-  showHeatmap,
-  onToggleHeatmap,
-  showCommand,
-  onToggleCommand,
-  showSatellite,
-  onToggleSatellite,
-  showWeather,
-  onToggleWeather,
-  showWaterSources,
-  onToggleWaterSources,
-  auth,
-  onLogout,
-  onToggleAudit,
-  onToggleSettings,
+  incidents, units,
+  showEvacZones, onToggleEvacZones,
+  showFireGrowth, onToggleFireGrowth,
+  showPerimeters, onTogglePerimeters,
+  showHeatmap, onToggleHeatmap,
+  showCommand, onToggleCommand,
+  showSatellite, onToggleSatellite,
+  showWeather, onToggleWeather,
+  showWaterSources, onToggleWaterSources,
+  auth, onLogout, onToggleAudit, onToggleSettings,
 }) {
   const [time, setTime] = useState(new Date())
-  const [optionsMenuOpen, setOptionsMenuOpen] = useState(false)
-  const [optionsMenuPos, setOptionsMenuPos] = useState(null)
+  const [optionsOpen, setOptionsOpen] = useState(false)
+  const [optionsPos, setOptionsPos] = useState(null)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
-  const [aiReady, setAiReady] = useState(null) // null = unknown, true/false = known
-  const optionsBtnRef = useRef(null)
+  const [aiReady, setAiReady] = useState(null)
+  const optBtnRef = useRef(null)
 
   useEffect(() => {
-    const timer = setInterval(() => setTime(new Date()), 1000)
-    return () => clearInterval(timer)
+    const t = setInterval(() => setTime(new Date()), 1000)
+    return () => clearInterval(t)
   }, [])
 
   useEffect(() => {
@@ -53,192 +41,250 @@ export default function TopBar({
       .catch(() => setAiReady(false))
   }, [])
 
-  // Close on outside click
   useEffect(() => {
-    if (!optionsMenuOpen) return
-    const handler = (e) => {
-      if (
-        !e.target.closest('[data-options-menu]') &&
-        !e.target.closest('[data-options-btn]')
-      ) {
-        setOptionsMenuOpen(false)
-      }
+    if (!optionsOpen) return
+    const h = (e) => {
+      if (!e.target.closest('[data-opts-menu]') && !e.target.closest('[data-opts-btn]'))
+        setOptionsOpen(false)
     }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [optionsMenuOpen])
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [optionsOpen])
 
-  const activeIncidents = incidents.filter(i => i.status === 'active' || i.status === 'contained')
-  const criticalAlerts = incidents.filter(i => i.severity === 'critical').length
+  const activeInc = incidents.filter(i => i.status === 'active' || i.status === 'contained')
   const assignedUnits = units.filter(u => u.assigned_incident_id)
+  const criticalCount = incidents.filter(i => i.severity === 'critical').length
 
-  const avgContainment = activeIncidents.length
-    ? Math.round(
-        activeIncidents.reduce((sum, i) => sum + (i.containment_percent ?? 0), 0) /
-          activeIncidents.length
-      )
+  const avgContainment = activeInc.length
+    ? Math.round(activeInc.reduce((s, i) => s + (i.containment_percent ?? 0), 0) / activeInc.length)
     : 0
+  const minHumidity = activeInc.length ? Math.min(...activeInc.map(i => i.humidity_percent ?? 100)) : 0
+  const maxAqi = activeInc.length ? Math.max(...activeInc.map(i => i.aqi ?? 0)) : 0
 
-  const minHumidity = activeIncidents.length
-    ? Math.min(...activeIncidents.map(i => i.humidity_percent ?? 100))
-    : 0
-
-  const maxAqi = activeIncidents.length
-    ? Math.max(...activeIncidents.map(i => i.aqi ?? 0))
-    : 0
-
-  const threatLevel = activeIncidents.some(i => i.severity === 'critical')
-    ? 'extreme'
-    : activeIncidents.some(i => i.severity === 'high')
-    ? 'high'
-    : activeIncidents.some(i => i.severity === 'moderate')
-    ? 'moderate'
-    : 'low'
-
-  const timeStr = formatClockTime(time)
-  const tzLabel = formatTimezone(time)
+  const threatLevel = activeInc.some(i => i.severity === 'critical') ? 'extreme'
+    : activeInc.some(i => i.severity === 'high') ? 'high'
+    : activeInc.some(i => i.severity === 'moderate') ? 'moderate' : 'low'
 
   const stats = [
-    { label: 'INCIDENTS',   value: activeIncidents.length,             color: activeIncidents.length > 0 ? '#F56E0F' : '#4ade80' },
-    { label: 'DEPLOYED',    value: `${assignedUnits.length} / ${units.length}`, color: '#F56E0F' },
-    { label: 'CONTAINMENT', value: `${avgContainment}%`,               color: avgContainment > 50 ? '#4ade80' : avgContainment > 20 ? '#F56E0F' : '#ef4444' },
-    { label: 'HUMIDITY',    value: `${minHumidity}%`,                  color: minHumidity < 15 ? '#ef4444' : '#FBFBFB' },
-    { label: 'AQI',         value: maxAqi > 0 ? maxAqi : 'N/A',        color: maxAqi >= 151 ? '#ef4444' : maxAqi >= 101 ? '#F56E0F' : maxAqi >= 51 ? '#facc15' : maxAqi > 0 ? '#4ade80' : '#555' },
+    { label: 'INCIDENTS',   value: activeInc.length,                   color: activeInc.length > 0 ? '#ff4d1a' : '#22c55e' },
+    { label: 'DEPLOYED',    value: `${assignedUnits.length}/${units.length}`, color: '#f59e0b' },
+    { label: 'CONTAIN',     value: `${avgContainment}%`,               color: avgContainment > 50 ? '#22c55e' : avgContainment > 20 ? '#f59e0b' : '#ef4444' },
+    { label: 'RH',          value: `${minHumidity}%`,                  color: minHumidity < 15 ? '#ef4444' : '#d4dce8' },
+    { label: 'AQI',         value: maxAqi > 0 ? maxAqi : '—',          color: maxAqi >= 151 ? '#ef4444' : maxAqi >= 101 ? '#f59e0b' : maxAqi >= 51 ? '#facc15' : maxAqi > 0 ? '#22c55e' : '#3a4558' },
     { label: 'THREAT',      value: threatLevel.toUpperCase(),           color: THREAT_COLOR[threatLevel] },
   ]
 
-  const mapLayerButtons = [
-    { label: 'EVAC',   active: showEvacZones,    onClick: onToggleEvacZones,    color: '#ef4444' },
-    { label: 'GROWTH', active: showFireGrowth,   onClick: onToggleFireGrowth,   color: '#ef4444' },
-    { label: 'PERIM',  active: showPerimeters,   onClick: onTogglePerimeters,   color: '#F56E0F' },
-    { label: 'HEAT',   active: showHeatmap,      onClick: onToggleHeatmap,      color: '#ef4444' },
-    { label: 'SAT',    active: showSatellite,    onClick: onToggleSatellite,    color: '#60a5fa' },
-    { label: 'WX',     active: showWeather,      onClick: onToggleWeather,      color: '#4ade80' },
-    { label: 'WATER',  active: showWaterSources, onClick: onToggleWaterSources, color: '#60a5fa' },
+  const layers = [
+    { label: 'EVAC ZONES',     active: showEvacZones,    onClick: onToggleEvacZones,    dot: '#ef4444' },
+    { label: 'FIRE GROWTH',    active: showFireGrowth,   onClick: onToggleFireGrowth,   dot: '#ff4d1a' },
+    { label: 'PERIMETERS',     active: showPerimeters,   onClick: onTogglePerimeters,   dot: '#f59e0b' },
+    { label: 'HEAT MAP',       active: showHeatmap,      onClick: onToggleHeatmap,      dot: '#ef4444' },
+    { label: 'SATELLITE',      active: showSatellite,    onClick: onToggleSatellite,    dot: '#38bdf8' },
+    { label: 'WEATHER',        active: showWeather,      onClick: onToggleWeather,      dot: '#22c55e' },
+    { label: 'WATER SOURCES',  active: showWaterSources, onClick: onToggleWaterSources, dot: '#38bdf8' },
   ]
 
-  function openOptionsMenu() {
-    if (optionsBtnRef.current) {
-      const rect = optionsBtnRef.current.getBoundingClientRect()
-      setOptionsMenuPos({ top: rect.bottom + 4, left: rect.left })
-    }
-    setOptionsMenuOpen(true)
+  const roleColor = auth?.role === 'commander' ? '#ff4d1a' : auth?.role === 'dispatcher' ? '#38bdf8' : '#5a6878'
+
+  const S = {
+    bar: {
+      height: '52px',
+      background: 'rgba(13,15,17,0.96)',
+      borderBottom: '1px solid rgba(255,255,255,0.06)',
+      display: 'flex', alignItems: 'center', gap: '0',
+      padding: '0 16px',
+      flexShrink: 0,
+      position: 'relative', zIndex: 9000,
+      backdropFilter: 'blur(16px)',
+    },
+    divider: { width: '1px', height: '28px', background: 'rgba(255,255,255,0.06)', flexShrink: 0, margin: '0 14px' },
   }
 
   return (
-    <div
-      style={{
-        minHeight: '56px',
-        background: '#151419',
-        borderBottom: '1px solid #262626',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-        padding: '8px 16px',
-        flexWrap: 'nowrap',
-        overflow: 'visible',
-        position: 'relative',
-        zIndex: 9000,
-      }}
-    >
-      {/* Left section */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 1, minWidth: 0 }}>
-        {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-          <div style={{ width: '28px', height: '28px', borderRadius: '4px', background: '#F56E0F', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 14px rgba(245,110,15,0.5)' }}>
-            <span style={{ color: '#FBFBFB', fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '13px' }}>P</span>
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '15px', color: '#FBFBFB', letterSpacing: '0.03em', lineHeight: 1, whiteSpace: 'nowrap' }}>Pyra</div>
-            <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: '10px', color: '#878787', letterSpacing: '0.04em', lineHeight: 1, whiteSpace: 'nowrap' }}>WILDFIRE COMMAND</div>
-          </div>
+    <div style={S.bar}>
+
+      {/* LOGO */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+        <div style={{
+          width: '30px', height: '30px', borderRadius: '7px',
+          background: 'linear-gradient(135deg, #ff4d1a 0%, #c0320a 100%)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 0 16px rgba(255,77,26,0.45), inset 0 1px 0 rgba(255,255,255,0.15)',
+          flexShrink: 0,
+        }}>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M7 1 L7 7 L12 10" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
+            <path d="M7 7 L2 10" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
+            <circle cx="7" cy="7" r="1.5" fill="white"/>
+          </svg>
         </div>
-
-        <div style={{ width: '1px', height: '32px', background: '#262626', flexShrink: 0 }} />
-
-        {/* Agent status */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: aiReady === false ? 'rgba(239,68,68,0.1)' : 'rgba(74,222,128,0.1)', border: `1px solid ${aiReady === false ? 'rgba(239,68,68,0.3)' : 'rgba(74,222,128,0.3)'}`, borderRadius: '3px', padding: '3px 10px', flexShrink: 0, whiteSpace: 'nowrap' }}>
-          <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: aiReady === false ? '#ef4444' : '#4ade80', boxShadow: `0 0 6px ${aiReady === false ? '#ef4444' : '#4ade80'}` }} />
-          <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '11px', color: aiReady === false ? '#ef4444' : '#4ade80', letterSpacing: '0.04em' }}>
-            {aiReady === false ? 'AI KEY MISSING' : 'AGENT ACTIVE'}
-          </span>
-        </div>
-
-        {/* OPTIONS button */}
-        <div ref={optionsBtnRef} style={{ flexShrink: 0 }}>
-          <button
-            data-options-btn="true"
-            onClick={() => optionsMenuOpen ? setOptionsMenuOpen(false) : openOptionsMenu()}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '6px',
-              background: optionsMenuOpen ? 'rgba(139,139,139,0.1)' : 'transparent',
-              border: `1px solid ${optionsMenuOpen ? '#555' : '#333'}`,
-              borderRadius: '3px', padding: '3px 8px', cursor: 'pointer',
-              fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '10px',
-              color: '#878787', letterSpacing: '0.04em', transition: 'all 0.15s', whiteSpace: 'nowrap',
-            }}
-          >
-            OPTIONS
-            <span style={{ color: '#555', fontSize: '8px', marginLeft: '2px' }}>
-              {optionsMenuOpen ? '▲' : '▼'}
-            </span>
-          </button>
+        <div>
+          <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '14px', color: '#edf2f7', letterSpacing: '0.05em', lineHeight: 1 }}>
+            PYRA
+          </div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 500, fontSize: '9px', color: '#3a4558', letterSpacing: '0.1em', lineHeight: 1, marginTop: '2px' }}>
+            WILDFIRE C2
+          </div>
         </div>
       </div>
 
-      {/* Middle stats */}
-      <div style={{ display: 'flex', alignItems: 'stretch', flex: 1, minWidth: 0, overflow: 'hidden' }}>
-        {stats.map((stat, i) => (
-          <div key={stat.label} style={{ flex: '1 1 110px', minWidth: '90px', padding: '0 12px', borderRight: i < stats.length - 1 ? '1px solid #262626' : 'none', overflow: 'hidden' }}>
-            <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: '10px', color: '#878787', letterSpacing: '0.06em', marginBottom: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {stat.label}
+      <div style={S.divider} />
+
+      {/* AI STATUS */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: '6px',
+        padding: '4px 10px',
+        background: aiReady === false ? 'rgba(239,68,68,0.08)' : 'rgba(34,197,94,0.07)',
+        border: `1px solid ${aiReady === false ? 'rgba(239,68,68,0.2)' : 'rgba(34,197,94,0.18)'}`,
+        borderRadius: '4px', flexShrink: 0,
+      }}>
+        <div style={{
+          width: '5px', height: '5px', borderRadius: '50%',
+          background: aiReady === false ? '#ef4444' : '#22c55e',
+          boxShadow: `0 0 8px ${aiReady === false ? '#ef4444' : '#22c55e'}`,
+          animation: aiReady !== false ? 'status-blink 2.5s ease-in-out infinite' : 'none',
+        }} />
+        <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 500, fontSize: '10px', color: aiReady === false ? '#ef4444' : '#22c55e', letterSpacing: '0.06em' }}>
+          {aiReady === false ? 'AI OFFLINE' : 'AGENT LIVE'}
+        </span>
+      </div>
+
+      <div style={S.divider} />
+
+      {/* LAYER TOGGLE BUTTON */}
+      <div ref={optBtnRef}>
+        <button
+          data-opts-btn="true"
+          onClick={() => {
+            if (optionsOpen) { setOptionsOpen(false); return }
+            const r = optBtnRef.current?.getBoundingClientRect()
+            if (r) setOptionsPos({ top: r.bottom + 6, left: r.left })
+            setOptionsOpen(true)
+          }}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '6px',
+            background: optionsOpen ? 'rgba(255,255,255,0.06)' : 'transparent',
+            border: '1px solid rgba(255,255,255,0.07)',
+            borderRadius: '4px', padding: '4px 10px', cursor: 'pointer',
+            fontFamily: 'var(--font-mono)', fontWeight: 500, fontSize: '10px',
+            color: optionsOpen ? '#d4dce8' : '#5a6878', letterSpacing: '0.08em',
+            transition: 'all 0.15s', flexShrink: 0,
+          }}
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <rect x="1" y="2" width="10" height="1.5" rx="0.75"/>
+            <rect x="1" y="5.25" width="10" height="1.5" rx="0.75"/>
+            <rect x="1" y="8.5" width="10" height="1.5" rx="0.75"/>
+          </svg>
+          LAYERS
+          <span style={{ fontSize: '8px', opacity: 0.5 }}>{optionsOpen ? '▲' : '▼'}</span>
+        </button>
+      </div>
+
+      {/* STATS — center */}
+      <div style={{ flex: 1, display: 'flex', alignItems: 'stretch', minWidth: 0, margin: '0 4px', overflow: 'hidden' }}>
+        {stats.map((s, i) => (
+          <div key={s.label} style={{
+            flex: '1 1 90px', minWidth: '72px',
+            padding: '0 14px',
+            borderRight: i < stats.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+            display: 'flex', flexDirection: 'column', justifyContent: 'center',
+            overflow: 'hidden',
+          }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 500, color: '#3a4558', letterSpacing: '0.1em', marginBottom: '2px', whiteSpace: 'nowrap' }}>
+              {s.label}
             </div>
-            <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '15px', color: stat.color, lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {stat.value}
+            <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '14px', color: s.color, lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {s.value}
             </div>
           </div>
         ))}
       </div>
 
-      {/* Right section */}
+      {/* RIGHT SECTION */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-        {/* Command button */}
+
+        {/* COMMAND BUTTON */}
         <button
           onClick={onToggleCommand}
-          style={{ display: 'flex', alignItems: 'center', gap: '5px', background: showCommand ? 'rgba(96,165,250,0.15)' : 'transparent', border: `1px solid ${showCommand ? '#60a5fa' : '#333'}`, borderRadius: '3px', padding: '3px 10px', cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap', flexShrink: 0 }}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '6px',
+            background: showCommand ? 'rgba(56,189,248,0.1)' : 'transparent',
+            border: `1px solid ${showCommand ? 'rgba(56,189,248,0.3)' : 'rgba(255,255,255,0.07)'}`,
+            borderRadius: '4px', padding: '5px 12px', cursor: 'pointer',
+            transition: 'all 0.2s', flexShrink: 0,
+          }}
         >
-          <div style={{ width: '6px', height: '6px', borderRadius: '1px', background: showCommand ? '#60a5fa' : '#555' }} />
-          <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '11px', color: showCommand ? '#60a5fa' : '#555', letterSpacing: '0.04em' }}>COMMAND</span>
-          {criticalAlerts > 0 && (
-            <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '9px', background: '#ef4444', color: '#FBFBFB', borderRadius: '8px', padding: '1px 5px', letterSpacing: '0.02em', lineHeight: 1 }}>
-              {criticalAlerts}
-            </span>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke={showCommand ? '#38bdf8' : '#5a6878'} strokeWidth="1.5">
+            <rect x="1" y="1" width="4.5" height="4.5" rx="1"/>
+            <rect x="6.5" y="1" width="4.5" height="4.5" rx="1"/>
+            <rect x="1" y="6.5" width="4.5" height="4.5" rx="1"/>
+            <rect x="6.5" y="6.5" width="4.5" height="4.5" rx="1"/>
+          </svg>
+          <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 500, fontSize: '10px', color: showCommand ? '#38bdf8' : '#5a6878', letterSpacing: '0.08em' }}>
+            COMMAND
+          </span>
+          {criticalCount > 0 && (
+            <span style={{
+              background: '#ef4444', color: '#fff',
+              fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '9px',
+              borderRadius: '10px', padding: '1px 5px', lineHeight: 1.4,
+              boxShadow: '0 0 8px rgba(239,68,68,0.5)',
+            }}>{criticalCount}</span>
           )}
         </button>
 
-        {/* User menu */}
+        <div style={S.divider} />
+
+        {/* USER MENU */}
         {auth && (
-          <div style={{ position: 'relative', flexShrink: 0 }}>
+          <div style={{ position: 'relative' }}>
             <button
               onClick={() => setUserMenuOpen(v => !v)}
-              style={{ display: 'flex', alignItems: 'center', gap: '7px', background: userMenuOpen ? '#1B1B1E' : 'transparent', border: `1px solid ${userMenuOpen ? '#444' : '#333'}`, borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', transition: 'all 0.15s' }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                background: userMenuOpen ? 'rgba(255,255,255,0.05)' : 'transparent',
+                border: '1px solid rgba(255,255,255,0.07)',
+                borderRadius: '5px', padding: '5px 10px', cursor: 'pointer',
+                transition: 'all 0.15s',
+              }}
             >
-              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: auth.role === 'commander' ? '#F56E0F' : auth.role === 'dispatcher' ? '#60a5fa' : '#878787' }} />
-              <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '11px', color: '#FBFBFB', letterSpacing: '0.04em' }}>{auth.username}</span>
-              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#555', letterSpacing: '0.04em' }}>{auth.role.toUpperCase()}</span>
-              <span style={{ color: '#555', fontSize: '9px', marginLeft: '2px' }}>{userMenuOpen ? '▲' : '▼'}</span>
+              <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'rgba(255,255,255,0.06)', border: `1px solid ${roleColor}40`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: roleColor, boxShadow: `0 0 6px ${roleColor}` }} />
+              </div>
+              <div>
+                <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '12px', color: '#d4dce8', lineHeight: 1 }}>{auth.username}</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#3a4558', letterSpacing: '0.06em', lineHeight: 1, marginTop: '2px' }}>{auth.role?.toUpperCase()}</div>
+              </div>
+              <span style={{ color: '#3a4558', fontSize: '8px' }}>{userMenuOpen ? '▲' : '▼'}</span>
             </button>
 
             {userMenuOpen && (
-              <div style={{ position: 'fixed', top: '52px', right: '108px', zIndex: 99999, background: '#1B1B1E', border: '1px solid #333', borderRadius: '4px', overflow: 'hidden', boxShadow: '0 4px 16px rgba(0,0,0,0.5)', minWidth: '140px' }}>
+              <div style={{
+                position: 'fixed', top: '58px', right: '120px', zIndex: 99999,
+                background: 'rgba(13,15,17,0.96)', border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: '7px', overflow: 'hidden',
+                boxShadow: '0 8px 40px rgba(0,0,0,0.7)', minWidth: '160px',
+                backdropFilter: 'blur(16px)',
+              }}>
                 {[
-                  { label: 'Audit Log', action: () => { onToggleAudit();   setUserMenuOpen(false) }, color: '#FBFBFB' },
-                  { label: 'Settings',  action: () => { onToggleSettings(); setUserMenuOpen(false) }, color: '#FBFBFB' },
-                  { label: 'Sign Out',  action: () => { onLogout();         setUserMenuOpen(false) }, color: '#ef4444' },
-                ].map(item => (
-                  <button key={item.label} onClick={item.action}
-                    style={{ display: 'block', width: '100%', padding: '9px 14px', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: '1px solid #262626', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: '12px', color: item.color, transition: 'background 0.1s' }}
-                    onMouseEnter={e => e.currentTarget.style.background = '#262626'}
+                  { label: 'Audit Log',  action: () => { onToggleAudit();   setUserMenuOpen(false) } },
+                  { label: 'Settings',   action: () => { onToggleSettings(); setUserMenuOpen(false) } },
+                  { label: 'Sign Out',   action: () => { onLogout();         setUserMenuOpen(false) }, danger: true },
+                ].map((item, i) => (
+                  <button
+                    key={item.label}
+                    onClick={item.action}
+                    style={{
+                      display: 'block', width: '100%', padding: '10px 16px', textAlign: 'left',
+                      background: 'transparent',
+                      border: 'none', borderBottom: i < 2 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+                      cursor: 'pointer',
+                      fontFamily: 'var(--font-sans)', fontWeight: 500, fontSize: '12px',
+                      color: item.danger ? '#ef4444' : '#d4dce8',
+                      transition: 'background 0.1s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   >
                     {item.label}
@@ -249,52 +295,65 @@ export default function TopBar({
           </div>
         )}
 
-        {/* Clock */}
-        <div style={{ flexShrink: 0, textAlign: 'right', minWidth: '96px' }}>
-          <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '20px', color: '#FBFBFB', letterSpacing: '0.01em', lineHeight: 1, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-            {timeStr}
+        {/* CLOCK */}
+        <div style={{ textAlign: 'right', flexShrink: 0, paddingLeft: '4px' }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '18px', color: '#d4dce8', letterSpacing: '0.02em', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+            {formatClockTime(time)}
           </div>
-          <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: '10px', color: '#878787', letterSpacing: '0.06em', marginTop: '2px', whiteSpace: 'nowrap' }}>
-            {tzLabel}
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#3a4558', letterSpacing: '0.1em', marginTop: '2px' }}>
+            {formatTimezone(time)}
           </div>
         </div>
       </div>
 
-      {/* OPTIONS dropdown — portalled to document.body to escape ALL overflow/stacking contexts */}
-      {optionsMenuOpen && optionsMenuPos && createPortal(
+      {/* LAYERS DROPDOWN */}
+      {optionsOpen && optionsPos && createPortal(
         <div
-          data-options-menu="true"
+          data-opts-menu="true"
           style={{
-            position: 'fixed',
-            top: optionsMenuPos.top,
-            left: optionsMenuPos.left,
-            zIndex: 99999,
-            background: '#1B1B1E',
-            border: '1px solid #333',
-            borderRadius: '4px',
-            overflow: 'hidden',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
-            minWidth: '120px',
+            position: 'fixed', top: optionsPos.top, left: optionsPos.left, zIndex: 99999,
+            background: 'rgba(13,15,17,0.96)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '8px', overflow: 'hidden',
+            boxShadow: '0 8px 40px rgba(0,0,0,0.7)',
+            minWidth: '200px',
+            backdropFilter: 'blur(16px)',
           }}
         >
-          {mapLayerButtons.map((btn, i) => (
+          <div style={{ padding: '8px 14px 6px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 500, color: '#3a4558', letterSpacing: '0.12em' }}>MAP OVERLAYS</span>
+          </div>
+          {layers.map((l, i) => (
             <button
-              key={btn.label}
-              onClick={() => { btn.onClick(); setOptionsMenuOpen(false) }}
+              key={l.label}
+              onClick={() => { l.onClick(); setOptionsOpen(false) }}
               style={{
-                display: 'flex', alignItems: 'center', width: '100%', gap: '8px',
-                padding: '8px 12px', textAlign: 'left',
-                background: btn.active ? `${btn.color}12` : 'transparent',
-                border: 'none', borderBottom: i < mapLayerButtons.length - 1 ? '1px solid #262626' : 'none',
-                cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontWeight: 600,
-                fontSize: '11px', color: btn.active ? btn.color : '#878787',
-                letterSpacing: '0.04em', transition: 'all 0.1s',
+                display: 'flex', alignItems: 'center', width: '100%', gap: '10px',
+                padding: '9px 14px',
+                background: l.active ? `rgba(255,255,255,0.04)` : 'transparent',
+                border: 'none', borderBottom: i < layers.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                cursor: 'pointer',
+                transition: 'background 0.1s',
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = btn.active ? `${btn.color}12` : '#262626' }}
-              onMouseLeave={e => { e.currentTarget.style.background = btn.active ? `${btn.color}12` : 'transparent' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+              onMouseLeave={e => e.currentTarget.style.background = l.active ? 'rgba(255,255,255,0.04)' : 'transparent'}
             >
-              <div style={{ width: '6px', height: '6px', borderRadius: '1px', background: btn.active ? btn.color : '#555', flexShrink: 0 }} />
-              {btn.label}
+              <div style={{
+                width: '7px', height: '7px', borderRadius: '50%',
+                background: l.active ? l.dot : 'transparent',
+                border: `1px solid ${l.active ? l.dot : '#3a4558'}`,
+                boxShadow: l.active ? `0 0 6px ${l.dot}` : 'none',
+                flexShrink: 0,
+              }} />
+              <span style={{
+                fontFamily: 'var(--font-mono)', fontWeight: 500, fontSize: '11px',
+                color: l.active ? '#d4dce8' : '#5a6878', letterSpacing: '0.06em', flex: 1, textAlign: 'left',
+              }}>
+                {l.label}
+              </span>
+              {l.active && (
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: l.dot }}>ON</span>
+              )}
             </button>
           ))}
         </div>,

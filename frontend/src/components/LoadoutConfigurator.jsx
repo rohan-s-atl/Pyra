@@ -33,15 +33,15 @@ function SliderRow({ label, value, min, max, unit, color, onChange, disabled }) 
   return (
     <div style={{ marginBottom: '10px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#878787', letterSpacing: '0.04em' }}>
+        <span style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#5a6878', letterSpacing: '0.04em' }}>
           {label}
         </span>
-        <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '12px', color }}>
+        <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '12px', color }}>
           {value}{unit}
         </span>
       </div>
       <div style={{ position: 'relative' }}>
-        <div style={{ height: '3px', background: '#262626', borderRadius: '2px', marginBottom: '2px' }}>
+        <div style={{ height: '3px', background: 'rgba(255,255,255,0.07)', borderRadius: '2px', marginBottom: '2px' }}>
           <div style={{ height: '100%', width: `${((value - min) / (max - min)) * 100}%`, background: color, borderRadius: '2px', transition: 'width 0.2s' }} />
         </div>
         <input
@@ -67,19 +67,19 @@ function UnitLoadoutCard({ unit, loadout, aiLoadout, isAiApplied, onUpdate, onAp
 
   return (
     <div style={{
-      background: '#1B1B1E', border: '1px solid #2a2a2e',
+      background: 'var(--surface)', border: '1px solid #2a2a2e',
       borderRadius: '4px', padding: '12px 14px', marginBottom: '8px',
     }}>
       {/* Unit header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
         <span style={{ fontSize: '16px' }}>{UNIT_ICON[unit.unit_type] ?? '◉'}</span>
         <div style={{ flex: 1 }}>
-          <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '13px', color: '#FBFBFB' }}>
+          <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '13px', color: '#d4dce8' }}>
             {unit.designation}
           </div>
-          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#878787' }}>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#5a6878' }}>
             {unit.unit_type.replace(/_/g, ' ').toUpperCase()}
-            {hasWater && <span style={{ color: '#60a5fa' }}> · {waterGal.toLocaleString()} gal loaded</span>}
+            {hasWater && <span style={{ color: '#38bdf8' }}> · {waterGal.toLocaleString()} gal loaded</span>}
           </div>
         </div>
         {aiLoadout && (
@@ -87,10 +87,10 @@ function UnitLoadoutCard({ unit, loadout, aiLoadout, isAiApplied, onUpdate, onAp
             onClick={onApplyAI}
             style={{
               background: aiApplied ? 'rgba(245,110,15,0.15)' : 'rgba(245,110,15,0.08)',
-              border: `1px solid ${aiApplied ? '#F56E0F' : '#F56E0F44'}`,
+              border: `1px solid ${aiApplied ? '#ff4d1a' : '#ff4d1a44'}`,
               borderRadius: '3px', padding: '3px 8px', cursor: 'pointer',
-              fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '9px',
-              color: aiApplied ? '#F56E0F' : '#F56E0Faa', letterSpacing: '0.04em',
+              fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '9px',
+              color: aiApplied ? '#ff4d1a' : '#ff4d1aaa', letterSpacing: '0.04em',
             }}
           >
             {aiApplied ? '⬡ AI APPLIED' : '⬡ APPLY AI'}
@@ -101,26 +101,26 @@ function UnitLoadoutCard({ unit, loadout, aiLoadout, isAiApplied, onUpdate, onAp
       {/* Sliders */}
       {hasWater && (
         <SliderRow
-          label="WATER TANK" value={loadout.water_pct} min={0} max={100} unit="%" color="#60a5fa"
+          label="WATER TANK" value={loadout.water_pct} min={0} max={100} unit="%" color="#38bdf8"
           onChange={v => onUpdate({ ...loadout, water_pct: v })}
         />
       )}
       {hasFoam && (
         <SliderRow
-          label="FOAM CONCENTRATE" value={loadout.foam_pct} min={0} max={cap.foam_pct_max} unit="%" color="#4ade80"
+          label="FOAM CONCENTRATE" value={loadout.foam_pct} min={0} max={cap.foam_pct_max} unit="%" color="#22c55e"
           onChange={v => onUpdate({ ...loadout, foam_pct: v })}
         />
       )}
       {hasRetardant && (
         <SliderRow
-          label="RETARDANT LOAD" value={loadout.retardant_pct} min={0} max={100} unit="%" color="#F56E0F"
+          label="RETARDANT LOAD" value={loadout.retardant_pct} min={0} max={100} unit="%" color="#ff4d1a"
           onChange={v => onUpdate({ ...loadout, retardant_pct: v })}
         />
       )}
 
       {/* No sliders for this unit type */}
       {!hasWater && !hasFoam && !hasRetardant && (
-        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#555', marginBottom: '10px' }}>
+        <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#555', marginBottom: '10px' }}>
           No fluid loadout — configure equipment below.
         </div>
       )}
@@ -128,13 +128,13 @@ function UnitLoadoutCard({ unit, loadout, aiLoadout, isAiApplied, onUpdate, onAp
       {/* AI rationale — always shown, prominent */}
       <div style={{
         background: aiLoadout?.rationale ? 'rgba(245,110,15,0.08)' : '#1B1B1E',
-        border: `1px solid ${aiLoadout?.rationale ? '#F56E0F33' : '#262626'}`,
+        border: `1px solid ${aiLoadout?.rationale ? '#ff4d1a33' : 'rgba(255,255,255,0.07)'}`,
         borderRadius: '3px', padding: '8px 10px', marginBottom: '10px',
       }}>
-        <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '9px', color: '#F56E0F', letterSpacing: '0.06em', marginBottom: '4px' }}>
+        <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '9px', color: '#ff4d1a', letterSpacing: '0.06em', marginBottom: '4px' }}>
           ⬡ AI RECOMMENDATION
         </div>
-        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: aiLoadout?.rationale ? '#FBFBFB' : '#555', lineHeight: 1.6 }}>
+        <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: aiLoadout?.rationale ? '#FBFBFB' : '#555', lineHeight: 1.6 }}>
           {aiLoadout?.rationale ?? 'Analyzing...'}
         </div>
       </div>
@@ -142,7 +142,7 @@ function UnitLoadoutCard({ unit, loadout, aiLoadout, isAiApplied, onUpdate, onAp
       {/* Equipment checklist */}
       {hasEquipment && (
         <div>
-          <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '9px', color: '#878787', letterSpacing: '0.06em', marginBottom: '6px' }}>
+          <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '9px', color: '#5a6878', letterSpacing: '0.06em', marginBottom: '6px' }}>
             EQUIPMENT MANIFEST
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
@@ -151,7 +151,7 @@ function UnitLoadoutCard({ unit, loadout, aiLoadout, isAiApplied, onUpdate, onAp
               const aiChecked = aiLoadout && (aiLoadout.equipment ?? []).includes(item)
               const note = aiLoadout?.equipment_notes?.[item] ?? null
               const aiRecommends = aiChecked
-              const borderColor = checked ? '#4ade80' : aiRecommends ? '#F56E0F44' : '#262626'
+              const borderColor = checked ? '#22c55e' : aiRecommends ? '#ff4d1a44' : 'rgba(255,255,255,0.07)'
               return (
                 <div key={item}
                   onClick={() => {
@@ -168,26 +168,26 @@ function UnitLoadoutCard({ unit, loadout, aiLoadout, isAiApplied, onUpdate, onAp
                 >
                   <div style={{
                     width: '14px', height: '14px', borderRadius: '2px', flexShrink: 0, marginTop: '1px',
-                    border: `1px solid ${checked ? '#4ade80' : '#333'}`,
+                    border: `1px solid ${checked ? '#22c55e' : '#333'}`,
                     background: checked ? 'rgba(74,222,128,0.2)' : 'transparent',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    {checked && <span style={{ color: '#4ade80', fontSize: '10px', lineHeight: 1 }}>✓</span>}
+                    {checked && <span style={{ color: '#22c55e', fontSize: '10px', lineHeight: 1 }}>✓</span>}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: checked ? '#FBFBFB' : '#aaa', fontWeight: checked ? 600 : 400 }}>
+                      <span style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: checked ? '#FBFBFB' : '#aaa', fontWeight: checked ? 600 : 400 }}>
                         {item}
                       </span>
                       {aiRecommends && !checked && (
-                        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', color: '#F56E0F', fontWeight: 700, letterSpacing: '0.03em' }}>⬡ TAKE</span>
+                        <span style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#ff4d1a', fontWeight: 700, letterSpacing: '0.03em' }}>⬡ TAKE</span>
                       )}
                       {!aiRecommends && checked && (
-                        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', color: '#878787', letterSpacing: '0.03em' }}>MANUAL</span>
+                        <span style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#5a6878', letterSpacing: '0.03em' }}>MANUAL</span>
                       )}
                     </div>
                     {note && (
-                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: aiRecommends ? '#F56E0Faa' : '#555', marginTop: '2px', lineHeight: 1.4 }}>
+                      <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: aiRecommends ? '#ff4d1aaa' : '#555', marginTop: '2px', lineHeight: 1.4 }}>
                         {note}
                       </div>
                     )}
@@ -305,7 +305,7 @@ export default function LoadoutConfigurator({ incident, selectedUnits, units, on
   return (
     <div style={{
       position: 'absolute', top: 0, right: 0, bottom: 0, width: 'min(420px, 100vw)',
-      background: '#151419', borderLeft: '1px solid #262626',
+      background: 'var(--bg)', borderLeft: '1px solid #262626',
       display: 'flex', flexDirection: 'column', zIndex: 1100,
       animation: 'slideInRight 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
     }}>
@@ -315,44 +315,44 @@ export default function LoadoutConfigurator({ incident, selectedUnits, units, on
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
           <button
             onClick={onBack}
-            style={{ background: 'none', border: 'none', color: '#878787', cursor: 'pointer', fontSize: '14px', padding: '2px 6px 2px 0' }}
+            style={{ background: 'none', border: 'none', color: '#5a6878', cursor: 'pointer', fontSize: '14px', padding: '2px 6px 2px 0' }}
           >
             ←
           </button>
           <div style={{ flex: 1 }}>
-            <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '14px', color: '#FBFBFB' }}>
+            <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '14px', color: '#d4dce8' }}>
               Loadout Configurator
             </div>
-            <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#878787' }}>
+            <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#5a6878' }}>
               {selectedUnitObjects.length} unit{selectedUnitObjects.length !== 1 ? 's' : ''} · {incident.name}
             </div>
           </div>
-          <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '9px', color: '#F56E0F', letterSpacing: '0.06em' }}>
+          <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '9px', color: '#ff4d1a', letterSpacing: '0.06em' }}>
             ⬡ PYRA AI
           </span>
         </div>
 
         {/* AI strategy banner */}
         {aiLoading && (
-          <div style={{ background: 'rgba(245,110,15,0.08)', border: '1px solid #F56E0F33', borderRadius: '3px', padding: '7px 10px', marginTop: '8px' }}>
+          <div style={{ background: 'rgba(245,110,15,0.08)', border: '1px solid #ff4d1a33', borderRadius: '3px', padding: '7px 10px', marginTop: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#F56E0F', boxShadow: '0 0 4px #F56E0F' }} />
-              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#F56E0F' }}>
+              <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#ff4d1a', boxShadow: '0 0 4px #ff4d1a' }} />
+              <span style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#ff4d1a' }}>
                 AI analyzing incident conditions...
               </span>
             </div>
           </div>
         )}
         {aiResult?.overall_strategy && !aiLoading && (
-          <div style={{ background: 'rgba(245,110,15,0.08)', border: '1px solid #F56E0F33', borderRadius: '3px', padding: '7px 10px', marginTop: '8px' }}>
+          <div style={{ background: 'rgba(245,110,15,0.08)', border: '1px solid #ff4d1a33', borderRadius: '3px', padding: '7px 10px', marginTop: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
-              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#FBFBFB', lineHeight: 1.5, flex: 1 }}>
-                <span style={{ fontWeight: 700, fontSize: '9px', color: '#F56E0F', letterSpacing: '0.04em' }}>⬡ AI STRATEGY · </span>
+              <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#d4dce8', lineHeight: 1.5, flex: 1 }}>
+                <span style={{ fontWeight: 700, fontSize: '9px', color: '#ff4d1a', letterSpacing: '0.04em' }}>⬡ AI STRATEGY · </span>
                 {aiResult.overall_strategy}
               </div>
               <button
                 onClick={applyAllAI}
-                style={{ background: 'rgba(245,110,15,0.15)', border: '1px solid #F56E0F', borderRadius: '3px', padding: '3px 8px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '9px', color: '#F56E0F', letterSpacing: '0.04em', flexShrink: 0 }}
+                style={{ background: 'rgba(245,110,15,0.15)', border: '1px solid #ff4d1a', borderRadius: '3px', padding: '3px 8px', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '9px', color: '#ff4d1a', letterSpacing: '0.04em', flexShrink: 0 }}
               >
                 APPLY ALL
               </button>
@@ -361,10 +361,10 @@ export default function LoadoutConfigurator({ incident, selectedUnits, units, on
         )}
         {aiError && (
           <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid #ef444433', borderRadius: '3px', padding: '7px 10px', marginTop: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#ef4444' }}>
+            <span style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#ef4444' }}>
               AI unavailable — defaults applied
             </span>
-            <button onClick={fetchAI} style={{ background: 'none', border: '1px solid #ef444444', borderRadius: '3px', padding: '2px 8px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#ef4444' }}>
+            <button onClick={fetchAI} style={{ background: 'none', border: '1px solid #ef444444', borderRadius: '3px', padding: '2px 8px', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#ef4444' }}>
               RETRY
             </button>
           </div>
@@ -424,9 +424,9 @@ export default function LoadoutConfigurator({ incident, selectedUnits, units, on
           onClick={() => onConfirm(finalLoadouts)}
           style={{
             width: '100%', padding: '12px',
-            background: '#F56E0F', border: 'none', borderRadius: '3px',
-            cursor: 'pointer', fontFamily: 'Inter, sans-serif',
-            fontWeight: 700, fontSize: '13px', color: '#FBFBFB',
+            background: '#ff4d1a', border: 'none', borderRadius: '3px',
+            cursor: 'pointer', fontFamily: 'var(--font-sans)',
+            fontWeight: 700, fontSize: '13px', color: '#d4dce8',
             letterSpacing: '0.03em',
           }}
         >
@@ -438,7 +438,7 @@ export default function LoadoutConfigurator({ incident, selectedUnits, units, on
             width: '100%', padding: '9px', marginTop: '6px',
             background: 'transparent', border: '1px solid #333',
             borderRadius: '3px', cursor: 'pointer',
-            fontFamily: 'Inter, sans-serif', fontSize: '12px', color: '#878787',
+            fontFamily: 'var(--font-sans)', fontSize: '12px', color: '#5a6878',
           }}
         >
           ← BACK TO UNIT SELECTION

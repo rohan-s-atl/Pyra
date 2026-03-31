@@ -402,7 +402,7 @@ export default function IncidentMap({
           const lat = unit.latitude
           const lon = unit.longitude
           if (isNaN(lat) || isNaN(lon)) return null
-          const color      = UNIT_STATUS_COLOR[unit.status] ?? '#878787'
+          const color      = UNIT_STATUS_COLOR[unit.status] ?? '#3a4558'
           const isSelected = unit.id === selectedUnit
           return (
             <div key={unit.id}>
@@ -411,8 +411,13 @@ export default function IncidentMap({
               )}
               <CircleMarker
                 center={[lat, lon]}
-                radius={isSelected ? 9 : 6}
-                pathOptions={{ color: isSelected ? '#ffffff' : color, fillColor: color, fillOpacity: 0.9, weight: isSelected ? 2 : 1.5 }}
+                radius={isSelected ? 10 : 6}
+                pathOptions={{
+                  color: isSelected ? '#ffffff' : color,
+                  fillColor: color,
+                  fillOpacity: isSelected ? 1 : 0.85,
+                  weight: isSelected ? 2.5 : 1.5,
+                }}
                 eventHandlers={{ click: (e) => {
                   e.originalEvent.stopPropagation()
                   const newSel = selectedUnit === unit.id ? null : unit.id
@@ -421,12 +426,12 @@ export default function IncidentMap({
                 }}}
               >
                 <Tooltip direction="top" offset={[0, -8]}>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px' }}>
-                    <div style={{ fontWeight: 700, marginBottom: '2px' }}>{UNIT_TYPE_SYMBOL[unit.unit_type]} {unit.designation}</div>
-                    <div style={{ color }}>{unit.status.replace(/_/g, ' ').toUpperCase()}</div>
-                    {unit.status === 'returning' && <div style={{ color: '#878787', fontSize: '10px' }}>← Returning to station</div>}
+                  <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', lineHeight: 1.5 }}>
+                    <div style={{ fontWeight: 700, marginBottom: '2px', color }}>{UNIT_TYPE_SYMBOL[unit.unit_type]} {unit.designation}</div>
+                    <div style={{ color, fontFamily: 'var(--font-mono)', fontSize: '10px', letterSpacing: '0.06em' }}>{unit.status.replace(/_/g, ' ').toUpperCase()}</div>
+                    {unit.status === 'returning' && <div style={{ color: '#5a6878', fontSize: '10px' }}>← RTB to station</div>}
                     {unit.assigned_incident_id && unit.status !== 'returning' && (
-                      <div style={{ color: '#878787', fontSize: '10px' }}>
+                      <div style={{ color: '#5a6878', fontSize: '10px' }}>
                         → {incidents.find(i => i.id === unit.assigned_incident_id)?.name ?? unit.assigned_incident_id}
                       </div>
                     )}
@@ -438,119 +443,159 @@ export default function IncidentMap({
         })}
 
         {showFires && incidents.map(inc => {
-          const color    = SEVERITY_COLOR[inc.severity] ?? '#888'
-          const radius   = SEVERITY_RADIUS[inc.severity] ?? 10
+          const FIRE_COLORS = {
+            critical: { core: '#ff2200', mid: '#ff6600', outer: '#ff440020', ring: '#ef4444' },
+            high:     { core: '#ff4d1a', mid: '#f59e0b', outer: '#f59e0b15', ring: '#f59e0b' },
+            moderate: { core: '#f59e0b', mid: '#fbbf24', outer: '#fbbf2412', ring: '#fbbf24' },
+            low:      { core: '#22c55e', mid: '#4ade80', outer: '#22c55e10', ring: '#22c55e' },
+          }
+          const fc = FIRE_COLORS[inc.severity] ?? FIRE_COLORS.low
+          const sz = { critical: 48, high: 38, moderate: 28, low: 20 }[inc.severity] ?? 22
           const selected = inc.id === selectedId
+          const anim = inc.severity === 'critical'
+            ? 'fire-ring-critical 1.8s ease-in-out infinite'
+            : inc.severity === 'high'
+            ? 'fire-ring-high 2.5s ease-in-out infinite'
+            : 'none'
+
+          const icon = L.divIcon({
+            className: '',
+            html: `
+              <div style="position:relative;width:${sz}px;height:${sz}px;transform:translate(-50%,-50%)">
+                <!-- Outer glow ring -->
+                <div style="
+                  position:absolute;inset:0;border-radius:50%;
+                  background:radial-gradient(circle, ${fc.mid}30 0%, ${fc.outer} 60%, transparent 100%);
+                  animation:${anim};
+                "></div>
+                <!-- Mid ring -->
+                <div style="
+                  position:absolute;inset:${sz*0.18}px;border-radius:50%;
+                  background:radial-gradient(circle, ${fc.mid}60 0%, ${fc.mid}20 70%, transparent 100%);
+                  border:1px solid ${fc.ring}40;
+                "></div>
+                <!-- Core -->
+                <div style="
+                  position:absolute;inset:${sz*0.35}px;border-radius:50%;
+                  background:radial-gradient(circle, #fff 0%, ${fc.core} 50%, ${fc.mid} 100%);
+                  box-shadow:0 0 ${sz*0.6}px ${fc.core}, 0 0 ${sz*0.3}px ${fc.mid};
+                "></div>
+                ${selected ? `
+                <!-- Selected ring -->
+                <div style="
+                  position:absolute;inset:-6px;border-radius:50%;
+                  border:2px solid rgba(255,255,255,0.6);
+                  box-shadow:0 0 12px rgba(255,255,255,0.2);
+                "></div>` : ''}
+              </div>`,
+            iconSize: [0, 0],
+            iconAnchor: [0, 0],
+          })
+
           return (
-            <CircleMarker
+            <Marker
               key={inc.id}
-              center={[inc.latitude, inc.longitude]}
-              radius={selected ? radius + 8 : radius}
-              pathOptions={{ color: selected ? '#ffffff' : color, fillColor: color, fillOpacity: 0.85, weight: selected ? 3 : 1.5 }}
+              position={[inc.latitude, inc.longitude]}
+              icon={icon}
               eventHandlers={{ click: (e) => { e.originalEvent.stopPropagation(); setSelectedUnit(null); onSelect(inc.id) } }}
+              zIndexOffset={selected ? 1000 : 0}
             >
-              <Tooltip direction="top" offset={[0, -radius]}>
-                <div>
-                  <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>{inc.name}</div>
-                  <div>{inc.acres_burned?.toLocaleString()} ac · {inc.severity.toUpperCase()}</div>
-                  <div>Spread: {inc.spread_risk?.toUpperCase()} → {inc.spread_direction ?? '—'}</div>
-                  <div>Wind: {inc.wind_speed_mph} mph · Humidity: {inc.humidity_percent}%</div>
-                  <div>Containment: {inc.containment_percent}%</div>
+              <Tooltip direction="top" offset={[0, -sz/2]}>
+                <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', lineHeight: 1.5 }}>
+                  <div style={{ fontWeight: 700, marginBottom: '3px', color: fc.core }}>{inc.name}</div>
+                  <div>{inc.acres_burned?.toLocaleString()} ac · <span style={{ color: fc.ring }}>{inc.severity?.toUpperCase()}</span></div>
+                  <div style={{ color: '#5a6878' }}>Wind: {inc.wind_speed_mph} mph · RH: {inc.humidity_percent}%</div>
+                  <div>Containment: <span style={{ color: inc.containment_percent > 50 ? '#22c55e' : fc.core }}>{inc.containment_percent}%</span></div>
                 </div>
               </Tooltip>
-            </CircleMarker>
+            </Marker>
           )
         })}
 
-        {/* Follow mode button — shown when a unit is selected */}
+        {/* Follow mode button */}
         {selectedUnit && (
-          <div style={{
-            position: 'absolute', bottom: '24px', right: '12px', zIndex: 1000,
-          }}>
+          <div style={{ position: 'absolute', bottom: '28px', right: '14px', zIndex: 1000 }}>
             <button
               onClick={() => setFollowMode(v => !v)}
               style={{
-                background: followMode ? 'rgba(96,165,250,0.2)' : 'rgba(21,20,25,0.9)',
-                border: `1px solid ${followMode ? '#60a5fa' : '#333'}`,
-                borderRadius: '3px', padding: '6px 12px', cursor: 'pointer',
-                fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '11px',
-                color: followMode ? '#60a5fa' : '#878787',
-                letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '6px',
-                transition: 'all 0.15s',
+                background: followMode ? 'rgba(56,189,248,0.12)' : 'rgba(13,15,17,0.9)',
+                border: `1px solid ${followMode ? 'rgba(56,189,248,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                borderRadius: '6px', padding: '7px 14px', cursor: 'pointer',
+                fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '10px',
+                color: followMode ? '#38bdf8' : '#5a6878',
+                letterSpacing: '0.08em', display: 'flex', alignItems: 'center', gap: '7px',
+                transition: 'all 0.15s', backdropFilter: 'blur(12px)',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
               }}
             >
               <div style={{
                 width: '6px', height: '6px', borderRadius: '50%',
-                background: followMode ? '#60a5fa' : '#555',
-                boxShadow: followMode ? '0 0 6px #60a5fa' : 'none',
+                background: followMode ? '#38bdf8' : '#3a4558',
+                boxShadow: followMode ? '0 0 8px #38bdf8' : 'none',
+                animation: followMode ? 'status-blink 1.5s ease-in-out infinite' : 'none',
               }} />
-              {followMode ? 'FOLLOWING UNIT' : 'FOLLOW UNIT'}
+              {followMode ? 'TRACKING' : 'TRACK UNIT'}
             </button>
           </div>
         )}
 
-        {/* Legend */}
+        {/* Map Legend */}
         <div style={{
-          position: 'absolute', bottom: '24px', left: '12px', zIndex: 1000,
-          background: 'rgba(21,20,25,0.9)', border: '1px solid #262626',
-          borderRadius: '3px', padding: '8px 12px',
-          display: 'flex', flexDirection: 'column', gap: '4px', pointerEvents: 'none',
+          position: 'absolute', bottom: '28px', left: '14px', zIndex: 1000,
+          background: 'rgba(13,15,17,0.88)', border: '1px solid rgba(255,255,255,0.07)',
+          borderRadius: '8px', padding: '10px 12px',
+          display: 'flex', flexDirection: 'column', gap: '5px', pointerEvents: 'none',
+          backdropFilter: 'blur(12px)',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
         }}>
           {showFires && (
             <>
-              <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '9px', color: '#878787', letterSpacing: '0.06em', marginBottom: '2px' }}>FIRE SEVERITY</div>
-              {Object.entries(SEVERITY_COLOR).map(([sev, color]) => (
+              <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '8px', color: '#3a4558', letterSpacing: '0.12em', marginBottom: '2px' }}>FIRE SEVERITY</div>
+              {[
+                { sev: 'critical', color: '#ef4444' },
+                { sev: 'high',     color: '#ff4d1a' },
+                { sev: 'moderate', color: '#f59e0b' },
+                { sev: 'low',      color: '#22c55e' },
+              ].map(({ sev, color }) => (
                 <div key={sev} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: color }} />
-                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#FBFBFB' }}>{sev.toUpperCase()}</span>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: color, boxShadow: `0 0 5px ${color}60` }} />
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#5a6878', letterSpacing: '0.06em' }}>{sev.toUpperCase()}</span>
                 </div>
               ))}
             </>
           )}
-          {showFires && showUnits && <div style={{ height: '1px', background: '#262626', margin: '4px 0' }} />}
+          {showFires && showUnits && <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '3px 0' }} />}
           {showUnits && (
             <>
-              <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '9px', color: '#878787', letterSpacing: '0.06em', marginBottom: '2px' }}>UNIT STATUS</div>
-              {Object.entries(UNIT_STATUS_COLOR).slice(0, 5).map(([status, color]) => (
+              <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '8px', color: '#3a4558', letterSpacing: '0.12em', marginBottom: '2px' }}>UNIT STATUS</div>
+              {[
+                { status: 'available',      color: '#22c55e' },
+                { status: 'en route',       color: '#38bdf8' },
+                { status: 'on scene',       color: '#ff4d1a' },
+                { status: 'staging',        color: '#facc15' },
+                { status: 'returning',      color: '#a78bfa' },
+              ].map(({ status, color }) => (
                 <div key={status} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: color }} />
-                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#FBFBFB' }}>{status.replace(/_/g, ' ').toUpperCase()}</span>
+                  <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: color }} />
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#5a6878', letterSpacing: '0.06em' }}>{status.toUpperCase()}</span>
                 </div>
               ))}
             </>
           )}
           {unitRoutes.length > 0 && (
             <>
-              <div style={{ height: '1px', background: '#262626', margin: '4px 0' }} />
-              <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '9px', color: '#878787', letterSpacing: '0.06em', marginBottom: '2px' }}>ROUTE STATUS</div>
-              {Object.entries(ROUTE_STATUS_COLOR).map(([status, color]) => (
+              <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '3px 0' }} />
+              <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '8px', color: '#3a4558', letterSpacing: '0.12em', marginBottom: '2px' }}>ROUTES</div>
+              {[{ status: 'FASTEST', color: '#22c55e' }, { status: 'CAUTION', color: '#eab308' }, { status: 'AVOID', color: '#ef4444' }].map(({ status, color }) => (
                 <div key={status} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '16px', height: '3px', background: color, borderRadius: '1px' }} />
-                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#FBFBFB' }}>{status}</span>
+                  <div style={{ width: '14px', height: '2px', background: color, borderRadius: '1px' }} />
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#5a6878', letterSpacing: '0.06em' }}>{status}</span>
                 </div>
               ))}
             </>
           )}
           {!showLabels && showUnits && (
-            <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', color: '#878787', marginTop: '4px' }}>Zoom in for callsigns</div>
-          )}
-          {showWaterSources && (
-            <>
-              <div style={{ height: '1px', background: '#262626', margin: '4px 0' }} />
-              <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '9px', color: '#878787', letterSpacing: '0.06em', marginBottom: '2px' }}>WATER SOURCES</div>
-              {[
-                { label: 'Fire Hydrant',   color: '#60a5fa' },
-                { label: 'Lake',           color: '#38bdf8' },
-                { label: 'River / Canal',  color: '#22d3ee' },
-                { label: 'Reservoir',      color: '#818cf8' },
-                { label: 'Water Tank',     color: '#a78bfa' },
-              ].map(({ label, color }) => (
-                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: color }} />
-                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#FBFBFB' }}>{label}</span>
-                </div>
-              ))}
-            </>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '8.5px', color: '#3a4558', marginTop: '2px' }}>Zoom in for callsigns</div>
           )}
         </div>
       </MapContainer>

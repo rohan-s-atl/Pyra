@@ -22,8 +22,8 @@ function renderBriefing(text) {
       const rest = line.slice(colonIdx + 1).trim()
       return (
         <div key={i} style={{ marginBottom: '4px' }}>
-          <span style={{ fontWeight: 700, color: '#F56E0F', fontSize: '11px', letterSpacing: '0.06em' }}>{header}:</span>
-          {rest && <span style={{ color: '#FBFBFB' }}> {rest}</span>}
+          <span style={{ fontWeight: 700, color: '#ff4d1a', fontSize: '11px', letterSpacing: '0.06em' }}>{header}:</span>
+          {rest && <span style={{ color: '#d4dce8' }}> {rest}</span>}
         </div>
       )
     }
@@ -31,7 +31,7 @@ function renderBriefing(text) {
     const parts = line.split(/(\*\*[^*]+\*\*)/)
     const rendered = parts.map((part, j) =>
       part.startsWith('**') && part.endsWith('**')
-        ? <strong key={j} style={{ color: '#FBFBFB', fontWeight: 700 }}>{part.slice(2, -2)}</strong>
+        ? <strong key={j} style={{ color: '#d4dce8', fontWeight: 700 }}>{part.slice(2, -2)}</strong>
         : <span key={j}>{part}</span>
     )
     return <div key={i} style={{ marginBottom: '3px', color: '#d4d4d4' }}>{rendered}</div>
@@ -41,7 +41,7 @@ function renderBriefing(text) {
 
 const PRIORITY_COLOR = {
   immediate:   '#ef4444',
-  within_1hr:  '#F56E0F',
+  within_1hr:  '#ff4d1a',
   standby:     '#878787',
 }
 
@@ -67,7 +67,7 @@ const LOADOUT_LABEL = {
 
 const SEVERITY_COLOR = {
   critical: '#ef4444',
-  high:     '#F56E0F',
+  high:     '#ff4d1a',
   moderate: '#facc15',
   low:      '#4ade80',
 }
@@ -109,7 +109,7 @@ function sortUnitsForDispatch(units, incident) {
 function RouteBadge({ status, statusColor }) {
   return (
     <span style={{
-      fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '9px',
+      fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '9px',
       color: '#151419', background: statusColor, borderRadius: '2px',
       padding: '1px 5px', letterSpacing: '0.03em',
     }}>
@@ -127,29 +127,29 @@ function UnitRouteCard({ unitRoute }) {
 
   return (
     <div style={{
-      background: '#1B1B1E', border: `1px solid ${borderColor}`,
-      borderRadius: '3px', padding: '7px 10px', marginBottom: '4px',
+      background: 'var(--surface)', border: `1px solid ${borderColor}`,
+      borderRadius: '5px', padding: '7px 10px', marginBottom: '4px',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <span style={{ fontSize: '13px', flexShrink: 0 }}>{UNIT_ICON[unitRoute.unit_type] ?? '◉'}</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
-            <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '12px', color: '#FBFBFB' }}>
+            <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '12px', color: '#d4dce8' }}>
               {unitRoute.designation}
             </span>
             <RouteBadge status={unitRoute.status} statusColor={unitRoute.statusColor} />
             {unitRoute.isAir && (
-              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', color: '#60a5fa', letterSpacing: '0.02em' }}>
+              <span style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#60a5fa', letterSpacing: '0.02em' }}>
                 AERIAL
               </span>
             )}
             {!unitRoute.isAir && unitRoute.isRoadRouted === false && (
-              <span title="Road routing unavailable — showing straight-line estimate. Add OPENROUTESERVICE_API_KEY to .env for road routes." style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', color: '#facc15', letterSpacing: '0.02em', cursor: 'help' }}>
+              <span title="Road routing unavailable — showing straight-line estimate. Add OPENROUTESERVICE_API_KEY to .env for road routes." style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#facc15', letterSpacing: '0.02em', cursor: 'help' }}>
                 ⚠ EST
               </span>
             )}
           </div>
-          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#878787' }}>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#5a6878' }}>
             {unitRoute.distMiles < 1
               ? `${Math.round(unitRoute.distMiles * 5280)} ft`
               : `${unitRoute.distMiles.toFixed(1)} mi`
@@ -158,16 +158,16 @@ function UnitRouteCard({ unitRoute }) {
         </div>
         <button
           onClick={() => setExpanded(v => !v)}
-          style={{ background: 'none', border: 'none', color: '#878787', cursor: 'pointer', fontSize: '10px', padding: '2px 4px' }}
+          style={{ background: 'none', border: 'none', color: '#5a6878', cursor: 'pointer', fontSize: '10px', padding: '2px 4px' }}
         >
           {expanded ? '▲' : '▼'}
         </button>
       </div>
       {expanded && (
         <div style={{
-          fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#aaa',
+          fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#aaa',
           lineHeight: 1.5, marginTop: '6px', paddingTop: '6px',
-          borderTop: '1px solid #262626',
+          borderTop: '1px solid rgba(255,255,255,0.06)',
         }}>
           {unitRoute.explanation}
         </div>
@@ -417,34 +417,34 @@ export default function IncidentDetailPanel({
       position: 'absolute', top: 0, right: `${rightOffset}px`, bottom: 0, width: 'min(420px, 100vw)',
       transition: 'right 0.2s ease',
       animation: 'slideInRight 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
-      background: '#151419', borderLeft: '1px solid #262626',
+      background: 'var(--bg)', borderLeft: '1px solid #262626',
       display: 'flex', flexDirection: 'column', zIndex: 1000, overflow: 'hidden',
     }}>
 
       {/* Header */}
       <div style={{
-        padding: '12px 16px', borderBottom: '1px solid #262626',
+        padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)',
         flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
         <div>
-          <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '15px', color: '#FBFBFB', letterSpacing: '0.01em' }}>
+          <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '15px', color: '#d4dce8', letterSpacing: '0.01em' }}>
             {incident.name}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '3px' }}>
-            <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '11px', color: SEVERITY_COLOR[incident.severity], letterSpacing: '0.04em' }}>
+            <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '11px', color: SEVERITY_COLOR[incident.severity], letterSpacing: '0.04em' }}>
               {incident.severity.toUpperCase()}
             </span>
-            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#aaaaaa' }}>
+            <span style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#aaaaaa' }}>
               {incident.fire_type.replace(/_/g, ' ').toUpperCase()}
             </span>
-            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#aaaaaa' }}>
+            <span style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#aaaaaa' }}>
               {incident.acres_burned?.toLocaleString()} ac
             </span>
           </div>
         </div>
         <button
           onClick={onClose}
-          style={{ background: 'none', border: 'none', color: '#878787', cursor: 'pointer', fontSize: '18px', padding: '4px 8px' }}
+          style={{ background: 'none', border: 'none', color: '#5a6878', cursor: 'pointer', fontSize: '18px', padding: '4px 8px' }}
         >✕</button>
       </div>
 
@@ -465,7 +465,7 @@ export default function IncidentDetailPanel({
         )}
 
         {!loading && !recommendation && (
-          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', color: '#ef4444', padding: '20px 0' }}>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '13px', color: '#ef4444', padding: '20px 0' }}>
             Failed to load recommendation.
           </div>
         )}
@@ -474,19 +474,19 @@ export default function IncidentDetailPanel({
           <>
             {/* Confidence + Loadout */}
             <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
-              <div style={{ background: '#1B1B1E', border: '1px solid #262626', borderRadius: '3px', padding: '6px 10px', flex: 1 }}>
-                <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '9px', color: '#878787', letterSpacing: '0.06em', marginBottom: '2px' }}>
+              <div style={{ background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '5px', padding: '6px 10px', flex: 1 }}>
+                <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '9px', color: '#5a6878', letterSpacing: '0.06em', marginBottom: '2px' }}>
                   LOADOUT PROFILE
                 </div>
-                <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '13px', color: '#F56E0F' }}>
+                <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '13px', color: '#ff4d1a' }}>
                   {LOADOUT_LABEL[recommendation.loadout_profile] ?? recommendation.loadout_profile}
                 </div>
               </div>
-              <div style={{ background: '#1B1B1E', border: '1px solid #262626', borderRadius: '3px', padding: '6px 10px', flex: 1 }}>
-                <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '9px', color: '#878787', letterSpacing: '0.06em', marginBottom: '2px' }}>
+              <div style={{ background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '5px', padding: '6px 10px', flex: 1 }}>
+                <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '9px', color: '#5a6878', letterSpacing: '0.06em', marginBottom: '2px' }}>
                   CONFIDENCE
                 </div>
-                <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '13px', color: recommendation.confidence === 'high' ? '#4ade80' : recommendation.confidence === 'moderate' ? '#facc15' : '#878787' }}>
+                <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '13px', color: recommendation.confidence === 'high' ? '#4ade80' : recommendation.confidence === 'moderate' ? '#facc15' : '#878787' }}>
                   {recommendation.confidence.toUpperCase()}
                 </div>
               </div>
@@ -494,10 +494,10 @@ export default function IncidentDetailPanel({
 
             {/* Situation summary */}
             <div style={{ marginBottom: '14px' }}>
-              <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '11px', color: '#878787', letterSpacing: '0.06em', marginBottom: '6px' }}>
+              <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '11px', color: '#5a6878', letterSpacing: '0.06em', marginBottom: '6px' }}>
                 SITUATION SUMMARY
               </div>
-              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#FBFBFB', lineHeight: 1.6, background: '#1B1B1E', borderRadius: '3px', padding: '10px', border: '1px solid #262626' }}>
+              <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#d4dce8', lineHeight: 1.6, background: 'var(--surface)', borderRadius: '5px', padding: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
                 {recommendation.summary}
               </div>
             </div>
@@ -505,16 +505,16 @@ export default function IncidentDetailPanel({
             {/* Fire Intelligence */}
             {fireBehavior && (
               <div style={{ marginBottom: '14px' }}>
-                <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '11px', color: '#878787', letterSpacing: '0.06em', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '11px', color: '#5a6878', letterSpacing: '0.06em', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   FIRE INTELLIGENCE
                   <span className="pyra-ai-badge" style={{ fontSize: '8px' }}>AI</span>
                 </div>
 
                 {/* FBI bar */}
-                <div style={{ background: '#1B1B1E', border: '1px solid #262626', borderRadius: '3px', padding: '10px', marginBottom: '4px' }}>
+                <div style={{ background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '5px', padding: '10px', marginBottom: '4px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#878787', letterSpacing: '0.04em' }}>FIRE BEHAVIOR INDEX</span>
-                    <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '13px', color: fireBehavior.fire_behavior_index >= 0.75 ? '#ef4444' : fireBehavior.fire_behavior_index >= 0.5 ? '#F56E0F' : fireBehavior.fire_behavior_index >= 0.3 ? '#facc15' : '#4ade80' }}>
+                    <span style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#5a6878', letterSpacing: '0.04em' }}>FIRE BEHAVIOR INDEX</span>
+                    <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '13px', color: fireBehavior.fire_behavior_index >= 0.75 ? '#ef4444' : fireBehavior.fire_behavior_index >= 0.5 ? '#ff4d1a' : fireBehavior.fire_behavior_index >= 0.3 ? '#facc15' : '#4ade80' }}>
                       {(fireBehavior.fire_behavior_index * 100).toFixed(0)}
                     </span>
                   </div>
@@ -522,7 +522,7 @@ export default function IncidentDetailPanel({
                     <div style={{
                       height: '100%', borderRadius: '2px',
                       width: `${fireBehavior.fire_behavior_index * 100}%`,
-                      background: fireBehavior.fire_behavior_index >= 0.75 ? '#ef4444' : fireBehavior.fire_behavior_index >= 0.5 ? '#F56E0F' : fireBehavior.fire_behavior_index >= 0.3 ? '#facc15' : '#4ade80',
+                      background: fireBehavior.fire_behavior_index >= 0.75 ? '#ef4444' : fireBehavior.fire_behavior_index >= 0.5 ? '#ff4d1a' : fireBehavior.fire_behavior_index >= 0.3 ? '#facc15' : '#4ade80',
                       transition: 'width 0.4s ease',
                     }} />
                   </div>
@@ -531,14 +531,14 @@ export default function IncidentDetailPanel({
                 {/* Stats grid */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', marginBottom: '4px' }}>
                   {[
-                    { label: 'RATE OF SPREAD', value: fireBehavior.rate_of_spread_mph != null ? `${fireBehavior.rate_of_spread_mph} mph` : '—', color: fireBehavior.rate_of_spread_mph >= 5 ? '#ef4444' : fireBehavior.rate_of_spread_mph >= 2 ? '#F56E0F' : '#FBFBFB' },
-                    { label: 'BEHAVIOR', value: (fireBehavior.predicted_behavior ?? 'unknown').toUpperCase(), color: fireBehavior.predicted_behavior === 'extreme' ? '#ef4444' : fireBehavior.predicted_behavior === 'high' ? '#F56E0F' : fireBehavior.predicted_behavior === 'moderate' ? '#facc15' : '#4ade80' },
-                    { label: 'GROWTH (12HR)', value: fireBehavior.projected_growth_percent_12h != null ? `+${fireBehavior.projected_growth_percent_12h}%` : '—', color: fireBehavior.projected_growth_percent_12h >= 50 ? '#ef4444' : fireBehavior.projected_growth_percent_12h >= 20 ? '#F56E0F' : '#4ade80' },
+                    { label: 'RATE OF SPREAD', value: fireBehavior.rate_of_spread_mph != null ? `${fireBehavior.rate_of_spread_mph} mph` : '—', color: fireBehavior.rate_of_spread_mph >= 5 ? '#ef4444' : fireBehavior.rate_of_spread_mph >= 2 ? '#ff4d1a' : '#FBFBFB' },
+                    { label: 'BEHAVIOR', value: (fireBehavior.predicted_behavior ?? 'unknown').toUpperCase(), color: fireBehavior.predicted_behavior === 'extreme' ? '#ef4444' : fireBehavior.predicted_behavior === 'high' ? '#ff4d1a' : fireBehavior.predicted_behavior === 'moderate' ? '#facc15' : '#4ade80' },
+                    { label: 'GROWTH (12HR)', value: fireBehavior.projected_growth_percent_12h != null ? `+${fireBehavior.projected_growth_percent_12h}%` : '—', color: fireBehavior.projected_growth_percent_12h >= 50 ? '#ef4444' : fireBehavior.projected_growth_percent_12h >= 20 ? '#ff4d1a' : '#4ade80' },
                     { label: 'SUPPRESSION EFF.', value: fireBehavior.suppression_effectiveness != null ? `${(fireBehavior.suppression_effectiveness * 100).toFixed(0)}%` : '—', color: fireBehavior.suppression_effectiveness >= 0.6 ? '#4ade80' : fireBehavior.suppression_effectiveness >= 0.3 ? '#facc15' : '#ef4444' },
                   ].map(stat => (
-                    <div key={stat.label} style={{ background: '#1B1B1E', border: '1px solid #262626', borderRadius: '3px', padding: '7px 10px' }}>
-                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', color: '#878787', letterSpacing: '0.04em', marginBottom: '3px' }}>{stat.label}</div>
-                      <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '13px', color: stat.color }}>{stat.value}</div>
+                    <div key={stat.label} style={{ background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '5px', padding: '7px 10px' }}>
+                      <div style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#5a6878', letterSpacing: '0.04em', marginBottom: '3px' }}>{stat.label}</div>
+                      <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '13px', color: stat.color }}>{stat.value}</div>
                     </div>
                   ))}
                 </div>
@@ -547,25 +547,25 @@ export default function IncidentDetailPanel({
                 {(incident.elevation_m != null || incident.aqi != null) && (
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', marginBottom: '4px' }}>
                     {incident.elevation_m != null && (
-                      <div style={{ background: '#1B1B1E', border: '1px solid #262626', borderRadius: '3px', padding: '7px 10px' }}>
-                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', color: '#878787', letterSpacing: '0.04em', marginBottom: '3px' }}>TERRAIN</div>
-                        <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '12px', color: '#FBFBFB' }}>
+                      <div style={{ background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '5px', padding: '7px 10px' }}>
+                        <div style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#5a6878', letterSpacing: '0.04em', marginBottom: '3px' }}>TERRAIN</div>
+                        <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '12px', color: '#d4dce8' }}>
                           {Math.round(incident.elevation_m)}m
-                          {incident.slope_percent != null && <span style={{ fontWeight: 400, color: incident.slope_percent >= 30 ? '#F56E0F' : '#878787', fontSize: '11px' }}> · {incident.slope_percent.toFixed(0)}% slope</span>}
+                          {incident.slope_percent != null && <span style={{ fontWeight: 400, color: incident.slope_percent >= 30 ? '#ff4d1a' : '#878787', fontSize: '11px' }}> · {incident.slope_percent.toFixed(0)}% slope</span>}
                         </div>
                         {incident.aspect_cardinal && (
-                          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#878787', marginTop: '2px' }}>{incident.aspect_cardinal} aspect</div>
+                          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#5a6878', marginTop: '2px' }}>{incident.aspect_cardinal} aspect</div>
                         )}
                       </div>
                     )}
                     {incident.aqi != null && (
-                      <div style={{ background: '#1B1B1E', border: `1px solid ${incident.aqi >= 151 ? '#ef4444' : incident.aqi >= 101 ? '#F56E0F' : '#262626'}`, borderRadius: '3px', padding: '7px 10px' }}>
-                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', color: '#878787', letterSpacing: '0.04em', marginBottom: '3px' }}>AIR QUALITY</div>
-                        <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '13px', color: incident.aqi >= 151 ? '#ef4444' : incident.aqi >= 101 ? '#F56E0F' : incident.aqi >= 51 ? '#facc15' : '#4ade80' }}>
+                      <div style={{ background: 'var(--surface)', border: `1px solid ${incident.aqi >= 151 ? '#ef4444' : incident.aqi >= 101 ? '#ff4d1a' : '#262626'}`, borderRadius: '5px', padding: '7px 10px' }}>
+                        <div style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#5a6878', letterSpacing: '0.04em', marginBottom: '3px' }}>AIR QUALITY</div>
+                        <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '13px', color: incident.aqi >= 151 ? '#ef4444' : incident.aqi >= 101 ? '#ff4d1a' : incident.aqi >= 51 ? '#facc15' : '#4ade80' }}>
                           AQI {incident.aqi}
                         </div>
                         {incident.aqi_category && (
-                          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#878787', marginTop: '2px' }}>{incident.aqi_category.replace(/_/g, ' ')}</div>
+                          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#5a6878', marginTop: '2px' }}>{incident.aqi_category.replace(/_/g, ' ')}</div>
                         )}
                       </div>
                     )}
@@ -573,7 +573,7 @@ export default function IncidentDetailPanel({
                 )}
 
                 {/* Behavior description */}
-                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#FBFBFB', lineHeight: 1.6, background: '#1B1B1E', borderRadius: '3px', padding: '8px 10px', border: '1px solid #262626' }}>
+                <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#d4dce8', lineHeight: 1.6, background: 'var(--surface)', borderRadius: '5px', padding: '8px 10px', border: '1px solid rgba(255,255,255,0.06)' }}>
                   {fireBehavior.projected_acres_12h != null
                     ? `Projected size in 12 hours: ~${fireBehavior.projected_acres_12h.toLocaleString()} acres at current rate of spread.`
                     : `Fire behavior classified as ${fireBehavior.predicted_behavior ?? 'unknown'}. Monitor conditions closely.`}
@@ -583,7 +583,7 @@ export default function IncidentDetailPanel({
 
             {/* Recommended unit types */}
             <div style={{ marginBottom: '14px' }}>
-              <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '11px', color: '#878787', letterSpacing: '0.06em', marginBottom: '6px' }}>
+              <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '11px', color: '#5a6878', letterSpacing: '0.06em', marginBottom: '6px' }}>
                 RECOMMENDED UNITS
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -593,20 +593,20 @@ export default function IncidentDetailPanel({
                     <div key={i} style={{
                       background:   filled ? 'rgba(74,222,128,0.08)' : '#1B1B1E',
                       border:       `1px solid ${filled ? '#4ade80' : '#262626'}`,
-                      borderRadius: '3px', padding: '7px 10px',
+                      borderRadius: '5px', padding: '7px 10px',
                       display:      'flex', alignItems: 'flex-start', gap: '10px',
                     }}>
                       <span style={{ fontSize: '15px', flexShrink: 0 }}>{UNIT_ICON[rec.unit_type] ?? '◉'}</span>
                       <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
-                          <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '13px', color: filled ? '#4ade80' : '#FBFBFB' }}>
+                          <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '13px', color: filled ? '#4ade80' : '#FBFBFB' }}>
                             {rec.quantity}× {rec.unit_type.replace(/_/g, ' ').toUpperCase()}
                           </span>
-                          <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '10px', color: filled ? '#4ade80' : (PRIORITY_COLOR[rec.priority] ?? '#878787'), letterSpacing: '0.03em' }}>
+                          <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '10px', color: filled ? '#4ade80' : (PRIORITY_COLOR[rec.priority] ?? '#878787'), letterSpacing: '0.03em' }}>
                             {filled ? '✓ FILLED' : rec.priority.replace(/_/g, ' ').toUpperCase()}
                           </span>
                         </div>
-                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#FBFBFB', lineHeight: 1.4 }}>
+                        <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#d4dce8', lineHeight: 1.4 }}>
                           {rec.rationale}
                         </div>
                       </div>
@@ -619,21 +619,21 @@ export default function IncidentDetailPanel({
             {/* Already deployed */}
             {alreadyAssigned.length > 0 && (
               <div style={{ marginBottom: '14px' }}>
-                <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '11px', color: '#878787', letterSpacing: '0.06em', marginBottom: '6px' }}>
+                <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '11px', color: '#5a6878', letterSpacing: '0.06em', marginBottom: '6px' }}>
                   ALREADY DEPLOYED
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                   {alreadyAssigned.map(unit => (
                     <div key={unit.id} style={{
                       display: 'flex', alignItems: 'center', gap: '8px',
-                      padding: '5px 10px', background: '#1B1B1E',
-                      border: '1px solid #262626', borderRadius: '3px',
+                      padding: '5px 10px', background: 'var(--surface)',
+                      border: '1px solid rgba(255,255,255,0.06)', borderRadius: '5px',
                     }}>
                       <span style={{ fontSize: '13px' }}>{UNIT_ICON[unit.unit_type] ?? '◉'}</span>
-                      <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '12px', color: '#FBFBFB', flex: 1 }}>
+                      <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '12px', color: '#d4dce8', flex: 1 }}>
                         {unit.designation}
                       </span>
-                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: unit.status === 'on_scene' ? '#F56E0F' : unit.status === 'en_route' ? '#60a5fa' : '#a78bfa', letterSpacing: '0.02em' }}>
+                      <span style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: unit.status === 'on_scene' ? '#ff4d1a' : unit.status === 'en_route' ? '#60a5fa' : '#a78bfa', letterSpacing: '0.02em' }}>
                         {unit.status.replace(/_/g, ' ').toUpperCase()}
                       </span>
                     </div>
@@ -644,10 +644,10 @@ export default function IncidentDetailPanel({
 
             {/* Tactical notes */}
             <div style={{ marginBottom: '14px' }}>
-              <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '11px', color: '#878787', letterSpacing: '0.06em', marginBottom: '6px' }}>
+              <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '11px', color: '#5a6878', letterSpacing: '0.06em', marginBottom: '6px' }}>
                 TACTICAL NOTES
               </div>
-              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#FBFBFB', lineHeight: 1.6, background: '#1B1B1E', borderRadius: '3px', padding: '10px', border: '1px solid #262626' }}>
+              <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#d4dce8', lineHeight: 1.6, background: 'var(--surface)', borderRadius: '5px', padding: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
                 {recommendation.tactical_notes}
               </div>
             </div>
@@ -669,7 +669,7 @@ export default function IncidentDetailPanel({
 
             {/* Unit selector */}
             <div style={{ marginBottom: '14px' }}>
-              <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '11px', color: '#878787', letterSpacing: '0.06em', marginBottom: '6px' }}>
+              <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '11px', color: '#5a6878', letterSpacing: '0.06em', marginBottom: '6px' }}>
                 SELECT UNITS TO DISPATCH
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -695,8 +695,8 @@ export default function IncidentDetailPanel({
                       <div key={unit.id}>
                         {showHeader && (
                           <div style={{
-                            fontFamily: 'Inter, sans-serif', fontWeight: 700,
-                            fontSize: '10px', color: '#878787', letterSpacing: '0.06em',
+                            fontFamily: 'var(--font-sans)', fontWeight: 700,
+                            fontSize: '10px', color: '#5a6878', letterSpacing: '0.06em',
                             textTransform: 'uppercase', marginTop: '8px', marginBottom: '3px', paddingLeft: '2px',
                           }}>
                             {unit.unit_type.replace(/_/g, ' ')}
@@ -719,20 +719,20 @@ export default function IncidentDetailPanel({
                         >
                           <span style={{ fontSize: '13px' }}>{UNIT_ICON[unit.unit_type] ?? '◉'}</span>
                           <div style={{ flex: 1 }}>
-                            <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '12px', color: '#FBFBFB' }}>
+                            <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '12px', color: '#d4dce8' }}>
                               {unit.designation}
                             </div>
                           </div>
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-                            <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#4ade80' }}>AVAILABLE</span>
+                            <span style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#4ade80' }}>AVAILABLE</span>
                             {distLabel && (
-                              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#aaaaaa' }}>{distLabel}</span>
+                              <span style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#aaaaaa' }}>{distLabel}</span>
                             )}
                             {previewRoute && (
                               <RouteBadge status={previewRoute.status} statusColor={previewRoute.statusColor} />
                             )}
                             {isSelected && routesLoading && !unitRoute && (
-                              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', color: '#878787' }}>routing...</span>
+                              <span style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#5a6878' }}>routing...</span>
                             )}
                           </div>
                         </div>
@@ -748,13 +748,13 @@ export default function IncidentDetailPanel({
                           }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '5px' }}>
                               <RouteBadge status={unitRoute.status} statusColor={unitRoute.statusColor} />
-                              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#60a5fa' }}>
+                              <span style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#60a5fa' }}>
                                 ETA ~{unitRoute.etaTimeStr}
                               </span>
                             </div>
                             <div style={{
-                              fontFamily: 'Inter, sans-serif', fontSize: '11px',
-                              color: '#FBFBFB', lineHeight: 1.5,
+                              fontFamily: 'var(--font-sans)', fontSize: '11px',
+                              color: '#d4dce8', lineHeight: 1.5,
                             }}>
                               {unitRoute.explanation}
                             </div>
@@ -765,7 +765,7 @@ export default function IncidentDetailPanel({
                   })
                 })()}
                 {units.filter(u => u.status === 'available' && isAirUnitAtAirBase(u)).length === 0 && (
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: '#878787' }}>
+                  <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', color: '#5a6878' }}>
                     No available units
                   </div>
                 )}
@@ -778,35 +778,35 @@ export default function IncidentDetailPanel({
 
       {/* Dispatch button */}
       {!loading && recommendation && (
-        <div style={{ padding: '12px 16px', borderTop: '1px solid #262626', flexShrink: 0 }}>
+        <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
 
           {/* Dispatch Advisor — shows when units selected */}
           {(dispatchAdvice || adviceLoading) && selectedUnits.length > 0 && (
             <div style={{
               background: '#0f0f12',
               border: `1px solid ${dispatchAdvice?.assessment === 'optimal' ? '#4ade8044' : dispatchAdvice?.assessment === 'suboptimal' ? '#ef444444' : '#26262644'}`,
-              borderRadius: '3px', padding: '8px 10px', marginBottom: '8px',
+              borderRadius: '5px', padding: '8px 10px', marginBottom: '8px',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
                 <div style={{
                   width: '5px', height: '5px', borderRadius: '50%',
-                  background: adviceLoading ? '#F56E0F' : dispatchAdvice?.assessment === 'optimal' ? '#4ade80' : dispatchAdvice?.assessment === 'suboptimal' ? '#ef4444' : '#facc15',
-                  boxShadow: adviceLoading ? '0 0 4px #F56E0F' : 'none',
+                  background: adviceLoading ? '#ff4d1a' : dispatchAdvice?.assessment === 'optimal' ? '#4ade80' : dispatchAdvice?.assessment === 'suboptimal' ? '#ef4444' : '#facc15',
+                  boxShadow: adviceLoading ? '0 0 4px #ff4d1a' : 'none',
                 }} />
-                <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '9px', color: '#878787', letterSpacing: '0.08em' }}>
+                <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '9px', color: '#5a6878', letterSpacing: '0.08em' }}>
                   DISPATCH ADVISOR
                 </span>
                 <span className="pyra-ai-badge">⬡ PYRA AI</span>
                 {dispatchAdvice && (
                   <span style={{
-                    fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '9px', letterSpacing: '0.06em',
+                    fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '9px', letterSpacing: '0.06em',
                     color: dispatchAdvice.assessment === 'optimal' ? '#4ade80' : dispatchAdvice.assessment === 'suboptimal' ? '#ef4444' : '#facc15',
                   }}>
                     {dispatchAdvice.assessment.toUpperCase()}
                   </span>
                 )}
               </div>
-              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#FBFBFB', lineHeight: 1.5 }}>
+              <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#d4dce8', lineHeight: 1.5 }}>
                 {adviceLoading ? 'Analyzing loadout...' : dispatchAdvice?.advice?.replace(/\*\*[^*]*\*\*:?\s*/g, '').trim()}
               </div>
             </div>
@@ -815,23 +815,23 @@ export default function IncidentDetailPanel({
           {dispatched ? (
             <div style={{
               background: 'rgba(74,222,128,0.1)', border: '1px solid #4ade80',
-              borderRadius: '3px', padding: '10px 16px', textAlign: 'center',
-              fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '13px', color: '#4ade80',
+              borderRadius: '5px', padding: '10px 16px', textAlign: 'center',
+              fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '13px', color: '#4ade80',
             }}>
               ✓ UNITS DISPATCHED SUCCESSFULLY
             </div>
           ) : confirmDispatch ? (
             <div style={{ display: 'flex', gap: '6px' }}>
-              <div style={{ flex: 1, padding: '10px', background: 'rgba(245,110,15,0.1)', border: '1px solid #F56E0F55', borderRadius: '3px', fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#FBFBFB', display: 'flex', alignItems: 'center' }}>
+              <div style={{ flex: 1, padding: '10px', background: 'rgba(245,110,15,0.1)', border: '1px solid #ff4d1a55', borderRadius: '5px', fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#d4dce8', display: 'flex', alignItems: 'center' }}>
                 Dispatch {selectedUnits.length} unit{selectedUnits.length !== 1 ? 's' : ''}?
               </div>
               <button onClick={() => { handleDispatch(pendingLoadouts); setConfirmDispatch(false) }}
                 className="pyra-btn-press"
-                style={{ padding: '10px 16px', background: '#F56E0F', border: 'none', borderRadius: '3px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '12px', color: '#FBFBFB' }}>
+                style={{ padding: '10px 16px', background: '#ff4d1a', border: 'none', borderRadius: '5px', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '12px', color: '#d4dce8' }}>
                 CONFIRM
               </button>
               <button onClick={() => setConfirmDispatch(false)}
-                style={{ padding: '10px 12px', background: 'transparent', border: '1px solid #333', borderRadius: '3px', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: '12px', color: '#878787' }}>
+                style={{ padding: '10px 12px', background: 'transparent', border: '1px solid #333', borderRadius: '5px', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: '12px', color: '#5a6878' }}>
                 CANCEL
               </button>
             </div>
@@ -842,8 +842,8 @@ export default function IncidentDetailPanel({
               className="pyra-btn-press" 
               style={{
                 width: '100%', padding: '12px',
-                background:    canDispatch ? '#F56E0F' : '#262626',
-                border:        'none', borderRadius: '3px',
+                background:    canDispatch ? '#ff4d1a' : '#262626',
+                border:        'none', borderRadius: '5px',
                 cursor:        canDispatch ? 'pointer' : 'not-allowed',
                 fontFamily:    'Inter, sans-serif', fontWeight: 700, fontSize: '13px',
                 color:         '#FBFBFB', letterSpacing: '0.03em', transition: 'background 0.15s',
@@ -868,14 +868,14 @@ export default function IncidentDetailPanel({
               width: '100%', padding: '10px', marginTop: '8px',
               background: 'transparent',
               border: `1px solid ${briefingLoading || !canBrief ? '#262626' : '#444'}`,
-              borderRadius: '3px',
+              borderRadius: '5px',
               cursor: briefingLoading || !canBrief ? 'not-allowed' : 'pointer',
-              fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '12px',
+              fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '12px',
               color: briefingLoading || !canBrief ? '#444' : '#878787',
               letterSpacing: '0.03em', transition: 'all 0.15s',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
             }}
-            onMouseEnter={e => { if (!briefingLoading && canBrief) { e.currentTarget.style.borderColor = '#F56E0F'; e.currentTarget.style.color = '#F56E0F' }}}
+            onMouseEnter={e => { if (!briefingLoading && canBrief) { e.currentTarget.style.borderColor = '#ff4d1a'; e.currentTarget.style.color = '#ff4d1a' }}}
             onMouseLeave={e => { e.currentTarget.style.borderColor = canBrief ? '#444' : '#262626'; e.currentTarget.style.color = canBrief ? '#878787' : '#444' }}
           >
             {briefingLoading ? (
@@ -896,9 +896,9 @@ export default function IncidentDetailPanel({
             style={{
               width: '100%', padding: '10px', marginTop: '6px',
               background: 'transparent', border: '1px solid #444',
-              borderRadius: '3px', cursor: 'pointer',
-              fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '12px',
-              color: '#878787', letterSpacing: '0.03em', transition: 'all 0.15s',
+              borderRadius: '5px', cursor: 'pointer',
+              fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '12px',
+              color: '#5a6878', letterSpacing: '0.03em', transition: 'all 0.15s',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
             }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = '#4ade80'; e.currentTarget.style.color = '#4ade80' }}
@@ -914,8 +914,8 @@ export default function IncidentDetailPanel({
               style={{
                 width: '100%', padding: '10px', marginTop: '6px',
                 background: 'transparent', border: '1px solid #ef444466',
-                borderRadius: '3px', cursor: 'pointer',
-                fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '12px',
+                borderRadius: '5px', cursor: 'pointer',
+                fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '12px',
                 color: '#ef4444aa', letterSpacing: '0.03em', transition: 'all 0.15s',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
               }}
@@ -933,14 +933,14 @@ export default function IncidentDetailPanel({
               style={{
                 flex: 1, padding: '9px',
                 background: chatOpen ? 'rgba(245,110,15,0.12)' : 'transparent',
-                border: `1px solid ${chatOpen ? '#F56E0F' : '#444'}`,
-                borderRadius: '3px', cursor: 'pointer',
-                fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '11px',
-                color: chatOpen ? '#F56E0F' : '#878787',
+                border: `1px solid ${chatOpen ? '#ff4d1a' : '#444'}`,
+                borderRadius: '5px', cursor: 'pointer',
+                fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '11px',
+                color: chatOpen ? '#ff4d1a' : '#878787',
                 letterSpacing: '0.03em', transition: 'all 0.15s',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
               }}
-              onMouseEnter={e => { if (!chatOpen) { e.currentTarget.style.borderColor = '#F56E0F'; e.currentTarget.style.color = '#F56E0F' }}}
+              onMouseEnter={e => { if (!chatOpen) { e.currentTarget.style.borderColor = '#ff4d1a'; e.currentTarget.style.color = '#ff4d1a' }}}
               onMouseLeave={e => { if (!chatOpen) { e.currentTarget.style.borderColor = '#444'; e.currentTarget.style.color = '#878787' }}}
             >
               💬 SITREP CHAT
@@ -952,8 +952,8 @@ export default function IncidentDetailPanel({
                   flex: 1, padding: '9px',
                   background: reviewOpen ? 'rgba(96,165,250,0.12)' : 'transparent',
                   border: `1px solid ${reviewOpen ? '#60a5fa' : '#444'}`,
-                  borderRadius: '3px', cursor: 'pointer',
-                  fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '11px',
+                  borderRadius: '5px', cursor: 'pointer',
+                  fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '11px',
                   color: reviewOpen ? '#60a5fa' : '#878787',
                   letterSpacing: '0.03em', transition: 'all 0.15s',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
@@ -971,7 +971,7 @@ export default function IncidentDetailPanel({
       {/* Briefing panel */}
       {briefingOpen && (
         <div ref={briefingRef} style={{
-          borderTop: '1px solid #262626',
+          borderTop: '1px solid rgba(255,255,255,0.06)',
           background: '#0f0f12',
           flexShrink: 0,
           maxHeight: '380px',
@@ -986,15 +986,15 @@ export default function IncidentDetailPanel({
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{
                 width: '6px', height: '6px', borderRadius: '50%',
-                background: briefingLoading ? '#F56E0F' : '#4ade80',
-                boxShadow: briefingLoading ? '0 0 6px #F56E0F' : '0 0 6px #4ade80',
+                background: briefingLoading ? '#ff4d1a' : '#4ade80',
+                boxShadow: briefingLoading ? '0 0 6px #ff4d1a' : '0 0 6px #4ade80',
               }} />
-              <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '11px', color: '#FBFBFB', letterSpacing: '0.06em' }}>
+              <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '11px', color: '#d4dce8', letterSpacing: '0.06em' }}>
                 ICS OPERATIONAL BRIEFING
               </span>
               <span className="pyra-ai-badge">⬡ PYRA AI</span>
               {briefingLoading && (
-                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#F56E0F' }}>
+                <span style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#ff4d1a' }}>
                   · GENERATING...
                 </span>
               )}
@@ -1006,10 +1006,10 @@ export default function IncidentDetailPanel({
                   style={{
                     background: 'none', border: '1px solid #333', borderRadius: '2px',
                     padding: '2px 8px', cursor: 'pointer',
-                    fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#878787',
+                    fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#5a6878',
                     transition: 'all 0.15s',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#F56E0F'; e.currentTarget.style.color = '#F56E0F' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#ff4d1a'; e.currentTarget.style.color = '#ff4d1a' }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.color = '#878787' }}
                 >
                   COPY
@@ -1025,15 +1025,15 @@ export default function IncidentDetailPanel({
           </div>
           <div style={{
             flex: 1, overflowY: 'auto', padding: '14px 16px',
-            fontFamily: 'Inter, sans-serif', fontSize: '12px',
-            color: '#FBFBFB', lineHeight: 1.7,
+            fontFamily: 'var(--font-sans)', fontSize: '12px',
+            color: '#d4dce8', lineHeight: 1.7,
           }}>
             {!briefing && !briefingLoading && (
               <span style={{ color: '#555' }}>Press Generate to create a briefing.</span>
             )}
             {(briefing || briefingLoading) && renderBriefing(briefing)}
             {briefingLoading && (
-              <span style={{ color: '#F56E0F', animation: 'blink 1s step-end infinite' }}>▋</span>
+              <span style={{ color: '#ff4d1a', animation: 'blink 1s step-end infinite' }}>▋</span>
             )}
           </div>
         </div>
@@ -1061,15 +1061,15 @@ export default function IncidentDetailPanel({
             borderRadius: '6px', padding: '20px 24px', minWidth: '360px', maxWidth: '440px',
             boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
           }}>
-            <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '13px', color: '#ef4444', letterSpacing: '0.06em', marginBottom: '4px' }}>
+            <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '13px', color: '#ef4444', letterSpacing: '0.06em', marginBottom: '4px' }}>
               ⬡ INCIDENT CLOSE-OUT
             </div>
-            <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#878787', marginBottom: '16px' }}>
+            <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#5a6878', marginBottom: '16px' }}>
               {incident.name}
             </div>
 
             {checklistLoading && (
-              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#555', padding: '12px 0' }}>
+              <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#555', padding: '12px 0' }}>
                 Loading checklist...
               </div>
             )}
@@ -1084,16 +1084,16 @@ export default function IncidentDetailPanel({
                       padding: '8px 10px',
                       background: check.passed ? 'rgba(74,222,128,0.06)' : 'rgba(239,68,68,0.06)',
                       border: `1px solid ${check.passed ? '#4ade8033' : '#ef444433'}`,
-                      borderRadius: '3px',
+                      borderRadius: '5px',
                     }}>
                       <span style={{ fontSize: '13px', flexShrink: 0, marginTop: '1px' }}>
                         {check.passed ? '✅' : check.required ? '❌' : '⚠️'}
                       </span>
                       <div>
-                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', fontWeight: 600, color: check.passed ? '#4ade80' : check.required ? '#ef4444' : '#facc15' }}>
+                        <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 600, color: check.passed ? '#4ade80' : check.required ? '#ef4444' : '#facc15' }}>
                           {check.label}{!check.required && ' (recommended)'}
                         </div>
-                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#878787', marginTop: '2px' }}>
+                        <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#5a6878', marginTop: '2px' }}>
                           {check.detail}
                         </div>
                       </div>
@@ -1109,9 +1109,9 @@ export default function IncidentDetailPanel({
                     style={{
                       width: '100%', padding: '8px', marginBottom: '8px',
                       background: handoffLoading ? 'rgba(245,110,15,0.08)' : 'rgba(245,110,15,0.12)',
-                      border: '1px solid #F56E0F66', borderRadius: '3px', cursor: handoffLoading ? 'not-allowed' : 'pointer',
-                      fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '11px',
-                      color: '#F56E0F', letterSpacing: '0.03em',
+                      border: '1px solid #ff4d1a66', borderRadius: '5px', cursor: handoffLoading ? 'not-allowed' : 'pointer',
+                      fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '11px',
+                      color: '#ff4d1a', letterSpacing: '0.03em',
                     }}
                   >
                     {handoffLoading ? '⟳ Generating handoff briefing...' : '⬡ GENERATE SHIFT HANDOFF BRIEFING'}
@@ -1124,8 +1124,8 @@ export default function IncidentDetailPanel({
                     onClick={() => setCloseoutOpen(false)}
                     style={{
                       flex: 1, padding: '9px',
-                      background: 'transparent', border: '1px solid #333', borderRadius: '3px', cursor: 'pointer',
-                      fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '11px', color: '#878787',
+                      background: 'transparent', border: '1px solid #333', borderRadius: '5px', cursor: 'pointer',
+                      fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '11px', color: '#5a6878',
                     }}
                   >
                     CANCEL
@@ -1138,9 +1138,9 @@ export default function IncidentDetailPanel({
                       style={{
                         flex: 2, padding: '9px',
                         background: closeLoading ? 'rgba(239,68,68,0.12)' : 'rgba(239,68,68,0.18)',
-                        border: '1px solid #ef4444', borderRadius: '3px',
+                        border: '1px solid #ef4444', borderRadius: '5px',
                         cursor: closeLoading ? 'not-allowed' : 'pointer',
-                        fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '11px', color: '#ef4444',
+                        fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '11px', color: '#ef4444',
                         letterSpacing: '0.04em',
                       }}
                     >
@@ -1153,9 +1153,9 @@ export default function IncidentDetailPanel({
                       style={{
                         flex: 2, padding: '9px',
                         background: 'rgba(239,68,68,0.08)',
-                        border: '1px solid #ef444466', borderRadius: '3px',
+                        border: '1px solid #ef444466', borderRadius: '5px',
                         cursor: (closeLoading || auth?.role !== 'commander') ? 'not-allowed' : 'pointer',
-                        fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '11px',
+                        fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '11px',
                         color: auth?.role !== 'commander' ? '#555' : '#ef4444aa',
                         letterSpacing: '0.04em',
                       }}

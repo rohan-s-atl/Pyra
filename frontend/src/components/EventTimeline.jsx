@@ -6,41 +6,50 @@ import { toast } from './Toast'
 
 const TYPE_COLOR = {
   spread_warning:          '#ef4444',
-  weather_shift:           '#60a5fa',
-  route_blocked:           '#F56E0F',
-  asset_at_risk:           '#F56E0F',
-  water_source_constraint: '#60a5fa',
+  weather_shift:           '#38bdf8',
+  route_blocked:           '#f59e0b',
+  asset_at_risk:           '#f59e0b',
+  water_source_constraint: '#38bdf8',
   evacuation_recommended:  '#ef4444',
-  resource_shortage:       '#F56E0F',
-  containment_complete:    '#4ade80',
+  resource_shortage:       '#f59e0b',
+  containment_complete:    '#22c55e',
 }
-
 const TYPE_ICON = {
-  spread_warning:          '🔥',
-  weather_shift:           '🌬',
-  route_blocked:           '🚧',
-  asset_at_risk:           '⚠️',
-  water_source_constraint: '💧',
-  evacuation_recommended:  '🚨',
-  resource_shortage:       '📦',
-  containment_complete:    '✅',
+  spread_warning:          '⬡',
+  weather_shift:           '↻',
+  route_blocked:           '⊘',
+  asset_at_risk:           '!',
+  water_source_constraint: '◎',
+  evacuation_recommended:  '↑',
+  resource_shortage:       '□',
+  containment_complete:    '✓',
 }
-
 const UNIT_TYPE_ICON = {
-  engine:       '🚒',
-  hand_crew:    '👥',
-  dozer:        '🚜',
-  water_tender: '🚛',
-  helicopter:   '🚁',
-  air_tanker:   '✈️',
-  command_unit: '📡',
-  rescue:       '🚑',
+  engine: '🚒', hand_crew: '👥', dozer: '🚜', water_tender: '🚛',
+  helicopter: '🚁', air_tanker: '✈️', command_unit: '📡', rescue: '🚑',
+}
+const PRIORITY_COLOR = {
+  immediate:  '#ef4444',
+  within_1hr: '#f59e0b',
+  standby:    '#3a4558',
+}
+const UNIT_TYPE_ORDER = {
+  engine: 0, hand_crew: 1, helicopter: 2, air_tanker: 3,
+  dozer: 4, water_tender: 5, command_unit: 6, rescue: 7,
 }
 
-const PRIORITY_COLOR = {
-  immediate:   '#ef4444',
-  within_1hr:  '#F56E0F',
-  standby:     '#878787',
+function parseUTC(str) {
+  if (!str) return new Date(0)
+  return new Date(str.endsWith('Z') ? str : str + 'Z')
+}
+
+function fmtPDT(date) {
+  try {
+    return date.toLocaleTimeString('en-US', {
+      timeZone: 'America/Los_Angeles', hour: '2-digit', minute: '2-digit',
+      hour12: false,
+    }) + ' PDT'
+  } catch { return date.toLocaleTimeString() }
 }
 
 export default function EventTimeline({ alerts, incidents, units = [], onAlertsChanged }) {
@@ -61,6 +70,7 @@ export default function EventTimeline({ alerts, incidents, units = [], onAlertsC
   const canDispatch = selectedUnits.length > 0 && !dispatching && auth?.role !== 'viewer'
 
   const onMouseDown = useCallback((e) => {
+    e.preventDefault()
     dragging.current = true
     startY.current   = e.clientY
     startH.current   = height
@@ -95,56 +105,41 @@ export default function EventTimeline({ alerts, incidents, units = [], onAlertsC
     }
   }, [alerts])
 
-  // Backend returns UTC strings without Z — append Z so JS parses as UTC
-  function parseUTC(str) {
-    if (!str) return new Date(0)
-    return new Date(str.endsWith('Z') ? str : str + 'Z')
-  }
-
-  function fmtPDT(date) {
-    return date.toLocaleTimeString('en-US', {
-      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
-    })
-  }
-
+  // Build combined event list: alerts + incident detections
   const allEvents = [
     ...alerts.map(a => ({
       id:           a.id,
-      type:         'alert',
       alertType:    a.alert_type,
       incidentId:   a.incident_id,
-      incidentName: incidents.find(i => i.id === a.incident_id)?.name ?? a.incident_id,
+      incidentName: incidents.find(i => i.id === a.incident_id)?.name ?? '',
       acknowledged: a.is_acknowledged,
       severity:     a.severity,
       _ts:          parseUTC(a.created_at).getTime(),
       time:         fmtPDT(parseUTC(a.created_at)),
       title:        a.title,
       subtitle:     a.description,
-      color:        TYPE_COLOR[a.alert_type] ?? '#878787',
-      icon:         TYPE_ICON[a.alert_type]  ?? '⚠️',
+      color:        TYPE_COLOR[a.alert_type] ?? '#5a6878',
+      icon:         TYPE_ICON[a.alert_type]  ?? '·',
     })),
     ...incidents.map(i => ({
-      id:           i.id,
-      type:         'incident',
+      id:           `inc-${i.id}`,
       alertType:    null,
       incidentId:   i.id,
       incidentName: i.name,
-      acknowledged: false,
+      acknowledged: i.status === 'contained' || i.status === 'resolved',
       severity:     i.severity,
       _ts:          parseUTC(i.started_at).getTime(),
       time:         fmtPDT(parseUTC(i.started_at)),
       title:        `${i.name} Detected`,
-      subtitle:     `${i.severity.toUpperCase()} · ${i.acres_burned?.toLocaleString()} acres · ${i.spread_risk} spread risk`,
-      color:        i.severity === 'critical' ? '#ef4444' : i.severity === 'high' ? '#F56E0F' : '#60a5fa',
-      icon:         '🔥',
+      subtitle:     `${i.severity?.toUpperCase()} · ${i.acres_burned?.toLocaleString()} acres · ${i.spread_risk} spread risk`,
+      color:        i.severity === 'critical' ? '#ef4444' : i.severity === 'high' ? '#ff4d1a' : '#38bdf8',
+      icon:         '⬡',
     })),
   ].sort((a, b) => b._ts - a._ts)
 
   const pinned   = allEvents.filter(e => pinnedIds.has(e.id))
   const unpinned = allEvents.filter(e => !pinnedIds.has(e.id))
   const events   = [...pinned, ...unpinned]
-
-  // Triage fetched lazily on hover
 
   function togglePin(id, e) {
     e.stopPropagation()
@@ -156,27 +151,17 @@ export default function EventTimeline({ alerts, incidents, units = [], onAlertsC
     if (activeEvent?.id === event.id) {
       setActiveEvent(null); setRecData(null); setSelectedUnits([]); setDispatched(false); return
     }
-    setActiveEvent(event)
-    setRecData(null)
-    setSelectedUnits([])
-    setDispatched(false)
-    setRecLoading(true)
-
-    // Fetch triage lazily on first click
+    setActiveEvent(event); setRecData(null); setSelectedUnits([]); setDispatched(false); setRecLoading(true)
     if (!triageCache[event.id]) {
       api.triage(event.id)
         .then(result => setTriageCache(prev => ({ ...prev, [event.id]: result })))
         .catch(() => {})
     }
-
     try {
       const data = await api.alertRecommendation(event.id)
       setRecData(data)
-    } catch {
-      setRecData({ error: true })
-    } finally {
-      setRecLoading(false)
-    }
+    } catch { setRecData({ error: true }) }
+    finally { setRecLoading(false) }
   }
 
   async function handleDispatch() {
@@ -185,24 +170,17 @@ export default function EventTimeline({ alerts, incidents, units = [], onAlertsC
     try {
       await api.dispatchAlert(activeEvent.id, activeEvent.incidentId, selectedUnits)
       setDispatched(true)
-      setActiveEvent(null)
-      setRecData(null)
-      setSelectedUnits([])
+      setActiveEvent(null); setRecData(null); setSelectedUnits([])
       onAlertsChanged?.()
-    } catch (e) {
-      console.error(e)
-      toast('Dispatch failed — check unit availability', 'error')
-    } finally {
-      setDispatching(false)
-    }
+    } catch { toast('Dispatch failed — check unit availability', 'error') }
+    finally { setDispatching(false) }
   }
 
-  // Units for dispatch panel — grouped by type, sorted by distance, suggested first
+  // Units for dispatch — sorted by suggestion + distance
   const recommendedTypes = new Set(recData?.units?.map(u => u.unit_type) ?? [])
   const activeIncident   = incidents.find(i => i.id === activeEvent?.incidentId)
-  const UNIT_TYPE_ORDER_TL = { engine: 0, hand_crew: 1, helicopter: 2, air_tanker: 3, dozer: 4, water_tender: 5, command_unit: 6, rescue: 7 }
 
-  function distToActiveFire(unit) {
+  function distToFire(unit) {
     if (!activeIncident) return 999
     try {
       const dlat = unit.latitude  - activeIncident.latitude
@@ -211,132 +189,150 @@ export default function EventTimeline({ alerts, incidents, units = [], onAlertsC
     } catch { return 999 }
   }
 
-  const displayUnits = [...units.filter(u => u.status === 'available')].sort((a, b) => {
+  const dispatchUnits = [...units.filter(u => u.status === 'available')].sort((a, b) => {
     const aSugg = recommendedTypes.has(a.unit_type) ? 0 : 1
     const bSugg = recommendedTypes.has(b.unit_type) ? 0 : 1
     if (aSugg !== bSugg) return aSugg - bSugg
-    const ga = UNIT_TYPE_ORDER_TL[a.unit_type] ?? 99
-    const gb = UNIT_TYPE_ORDER_TL[b.unit_type] ?? 99
+    const ga = UNIT_TYPE_ORDER[a.unit_type] ?? 99
+    const gb = UNIT_TYPE_ORDER[b.unit_type] ?? 99
     if (ga !== gb) return ga - gb
-    return distToActiveFire(a) - distToActiveFire(b)
+    return distToFire(a) - distToFire(b)
   })
 
-  // Count selected units per type for recommended box filling
   const selectedByType = selectedUnits.reduce((acc, uid) => {
     const u = units.find(x => x.id === uid)
     if (u) acc[u.unit_type] = (acc[u.unit_type] || 0) + 1
     return acc
   }, {})
 
+  const unackCount = alerts.filter(a => !a.is_acknowledged).length
+
   return (
     <>
-      {/* Floating recommendation + dispatch panel */}
+      {/* ── FLOATING TACTICAL PANEL ── */}
       {activeEvent && (
         <div style={{
-          position: 'absolute', bottom: `${height + 4}px`, left: '50%',
-          transform: 'translateX(-50%)', width: '600px',
-          background: '#1B1B1E', border: `1px solid ${activeEvent.color}`,
-          borderRadius: '4px', zIndex: 2000, boxShadow: '0 4px 24px rgba(0,0,0,0.6)',
-          overflow: 'hidden', maxHeight: '65vh', display: 'flex', flexDirection: 'column',
+          position: 'absolute', bottom: `${height + 8}px`, left: '50%',
+          transform: 'translateX(-50%)', width: '620px',
+          background: 'rgba(13,15,17,0.96)',
+          border: `1px solid ${activeEvent.color}50`,
+          borderRadius: '10px', zIndex: 2000,
+          boxShadow: `0 8px 40px rgba(0,0,0,0.7), 0 0 0 1px ${activeEvent.color}15`,
+          overflow: 'hidden', maxHeight: '60vh',
+          display: 'flex', flexDirection: 'column',
+          backdropFilter: 'blur(16px)',
+          animation: 'fade-up 0.2s ease-out',
         }}>
           {/* Header */}
           <div style={{
-            padding: '8px 12px', borderBottom: `1px solid ${activeEvent.color}44`,
+            padding: '10px 14px', flexShrink: 0,
+            borderBottom: `1px solid rgba(255,255,255,0.05)`,
+            background: `${activeEvent.color}08`,
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            background: `${activeEvent.color}12`, flexShrink: 0,
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-              <span style={{ fontSize: '13px' }}>{activeEvent.icon}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{
+                width: '24px', height: '24px', borderRadius: '5px', flexShrink: 0,
+                background: `${activeEvent.color}15`, border: `1px solid ${activeEvent.color}35`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '11px', color: activeEvent.color,
+              }}>{activeEvent.icon}</div>
               <div>
-                <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '12px', color: activeEvent.color, letterSpacing: '0.04em' }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '10px', color: activeEvent.color, letterSpacing: '0.1em' }}>
                   TACTICAL RECOMMENDATION
                 </div>
-                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#FBFBFB', marginTop: '1px' }}>
+                <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', color: '#d4dce8', marginTop: '1px' }}>
                   {activeEvent.title}
                 </div>
               </div>
             </div>
-            <button onClick={() => { setActiveEvent(null); setRecData(null); setSelectedUnits([]) }}
-              style={{ background: 'none', border: 'none', color: '#878787', cursor: 'pointer', fontSize: '13px', padding: '0 4px' }}>
-              ✕
-            </button>
+            <button
+              onClick={() => { setActiveEvent(null); setRecData(null); setSelectedUnits([]) }}
+              style={{ background: 'none', border: 'none', color: '#3a4558', cursor: 'pointer', fontSize: '16px', padding: '0 4px', lineHeight: 1, transition: 'color 0.1s' }}
+              onMouseEnter={e => e.currentTarget.style.color = '#d4dce8'}
+              onMouseLeave={e => e.currentTarget.style.color = '#3a4558'}
+            >×</button>
           </div>
 
           {/* Body */}
-          <div style={{ padding: '12px 14px', overflowY: 'auto', flex: 1 }}>
+          <div style={{ padding: '14px 16px', overflowY: 'auto', flex: 1 }}>
             {recLoading && (
-              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: '#878787' }}>
-                Loading recommendation...
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: '#3a4558', letterSpacing: '0.06em' }}>
+                LOADING RECOMMENDATION…
               </div>
             )}
             {!recLoading && recData?.error && (
-              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: '#ef4444' }}>
-                Failed to load recommendation.
-              </div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: '#ef4444' }}>Failed to load recommendation.</div>
             )}
             {dispatched && (
-              <div style={{ background: 'rgba(74,222,128,0.1)', border: '1px solid #4ade80', borderRadius: '3px', padding: '10px', textAlign: 'center', fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '13px', color: '#4ade80' }}>
-                ✓ UNITS DISPATCHED · ALERT RESOLVED
-              </div>
+              <div style={{
+                background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.3)',
+                borderRadius: '6px', padding: '12px', textAlign: 'center',
+                fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '11px', color: '#22c55e', letterSpacing: '0.08em',
+              }}>✓ UNITS DISPATCHED · ALERT RESOLVED</div>
             )}
             {!recLoading && recData && !recData.error && !dispatched && (
-              <div style={{ display: 'flex', gap: '16px' }}>
-                {/* Left: actions + unit selector */}
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '10px', color: activeEvent.color, letterSpacing: '0.06em', marginBottom: '6px' }}>
+              <div style={{ display: 'flex', gap: '18px' }}>
+
+                {/* Left: summary + actions + unit selector */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  {recData.summary && (
+                    <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#5a6878', lineHeight: 1.55, marginBottom: '12px' }}>
+                      {recData.summary}
+                    </div>
+                  )}
+
+                  <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '9px', color: activeEvent.color, letterSpacing: '0.1em', marginBottom: '6px' }}>
                     IMMEDIATE ACTIONS
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '14px' }}>
                     {recData.actions?.map((action, i) => (
-                      <div key={i} style={{ display: 'flex', gap: '7px', alignItems: 'flex-start' }}>
-                        <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '11px', color: activeEvent.color, flexShrink: 0 }}>{i + 1}.</span>
-                        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#FBFBFB', lineHeight: 1.6 }}>{action}</span>
+                      <div key={i} style={{ display: 'flex', gap: '7px' }}>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '9px', color: activeEvent.color, flexShrink: 0, marginTop: '2px' }}>{i + 1}.</span>
+                        <span style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#d4dce8', lineHeight: 1.55 }}>{action}</span>
                       </div>
                     ))}
                   </div>
 
-                  {/* Unit selector — grouped by type, sorted by distance, no auto-select */}
                   {activeEvent.incidentId && (
                     <>
-                      <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '10px', color: activeEvent.color, letterSpacing: '0.06em', marginBottom: '6px' }}>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '9px', color: activeEvent.color, letterSpacing: '0.1em', marginBottom: '6px' }}>
                         SELECT UNITS TO DISPATCH
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginBottom: '10px' }}>
-                        {displayUnits.length === 0 && (
-                          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#aaaaaa' }}>No available units</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginBottom: '12px', maxHeight: '160px', overflowY: 'auto' }}>
+                        {dispatchUnits.length === 0 && (
+                          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#3a4558' }}>No available units</div>
                         )}
                         {(() => {
                           let lastType = null
-                          return displayUnits.map(unit => {
+                          return dispatchUnits.map(unit => {
                             const isSelected  = selectedUnits.includes(unit.id)
                             const isSuggested = recommendedTypes.has(unit.unit_type)
                             const showHeader  = unit.unit_type !== lastType
                             lastType = unit.unit_type
-                            const dist = distToActiveFire(unit)
+                            const dist = distToFire(unit)
                             const distLabel = dist < 999 ? (dist < 1 ? `${Math.round(dist * 5280)} ft` : `${dist.toFixed(1)} mi`) : null
                             return (
                               <div key={unit.id}>
                                 {showHeader && (
-                                  <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '10px', color: '#878787', letterSpacing: '0.04em', textTransform: 'uppercase', marginTop: '5px', marginBottom: '2px', paddingLeft: '2px' }}>
+                                  <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '8.5px', color: '#3a4558', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: '5px', marginBottom: '2px', paddingLeft: '2px' }}>
                                     {unit.unit_type.replace(/_/g, ' ')}
                                   </div>
                                 )}
                                 <div
-                                  onClick={() => setSelectedUnits(prev =>
-                                    prev.includes(unit.id) ? prev.filter(id => id !== unit.id) : [...prev, unit.id]
-                                  )}
+                                  onClick={() => setSelectedUnits(prev => prev.includes(unit.id) ? prev.filter(id => id !== unit.id) : [...prev, unit.id])}
                                   style={{
                                     display: 'flex', alignItems: 'center', gap: '7px',
-                                    padding: '5px 8px', borderRadius: '2px',
-                                    background: isSelected ? `${activeEvent.color}15` : '#262626',
-                                    border: `1px solid ${isSelected ? activeEvent.color : isSuggested ? activeEvent.color + '44' : '#333'}`,
-                                    cursor: 'pointer',
+                                    padding: '5px 8px', borderRadius: '4px', cursor: 'pointer',
+                                    background: isSelected ? `${activeEvent.color}10` : 'rgba(255,255,255,0.02)',
+                                    border: `1px solid ${isSelected ? activeEvent.color + '60' : isSuggested ? activeEvent.color + '25' : 'rgba(255,255,255,0.06)'}`,
+                                    transition: 'all 0.12s',
                                   }}
                                 >
                                   <span style={{ fontSize: '12px' }}>{UNIT_TYPE_ICON[unit.unit_type] ?? '◉'}</span>
-                                  <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '12px', color: '#FBFBFB', flex: 1 }}>{unit.designation}</span>
-                                  {distLabel && <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', color: '#aaaaaa' }}>{distLabel}</span>}
-                                  {isSuggested && <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: activeEvent.color }}>★</span>}
+                                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '11px', color: isSelected ? '#d4dce8' : '#5a6878', flex: 1 }}>{unit.designation}</span>
+                                  {distLabel && <span style={{ fontFamily: 'var(--font-mono)', fontSize: '8.5px', color: '#3a4558' }}>{distLabel}</span>}
+                                  {isSuggested && <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: activeEvent.color }}>★</span>}
                                 </div>
                               </div>
                             )
@@ -348,53 +344,54 @@ export default function EventTimeline({ alerts, incidents, units = [], onAlertsC
                         disabled={!canDispatch}
                         style={{
                           width: '100%', padding: '9px',
-                          background: canDispatch ? activeEvent.color : '#262626',
-                          border: 'none', borderRadius: '3px',
+                          background: canDispatch ? activeEvent.color : 'rgba(255,255,255,0.04)',
+                          border: 'none', borderRadius: '6px',
                           cursor: canDispatch ? 'pointer' : 'not-allowed',
-                          fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '13px',
-                          color: '#FBFBFB', letterSpacing: '0.03em', transition: 'background 0.15s',
+                          fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '11px',
+                          color: canDispatch ? '#fff' : '#3a4558',
+                          letterSpacing: '0.08em', transition: 'all 0.15s',
+                          boxShadow: canDispatch ? `0 0 16px ${activeEvent.color}40` : 'none',
                         }}
                       >
                         {dispatching
-                          ? 'DISPATCHING...'
+                          ? 'DISPATCHING…'
                           : auth?.role === 'viewer'
-                            ? 'DISPATCH — COMMANDER / DISPATCHER ONLY'
-                            : selectedUnits.length
-                              ? `DISPATCH ${selectedUnits.length} UNIT${selectedUnits.length !== 1 ? 'S' : ''} · RESOLVE ALERT`
-                              : 'SELECT UNITS TO DISPATCH'
-                        }
+                          ? 'COMMANDER / DISPATCHER ONLY'
+                          : selectedUnits.length
+                          ? `DISPATCH ${selectedUnits.length} UNIT${selectedUnits.length !== 1 ? 'S' : ''} · RESOLVE ALERT`
+                          : 'SELECT UNITS TO DISPATCH'}
                       </button>
                     </>
                   )}
                 </div>
 
-                {/* Right: recommended unit types — go green when filled */}
+                {/* Right: recommended unit slots */}
                 {recData.units?.length > 0 && (
-                  <div style={{ width: '170px', flexShrink: 0 }}>
-                    <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '10px', color: activeEvent.color, letterSpacing: '0.06em', marginBottom: '6px' }}>
+                  <div style={{ width: '175px', flexShrink: 0 }}>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '9px', color: activeEvent.color, letterSpacing: '0.1em', marginBottom: '7px' }}>
                       RECOMMENDED
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                       {recData.units.map((u, i) => {
                         const filled = (selectedByType[u.unit_type] ?? 0) >= u.quantity
                         return (
                           <div key={i} style={{
-                            background: filled ? 'rgba(74,222,128,0.1)' : '#262626',
-                            border: `1px solid ${filled ? '#4ade80' : '#333'}`,
-                            borderRadius: '2px', padding: '6px 8px',
+                            background: filled ? 'rgba(34,197,94,0.07)' : 'rgba(255,255,255,0.02)',
+                            border: `1px solid ${filled ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.06)'}`,
+                            borderRadius: '5px', padding: '7px 9px',
                             transition: 'all 0.2s',
                           }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '2px' }}>
                               <span style={{ fontSize: '12px' }}>{UNIT_TYPE_ICON[u.unit_type] ?? '◉'}</span>
-                              <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '11px', color: filled ? '#4ade80' : '#FBFBFB' }}>
+                              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '10px', color: filled ? '#22c55e' : '#d4dce8', flex: 1 }}>
                                 {u.quantity}× {u.unit_type.replace(/_/g, ' ').toUpperCase()}
                               </span>
                             </div>
-                            <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '9px', color: filled ? '#4ade80' : (PRIORITY_COLOR[u.priority] ?? '#878787'), letterSpacing: '0.03em', marginTop: '2px' }}>
-                              {filled ? '✓ FILLED' : u.priority.replace(/_/g, ' ').toUpperCase()}
+                            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '8.5px', color: filled ? '#22c55e' : (PRIORITY_COLOR[u.priority] ?? '#3a4558'), letterSpacing: '0.06em', marginBottom: filled || !u.rationale ? 0 : '3px' }}>
+                              {filled ? '✓ FILLED' : u.priority?.replace(/_/g, ' ').toUpperCase()}
                             </div>
-                            {!filled && (
-                              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#FBFBFB', lineHeight: 1.4, marginTop: '2px' }}>
+                            {!filled && u.rationale && (
+                              <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#5a6878', lineHeight: 1.4 }}>
                                 {u.rationale}
                               </div>
                             )}
@@ -410,88 +407,121 @@ export default function EventTimeline({ alerts, incidents, units = [], onAlertsC
         </div>
       )}
 
-      {/* Timeline bar */}
+      {/* ── TIMELINE BAR ── */}
       <div style={{
-        height: `${height}px`, background: '#151419', borderTop: '1px solid #262626',
-        flexShrink: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative',
+        height: `${height}px`,
+        background: 'rgba(10,12,14,0.94)',
+        borderTop: '1px solid rgba(255,255,255,0.055)',
+        flexShrink: 0, display: 'flex', flexDirection: 'column',
+        overflow: 'hidden', position: 'relative',
+        backdropFilter: 'blur(14px)',
       }}>
-        <div onMouseDown={onMouseDown} style={{
-          position: 'absolute', top: 0, left: 0, right: 0, height: '8px',
-          cursor: 'ns-resize', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <div style={{ width: '36px', height: '2px', background: '#262626', borderRadius: '2px', marginTop: '2px' }} />
+        {/* Drag handle */}
+        <div
+          onMouseDown={onMouseDown}
+          style={{
+            position: 'absolute', top: 0, left: 0, right: 0, height: '10px',
+            cursor: 'ns-resize', zIndex: 10,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <div style={{ width: '32px', height: '2px', background: 'rgba(255,255,255,0.1)', borderRadius: '1px', marginTop: '3px' }} />
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px 5px', flexShrink: 0 }}>
+        {/* Header bar */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px 5px', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '12px', color: '#878787', letterSpacing: '0.02em' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '9px', color: '#3a4558', letterSpacing: '0.12em' }}>
               EVENT TIMELINE
             </span>
             {pinnedIds.size > 0 && (
-              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#F56E0F', letterSpacing: '0.03em' }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#ff4d1a', letterSpacing: '0.04em' }}>
                 📌 {pinnedIds.size} PINNED
               </span>
             )}
+            {unackCount > 0 && (
+              <span style={{
+                background: '#ef4444', color: '#fff',
+                fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '8px',
+                borderRadius: '8px', padding: '1px 6px',
+                boxShadow: '0 0 8px rgba(239,68,68,0.4)',
+                letterSpacing: '0.04em',
+              }}>{unackCount} ACTIVE</span>
+            )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#F56E0F', boxShadow: '0 0 5px #F56E0F' }} />
-            <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '11px', color: '#F56E0F', letterSpacing: '0.03em' }}>LIVE STREAM</span>
+            <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#ff4d1a', boxShadow: '0 0 6px #ff4d1a', animation: 'status-blink 2s ease-in-out infinite' }} />
+            <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '9px', color: '#ff4d1a', letterSpacing: '0.08em' }}>LIVE STREAM</span>
           </div>
         </div>
 
-        <div ref={scrollRef} className="pyra-timeline" style={{
-          flex: 1, display: 'flex', gap: '8px',
+        {/* Scrollable event cards */}
+        <div ref={scrollRef} style={{
+          flex: 1, display: 'flex', gap: '7px',
           padding: '0 12px 8px', overflowX: 'auto', overflowY: 'hidden', alignItems: 'stretch',
         }}>
-          <style>{`
-            .pyra-timeline::-webkit-scrollbar { height: 3px; }
-            .pyra-timeline::-webkit-scrollbar-track { background: transparent; }
-            .pyra-timeline::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
-          `}</style>
           {events.map(event => {
             const isPinned   = pinnedIds.has(event.id)
             const isActive   = activeEvent?.id === event.id
             const isResolved = event.acknowledged
             const hasRec     = !!event.alertType && !isResolved
+            const triage     = triageCache[event.id]
+
             return (
-              <div key={event.id} onClick={() => handleEventClick(event)} style={{
-                flexShrink: 0, width: '220px',
-                background: isActive ? `${event.color}12` : '#1B1B1E',
-                border: `1px solid ${isActive ? event.color : isPinned ? '#F56E0F55' : '#262626'}`,
-                borderTop: `2px solid ${isResolved ? '#333' : event.color}`,
-                borderRadius: '3px', padding: '7px 10px', overflow: 'hidden',
-                cursor: hasRec ? 'pointer' : 'default',
-                opacity: isResolved ? 0.4 : 1, position: 'relative',
-                transition: 'border-color 0.15s, background 0.15s',
-              }}
-                onMouseEnter={e => { if (hasRec && !isActive) e.currentTarget.style.borderColor = event.color }}
-                onMouseLeave={e => { if (!isActive) e.currentTarget.style.borderColor = isPinned ? '#F56E0F55' : '#262626' }}
+              <div
+                key={event.id}
+                onClick={() => handleEventClick(event)}
+                style={{
+                  flexShrink: 0, width: '200px',
+                  background: isActive ? `${event.color}0e` : 'rgba(255,255,255,0.02)',
+                  border: `1px solid ${isActive ? event.color + '60' : isPinned ? 'rgba(255,77,26,0.3)' : 'rgba(255,255,255,0.06)'}`,
+                  borderTop: `2px solid ${isResolved ? 'rgba(255,255,255,0.06)' : event.color + (isActive ? '' : '80')}`,
+                  borderRadius: '6px', padding: '8px 10px',
+                  cursor: hasRec ? 'pointer' : 'default',
+                  opacity: isResolved ? 0.4 : 1, position: 'relative',
+                  transition: 'all 0.15s',
+                  overflow: 'hidden',
+                }}
+                onMouseEnter={e => { if (hasRec && !isActive) e.currentTarget.style.background = `${event.color}08` }}
+                onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.02)' }}
               >
-                <button onClick={(e) => togglePin(event.id, e)} title={isPinned ? 'Unpin' : 'Pin'}
-                  style={{ position: 'absolute', top: '5px', right: '6px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '10px', color: isPinned ? '#F56E0F' : '#878787', padding: '0', lineHeight: 1 }}>
-                  📌
-                </button>
-                <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500, fontSize: '11px', color: '#878787', marginBottom: '3px', letterSpacing: '0.06em' }}>
+                {/* Pin button */}
+                <button
+                  onClick={(e) => togglePin(event.id, e)}
+                  title={isPinned ? 'Unpin' : 'Pin'}
+                  style={{
+                    position: 'absolute', top: '5px', right: '6px',
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    fontSize: '9px', color: isPinned ? '#ff4d1a' : '#3a4558',
+                    padding: '0', lineHeight: 1, transition: 'color 0.1s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.color = '#ff4d1a'}
+                  onMouseLeave={e => e.currentTarget.style.color = isPinned ? '#ff4d1a' : '#3a4558'}
+                >📌</button>
+
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#3a4558', marginBottom: '4px', letterSpacing: '0.06em' }}>
                   {event.time}
-                  {isResolved && <span style={{ marginLeft: '6px', color: '#4ade80', fontSize: '9px', letterSpacing: '0.03em' }}>RESOLVED</span>}
+                  {isResolved && <span style={{ marginLeft: '6px', color: '#22c55e', letterSpacing: '0.04em' }}>RESOLVED</span>}
                 </div>
-                <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '13px', color: isResolved ? '#878787' : '#FBFBFB', lineHeight: 1.25, marginBottom: '4px', paddingRight: '14px' }}>
+                <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '12px', color: isResolved ? '#3a4558' : '#d4dce8', lineHeight: 1.25, marginBottom: '3px', paddingRight: '14px' }}>
                   {event.title}
                 </div>
-                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#FBFBFB', lineHeight: 1.5, overflowWrap: 'break-word', opacity: 0.8 }}>
+                <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#5a6878', lineHeight: 1.5, overflowWrap: 'break-word' }}>
                   {event.subtitle}
                 </div>
-                {hasRec && !triageCache[event.id] && (
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', color: event.color, marginTop: '5px', letterSpacing: '0.03em' }}>
-                    ✦ CLICK FOR RECOMMENDATION
+
+                {/* AI triage or CTA */}
+                {hasRec && triage && (
+                  <div style={{ marginTop: '5px', display: 'flex', alignItems: 'flex-start', gap: '4px' }}>
+                    <span style={{ fontSize: '9px', color: '#ff4d1a', flexShrink: 0 }}>⬡</span>
+                    <span style={{ fontFamily: 'var(--font-sans)', fontSize: '9.5px', color: '#d4dce8', lineHeight: 1.4 }}>
+                      {triage.triage}
+                    </span>
                   </div>
                 )}
-                {hasRec && triageCache[event.id] && (
-                  <div style={{ marginTop: '5px', display: 'flex', alignItems: 'flex-start', gap: '4px' }}>
-                    <span style={{ fontSize: '9px', color: '#F56E0F', flexShrink: 0 }}>⬡</span>
-                    <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', color: '#FBFBFB', lineHeight: 1.4, opacity: 0.9 }}>
-                      {triageCache[event.id].triage}
-                    </span>
+                {hasRec && !triage && (
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '8.5px', color: event.color, marginTop: '5px', letterSpacing: '0.04em' }}>
+                    ✦ CLICK FOR RECOMMENDATION
                   </div>
                 )}
               </div>

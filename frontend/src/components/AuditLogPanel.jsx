@@ -4,9 +4,9 @@ import { formatTimestamp } from '../utils/timeUtils'
 import { useAuth } from '../context/AuthContext'
 
 const ACTION_COLOR = {
-  DISPATCH:       '#F56E0F',
-  ALERT_DISPATCH: '#60a5fa',
-  LOGIN:          '#4ade80',
+  DISPATCH:       '#ff4d1a',
+  ALERT_DISPATCH: '#38bdf8',
+  LOGIN:          '#22c55e',
   LOGOUT:         '#878787',
 }
 
@@ -56,7 +56,7 @@ export default function AuditLogPanel({ onClose }) {
   return (
     <div style={{
       position: 'fixed', top: 0, right: 0, bottom: 0,
-      width: '480px', background: '#151419',
+      width: '480px', background: 'var(--bg)',
       borderLeft: '1px solid #262626',
       zIndex: 3000, display: 'flex', flexDirection: 'column',
       boxShadow: '-4px 0 24px rgba(0,0,0,0.5)',
@@ -68,10 +68,10 @@ export default function AuditLogPanel({ onClose }) {
         padding: '14px 16px', borderBottom: '1px solid #262626', flexShrink: 0,
       }}>
         <div>
-          <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '13px', color: '#FBFBFB', letterSpacing: '0.04em' }}>
+          <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '13px', color: '#d4dce8', letterSpacing: '0.04em' }}>
             AUDIT LOG
           </div>
-          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#878787', marginTop: '2px' }}>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#5a6878', marginTop: '2px' }}>
             {total} entries · tamper-evident
           </div>
         </div>
@@ -81,16 +81,16 @@ export default function AuditLogPanel({ onClose }) {
             <div style={{
               display: 'flex', alignItems: 'center', gap: '5px',
               background: integrity.integrity === 'PASS' ? 'rgba(74,222,128,0.1)' : 'rgba(239,68,68,0.1)',
-              border: `1px solid ${integrity.integrity === 'PASS' ? '#4ade80' : '#ef4444'}`,
+              border: `1px solid ${integrity.integrity === 'PASS' ? '#22c55e' : '#ef4444'}`,
               borderRadius: '3px', padding: '3px 8px',
             }}>
               <div style={{
                 width: '5px', height: '5px', borderRadius: '50%',
-                background: integrity.integrity === 'PASS' ? '#4ade80' : '#ef4444',
+                background: integrity.integrity === 'PASS' ? '#22c55e' : '#ef4444',
               }} />
               <span style={{
-                fontFamily: 'Inter, sans-serif', fontSize: '10px', fontWeight: 600,
-                color: integrity.integrity === 'PASS' ? '#4ade80' : '#ef4444',
+                fontFamily: 'var(--font-sans)', fontSize: '10px', fontWeight: 600,
+                color: integrity.integrity === 'PASS' ? '#22c55e' : '#ef4444',
                 letterSpacing: '0.04em',
               }}>
                 INTEGRITY {integrity.integrity}
@@ -102,10 +102,10 @@ export default function AuditLogPanel({ onClose }) {
             style={{
               background: 'transparent', border: '1px solid #333',
               borderRadius: '3px', padding: '4px 10px', cursor: 'pointer',
-              fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#878787',
+              fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#5a6878',
               transition: 'all 0.15s',
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = '#F56E0F'; e.currentTarget.style.color = '#F56E0F' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = '#ff4d1a'; e.currentTarget.style.color = '#ff4d1a' }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.color = '#878787' }}
           >
             EXPORT CSV
@@ -132,7 +132,7 @@ export default function AuditLogPanel({ onClose }) {
           </div>
         )}
         {!loading && entries.length === 0 && (
-          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: '#878787', padding: '20px 16px' }}>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', color: '#5a6878', padding: '20px 16px' }}>
             No audit entries yet. Dispatch actions will appear here.
           </div>
         )}
@@ -144,35 +144,35 @@ export default function AuditLogPanel({ onClose }) {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{
-                  fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '10px',
+                  fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '10px',
                   color: ACTION_COLOR[entry.action] ?? '#878787',
                   letterSpacing: '0.06em',
                 }}>
                   {entry.action.replace('_', ' ')}
                 </span>
-                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#FBFBFB', fontWeight: 600 }}>
+                <span style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#d4dce8', fontWeight: 600 }}>
                   {entry.actor}
                 </span>
                 <span style={{
-                  fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#878787',
-                  background: '#262626', borderRadius: '2px', padding: '1px 5px',
+                  fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#5a6878',
+                  background: 'rgba(255,255,255,0.07)', borderRadius: '2px', padding: '1px 5px',
                 }}>
                   {entry.actor_role}
                 </span>
               </div>
-              <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#555' }}>
+              <span style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#555' }}>
                 {formatTimestamp(entry.timestamp)}
               </span>
             </div>
 
             {entry.incident_name && (
-              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#aaaaaa', marginBottom: '3px' }}>
+              <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#aaaaaa', marginBottom: '3px' }}>
                 {entry.incident_name}
               </div>
             )}
 
             {entry.details && (
-              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#FBFBFB', marginBottom: '4px' }}>
+              <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#d4dce8', marginBottom: '4px' }}>
                 {entry.details}
               </div>
             )}
@@ -181,8 +181,8 @@ export default function AuditLogPanel({ onClose }) {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '6px' }}>
                 {entry.unit_ids.map(uid => (
                   <span key={uid} style={{
-                    fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#FBFBFB',
-                    background: '#262626', border: '1px solid #3a3a3a',
+                    fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#d4dce8',
+                    background: 'rgba(255,255,255,0.07)', border: '1px solid #3a3a3a',
                     borderRadius: '2px', padding: '2px 6px', fontWeight: 500,
                   }}>
                     {uid}
@@ -192,8 +192,8 @@ export default function AuditLogPanel({ onClose }) {
             )}
 
             <div style={{
-              fontFamily: 'Inter, sans-serif', fontSize: '10px',
-              color: '#878787', letterSpacing: '0.01em', marginTop: '2px',
+              fontFamily: 'var(--font-sans)', fontSize: '10px',
+              color: '#5a6878', letterSpacing: '0.01em', marginTop: '2px',
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
               <span style={{ color: '#555', marginRight: '4px' }}>SHA-256</span>

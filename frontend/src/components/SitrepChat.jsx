@@ -11,7 +11,7 @@ function renderMarkdown(text) {
     const parts = line.split(/(\*\*[^*]+\*\*)/)
     const rendered = parts.map((part, j) => {
       if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={j} style={{ color: '#FBFBFB', fontWeight: 700 }}>{part.slice(2, -2)}</strong>
+        return <strong key={j} style={{ color: '#d4dce8', fontWeight: 700 }}>{part.slice(2, -2)}</strong>
       }
       return part
     })
@@ -115,7 +115,7 @@ export default function SitrepChat({ incident, onClose }) {
       position: 'fixed', left: `${pos.x}px`, top: `${pos.y}px`,
       width: '380px', height: '480px',
       animation: 'slideInUp 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
-      background: '#151419', border: '1px solid #262626',
+      background: 'var(--bg)', border: '1px solid #262626',
       borderRadius: '6px', zIndex: 2500,
       boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
       display: 'flex', flexDirection: 'column',
@@ -130,12 +130,12 @@ export default function SitrepChat({ incident, onClose }) {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#F56E0F', boxShadow: '0 0 6px #F56E0F' }} />
-          <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '12px', color: '#FBFBFB', letterSpacing: '0.04em' }}>
+          <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#ff4d1a', boxShadow: '0 0 6px #ff4d1a' }} />
+          <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '12px', color: '#d4dce8', letterSpacing: '0.04em' }}>
             PYRA SITREP
           </span>
           <span className="pyra-ai-badge">⬡ AI</span>
-          <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#878787' }}>
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#5a6878' }}>
             {incident.name}
           </span>
         </div>
@@ -152,16 +152,16 @@ export default function SitrepChat({ incident, onClose }) {
             <div style={{
               maxWidth: '85%',
               background: msg.role === 'user' ? 'rgba(245,110,15,0.15)' : '#1B1B1E',
-              border: `1px solid ${msg.role === 'user' ? 'rgba(245,110,15,0.3)' : '#262626'}`,
+              border: `1px solid ${msg.role === 'user' ? 'rgba(245,110,15,0.3)' : 'rgba(255,255,255,0.07)'}`,
               borderRadius: msg.role === 'user' ? '12px 12px 2px 12px' : '12px 12px 12px 2px',
               padding: '8px 12px',
-              fontFamily: 'Inter, sans-serif', fontSize: '12px',
-              color: '#FBFBFB', lineHeight: 1.7,
+              fontFamily: 'var(--font-sans)', fontSize: '12px',
+              color: '#d4dce8', lineHeight: 1.7,
             }}>
               {msg.content
                 ? renderMarkdown(msg.content)
                 : (streaming && i === messages.length - 1
-                    ? <span style={{ color: '#F56E0F' }}>▋</span>
+                    ? <span style={{ color: '#ff4d1a' }}>▋</span>
                     : '')
               }
             </div>
@@ -179,23 +179,23 @@ export default function SitrepChat({ incident, onClose }) {
           placeholder="Ask about tactics, resources, weather..."
           rows={2}
           style={{
-            flex: 1, background: '#1B1B1E', border: '1px solid #333',
+            flex: 1, background: 'var(--surface)', border: '1px solid #333',
             borderRadius: '4px', padding: '7px 10px', resize: 'none',
-            fontFamily: 'Inter, sans-serif', fontSize: '12px', color: '#FBFBFB',
+            fontFamily: 'var(--font-sans)', fontSize: '12px', color: '#d4dce8',
             outline: 'none', lineHeight: 1.5,
           }}
-          onFocus={e => e.target.style.borderColor = '#F56E0F'}
+          onFocus={e => e.target.style.borderColor = '#ff4d1a'}
           onBlur={e => e.target.style.borderColor = '#333'}
         />
         <button
           onClick={handleSend}
           disabled={!input.trim() || streaming}
           style={{
-            background: input.trim() && !streaming ? '#F56E0F' : '#262626',
+            background: input.trim() && !streaming ? '#ff4d1a' : 'rgba(255,255,255,0.07)',
             border: 'none', borderRadius: '4px', padding: '0 14px',
             cursor: input.trim() && !streaming ? 'pointer' : 'not-allowed',
-            fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '11px',
-            color: '#FBFBFB', letterSpacing: '0.04em', transition: 'background 0.15s',
+            fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '11px',
+            color: '#d4dce8', letterSpacing: '0.04em', transition: 'background 0.15s',
             flexShrink: 0,
           }}
         >

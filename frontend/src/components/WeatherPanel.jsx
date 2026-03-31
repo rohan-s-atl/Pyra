@@ -2,17 +2,17 @@ import { useState, useRef } from 'react'
 
 const SEVERITY_COLOR = {
   critical: '#ef4444',
-  high:     '#F56E0F',
+  high:     '#ff4d1a',
   moderate: '#facc15',
-  low:      '#4ade80',
+  low:      '#22c55e',
 }
 
 function statColor(label, value) {
   if (value == null) return '#555'
-  if (label === 'WIND')  return value >= 25 ? '#ef4444' : value >= 15 ? '#F56E0F' : '#FBFBFB'
-  if (label === 'RH')    return value < 12  ? '#ef4444' : value < 20  ? '#F56E0F' : '#FBFBFB'
-  if (label === 'SLOPE') return value >= 30 ? '#F56E0F' : '#FBFBFB'
-  if (label === 'AQI')   return value >= 151 ? '#ef4444' : value >= 101 ? '#F56E0F' : value >= 51 ? '#facc15' : '#4ade80'
+  if (label === 'WIND')  return value >= 25 ? '#ef4444' : value >= 15 ? '#ff4d1a' : '#FBFBFB'
+  if (label === 'RH')    return value < 12  ? '#ef4444' : value < 20  ? '#ff4d1a' : '#FBFBFB'
+  if (label === 'SLOPE') return value >= 30 ? '#ff4d1a' : '#FBFBFB'
+  if (label === 'AQI')   return value >= 151 ? '#ef4444' : value >= 101 ? '#ff4d1a' : value >= 51 ? '#facc15' : '#22c55e'
   return '#FBFBFB'
 }
 
@@ -56,7 +56,7 @@ export default function WeatherPanel({ incidents, onClose }) {
       width: '900px',                         // ✅ WIDER
       maxWidth: 'calc(100vw - 40px)',
       zIndex: 900,
-      background: '#151419',
+      background: 'var(--bg)',
       border: '1px solid #333',
       borderRadius: '6px',
       boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
@@ -80,19 +80,19 @@ export default function WeatherPanel({ incidents, onClose }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{
             width: '8px', height: '8px', borderRadius: '50%',
-            background: '#4ade80', boxShadow: '0 0 8px #4ade80'
+            background: '#22c55e', boxShadow: '0 0 8px #22c55e'
           }} />
           <span style={{
-            fontFamily: 'Inter, sans-serif',
+            fontFamily: 'var(--font-sans)',
             fontWeight: 700,
             fontSize: '13px',
-            color: '#FBFBFB',
+            color: '#d4dce8',
             letterSpacing: '0.05em'
           }}>
             WEATHER · ALL ACTIVE INCIDENTS
           </span>
           <span style={{
-            fontFamily: 'Inter, sans-serif',
+            fontFamily: 'var(--font-sans)',
             fontSize: '11px',
             color: '#666'
           }}>
@@ -136,7 +136,7 @@ export default function WeatherPanel({ incidents, onClose }) {
 
           return (
             <div key={inc.id} style={{
-              background: '#1B1B1E',
+              background: 'var(--surface)',
               border: '1px solid #262626',
               borderRadius: '4px',
               padding: '10px',
@@ -151,7 +151,7 @@ export default function WeatherPanel({ incidents, onClose }) {
                 <div style={{
                   fontWeight: 700,
                   fontSize: '12px',
-                  color: '#FBFBFB',
+                  color: '#d4dce8',
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis'
@@ -180,24 +180,24 @@ export default function WeatherPanel({ incidents, onClose }) {
                     fontWeight: 700,
                     fontSize: '10px',
                     color: (inc.containment_percent ?? 0) > 50
-                      ? '#4ade80'
+                      ? '#22c55e'
                       : (inc.containment_percent ?? 0) > 20
-                      ? '#F56E0F'
+                      ? '#ff4d1a'
                       : '#ef4444'
                   }}>
                     {inc.containment_percent ?? 0}%
                   </span>
                 </div>
 
-                <div style={{ height: '3px', background: '#262626', borderRadius: '2px' }}>
+                <div style={{ height: '3px', background: 'rgba(255,255,255,0.07)', borderRadius: '2px' }}>
                   <div style={{
                     height: '100%',
                     borderRadius: '2px',
                     width: `${inc.containment_percent ?? 0}%`,
                     background: (inc.containment_percent ?? 0) > 50
-                      ? '#4ade80'
+                      ? '#22c55e'
                       : (inc.containment_percent ?? 0) > 20
-                      ? '#F56E0F'
+                      ? '#ff4d1a'
                       : '#ef4444'
                   }} />
                 </div>

@@ -52,14 +52,14 @@ export default function SettingsPanel({ onClose }) {
       animation: 'fadeIn 0.15s ease',
     }}>
       <div style={{
-        width: '480px', background: '#151419',
+        width: '480px', background: 'var(--bg)',
         border: '1px solid #262626', borderRadius: '8px',
         boxShadow: '0 16px 48px rgba(0,0,0,0.6)',
         animation: 'slideInUp 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
       }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid #262626' }}>
-          <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '14px', color: '#FBFBFB', letterSpacing: '0.04em' }}>SETTINGS</div>
+          <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '14px', color: '#d4dce8', letterSpacing: '0.04em' }}>SETTINGS</div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#555', fontSize: '16px' }}>✕</button>
         </div>
 
@@ -67,10 +67,10 @@ export default function SettingsPanel({ onClose }) {
 
           {/* API Key */}
           <div style={{ marginBottom: '24px' }}>
-            <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '11px', color: '#878787', letterSpacing: '0.08em', marginBottom: '8px' }}>
+            <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '11px', color: '#5a6878', letterSpacing: '0.08em', marginBottom: '8px' }}>
               ANTHROPIC API KEY
             </div>
-            <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#555', marginBottom: '10px', lineHeight: 1.5 }}>
+            <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#555', marginBottom: '10px', lineHeight: 1.5 }}>
               Required for AI features: briefing generator, SITREP chat, dispatch advisor, alert triage, and post-incident review.
               {!isElectron && ' Set this in backend/.env as ANTHROPIC_API_KEY=sk-ant-...'}
             </div>
@@ -82,20 +82,20 @@ export default function SettingsPanel({ onClose }) {
                 placeholder="sk-ant-api03-..."
                 style={{
                   flex: 1, padding: '9px 12px',
-                  background: '#1B1B1E', border: '1px solid #333',
-                  borderRadius: '3px', color: '#FBFBFB',
-                  fontFamily: 'Inter, sans-serif', fontSize: '12px', outline: 'none',
+                  background: 'var(--surface)', border: '1px solid #333',
+                  borderRadius: '3px', color: '#d4dce8',
+                  fontFamily: 'var(--font-sans)', fontSize: '12px', outline: 'none',
                 }}
-                onFocus={e => e.target.style.borderColor = '#F56E0F'}
+                onFocus={e => e.target.style.borderColor = '#ff4d1a'}
                 onBlur={e => e.target.style.borderColor = '#333'}
               />
               <button
                 onClick={handleSave}
                 disabled={!apiKey.trim()}
                 style={{
-                  padding: '9px 16px', background: apiKey.trim() ? (saved ? '#4ade80' : '#F56E0F') : '#262626',
+                  padding: '9px 16px', background: apiKey.trim() ? (saved ? '#22c55e' : '#ff4d1a') : 'rgba(255,255,255,0.07)',
                   border: 'none', borderRadius: '3px', cursor: apiKey.trim() ? 'pointer' : 'not-allowed',
-                  fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '11px', color: '#FBFBFB',
+                  fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '11px', color: '#d4dce8',
                   transition: 'background 0.15s', flexShrink: 0,
                 }}
               >
@@ -106,7 +106,7 @@ export default function SettingsPanel({ onClose }) {
 
           {/* Connection test */}
           <div style={{ marginBottom: '24px' }}>
-            <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '11px', color: '#878787', letterSpacing: '0.08em', marginBottom: '8px' }}>
+            <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '11px', color: '#5a6878', letterSpacing: '0.08em', marginBottom: '8px' }}>
               CONNECTION
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -116,16 +116,16 @@ export default function SettingsPanel({ onClose }) {
                 style={{
                   padding: '8px 14px', background: 'transparent',
                   border: '1px solid #444', borderRadius: '3px', cursor: 'pointer',
-                  fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '11px', color: '#878787',
+                  fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '11px', color: '#5a6878',
                   transition: 'all 0.15s',
                 }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = '#60a5fa'; e.currentTarget.style.color = '#60a5fa' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#38bdf8'; e.currentTarget.style.color = '#38bdf8' }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = '#444'; e.currentTarget.style.color = '#878787' }}
               >
                 {testing ? 'TESTING...' : 'TEST CONNECTION'}
               </button>
               {testResult && (
-                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: testResult.ok ? '#4ade80' : '#ef4444' }}>
+                <span style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: testResult.ok ? '#22c55e' : '#ef4444' }}>
                   {testResult.ok ? '✓' : '✕'} {testResult.message}
                 </span>
               )}
@@ -134,7 +134,7 @@ export default function SettingsPanel({ onClose }) {
 
           {/* Keyboard shortcuts */}
           <div>
-            <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '11px', color: '#878787', letterSpacing: '0.08em', marginBottom: '8px' }}>
+            <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '11px', color: '#5a6878', letterSpacing: '0.08em', marginBottom: '8px' }}>
               KEYBOARD SHORTCUTS
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
@@ -146,11 +146,11 @@ export default function SettingsPanel({ onClose }) {
               ].map(([key, desc]) => (
                 <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{
-                    fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '10px',
-                    background: '#262626', border: '1px solid #333', borderRadius: '3px',
-                    padding: '2px 7px', color: '#FBFBFB', minWidth: '36px', textAlign: 'center',
+                    fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '10px',
+                    background: 'rgba(255,255,255,0.07)', border: '1px solid #333', borderRadius: '3px',
+                    padding: '2px 7px', color: '#d4dce8', minWidth: '36px', textAlign: 'center',
                   }}>{key}</span>
-                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#878787' }}>{desc}</span>
+                  <span style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#5a6878' }}>{desc}</span>
                 </div>
               ))}
             </div>
@@ -161,9 +161,9 @@ export default function SettingsPanel({ onClose }) {
           <button
             onClick={onClose}
             style={{
-              padding: '8px 20px', background: '#F56E0F', border: 'none',
+              padding: '8px 20px', background: '#ff4d1a', border: 'none',
               borderRadius: '3px', cursor: 'pointer',
-              fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '12px', color: '#FBFBFB',
+              fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '12px', color: '#d4dce8',
             }}
           >
             DONE
