@@ -245,6 +245,13 @@ export default function App() {
   const isCompact = windowWidth < 1024
   const showLeftSidebar = !isCompact
   const showRightPanel = !isCompact || !detailOpen
+  const overlayPanelWidth = Math.min(360, Math.max(windowWidth * 0.34, 260))
+  const overlayGap = 12
+  const shellInset = 12
+  const topRailOffset = 86
+  const baseOverlayRight = showRightPanel ? shellInset + overlayPanelWidth + overlayGap : shellInset
+  const commandPanelRight = baseOverlayRight
+  const detailPanelRight = baseOverlayRight + (showCommand ? overlayPanelWidth + overlayGap : 0)
 
   // ── Auth gate (MUST come first) ──────────────────────────────────────────
   if (!auth) return <LoginScreen onLogin={handleLogin} />
@@ -307,31 +314,33 @@ export default function App() {
           />
         </div>
 
-        <div style={{ position: 'absolute', inset: 0, zIndex: 1200 }}>
-          <TopBar
-            incidents={incidents}
-            units={units}
-            showEvacZones={showEvacZones}
-            onToggleEvacZones={() => setShowEvacZones(v => !v)}
-            showFireGrowth={showFireGrowth}
-            onToggleFireGrowth={() => setShowFireGrowth(v => !v)}
-            showPerimeters={showPerimeters}
-            onTogglePerimeters={() => setShowPerimeters(v => !v)}
-            showHeatmap={showHeatmap}
-            onToggleHeatmap={() => setShowHeatmap(v => !v)}
-            showCommand={showCommand}
-            onToggleCommand={() => setShowCommand(v => !v)}
-            showSatellite={showSatellite}
-            onToggleSatellite={() => setShowSatellite(v => !v)}
-            showWeather={showWeather}
-            onToggleWeather={() => setShowWeather(v => !v)}
-            showWaterSources={showWaterSources}
-            onToggleWaterSources={() => { setShowWaterSources(v => !v); setWaterSourceStatus(null) }}
-            auth={auth}
-            onLogout={handleLogout}
-            onToggleAudit={() => setShowAudit(v => !v)}
-            onToggleSettings={() => setShowSettings(v => !v)}
-          />
+        <div style={{ position: 'absolute', inset: 0, zIndex: 1200, pointerEvents: 'none' }}>
+          <div style={{ pointerEvents: 'auto' }}>
+            <TopBar
+              incidents={incidents}
+              units={units}
+              showEvacZones={showEvacZones}
+              onToggleEvacZones={() => setShowEvacZones(v => !v)}
+              showFireGrowth={showFireGrowth}
+              onToggleFireGrowth={() => setShowFireGrowth(v => !v)}
+              showPerimeters={showPerimeters}
+              onTogglePerimeters={() => setShowPerimeters(v => !v)}
+              showHeatmap={showHeatmap}
+              onToggleHeatmap={() => setShowHeatmap(v => !v)}
+              showCommand={showCommand}
+              onToggleCommand={() => setShowCommand(v => !v)}
+              showSatellite={showSatellite}
+              onToggleSatellite={() => setShowSatellite(v => !v)}
+              showWeather={showWeather}
+              onToggleWeather={() => setShowWeather(v => !v)}
+              showWaterSources={showWaterSources}
+              onToggleWaterSources={() => { setShowWaterSources(v => !v); setWaterSourceStatus(null) }}
+              auth={auth}
+              onLogout={handleLogout}
+              onToggleAudit={() => setShowAudit(v => !v)}
+              onToggleSettings={() => setShowSettings(v => !v)}
+            />
+          </div>
 
           {showEvacZones && (
             <EvacZonesPanel
@@ -371,7 +380,7 @@ export default function App() {
           )}
 
           {showLeftSidebar && (
-            <div style={{ position: 'absolute', top: '86px', left: '12px', bottom: '12px', zIndex: 1300 }}>
+            <div style={{ position: 'absolute', top: `${topRailOffset}px`, left: `${shellInset}px`, bottom: `${shellInset}px`, zIndex: 1300, pointerEvents: 'auto' }}>
               <LeftSidebar
                 units={units}
                 activeView={activeView}
@@ -384,7 +393,7 @@ export default function App() {
           )}
 
           {showRightPanel && (
-            <div style={{ position: 'absolute', top: '86px', right: '12px', bottom: '12px', zIndex: 1300 }}>
+            <div style={{ position: 'absolute', top: `${topRailOffset}px`, right: `${shellInset}px`, bottom: `${shellInset}px`, zIndex: 1300, pointerEvents: 'auto' }}>
               <RightPanel
                 alerts={alerts}
                 units={units}
@@ -394,6 +403,7 @@ export default function App() {
                 onAlertsChanged={refreshAlertsDebounced}
                 confirmedLoadouts={confirmedLoadouts}
                 focusedUnitId={focusedUnit?.id ?? null}
+                panelWidth={overlayPanelWidth}
               />
             </div>
           )}
@@ -409,7 +419,10 @@ export default function App() {
               onPreviewUnits={() => {}}
               onUnitClick={handleUnitClick}
               onConfirmLoadouts={handleConfirmLoadouts}
-              rightOffset={(showCommand ? 160 : 0) + (showRightPanel ? 380 : 0)}
+              panelWidth={overlayPanelWidth}
+              topOffset={topRailOffset}
+              bottomOffset={shellInset}
+              rightOffset={detailPanelRight}
             />
           )}
         </div>
@@ -428,6 +441,10 @@ export default function App() {
             selectedId={selectedId}
             onSelect={handleSelectIncident}
             onClose={() => setShowCommand(false)}
+            panelWidth={overlayPanelWidth}
+            topOffset={topRailOffset}
+            bottomOffset={shellInset}
+            rightOffset={commandPanelRight}
           />
         )}
 

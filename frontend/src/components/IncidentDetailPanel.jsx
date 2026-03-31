@@ -181,6 +181,9 @@ export default function IncidentDetailPanel({
   incident, units, allIncidents = [],
   onClose, onDispatchSuccess, onUnitRoutesChange, onPreviewUnits, onConfirmLoadouts,
   rightOffset = 0,
+  panelWidth = 360,
+  topOffset = 86,
+  bottomOffset = 12,
 }) {
   const [recommendation, setRecommendation] = useState(null)
   const [fireBehavior,   setFireBehavior]   = useState(null)
@@ -414,13 +417,16 @@ export default function IncidentDetailPanel({
 
   return (
     <div style={{
-      position: 'absolute', top: 0, right: `${rightOffset}px`, bottom: 0, width: 'min(420px, 100vw)',
+      position: 'fixed', top: `${topOffset}px`, right: `${rightOffset}px`, bottom: `${bottomOffset}px`, width: `${panelWidth}px`,
       transition: 'right 0.2s ease',
       animation: 'slideInRight 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
-      background: 'linear-gradient(180deg, rgba(26,34,48,0.96) 0%, rgba(18,24,34,0.98) 100%)', borderLeft: '1px solid rgba(255,255,255,0.1)',
-      display: 'flex', flexDirection: 'column', zIndex: 1000, overflow: 'hidden',
-      boxShadow: '-14px 0 42px rgba(0,0,0,0.42)',
+      background: 'linear-gradient(180deg, rgba(28,35,47,0.94) 0%, rgba(18,24,34,0.97) 100%)',
+      border: '1px solid rgba(255,255,255,0.1)',
+      borderRadius: '24px',
+      display: 'flex', flexDirection: 'column', zIndex: 2200, overflow: 'hidden',
+      boxShadow: '0 24px 56px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.05)',
       backdropFilter: 'blur(14px)',
+      pointerEvents: 'auto',
     }}>
 
       {/* Header */}

@@ -313,7 +313,7 @@ export default function IncidentMap({
 
   return (
     <div style={{ position: 'absolute', inset: 0 }}>
-      <MapContainer center={center} zoom={7} style={{ width: '100%', height: '100%' }} zoomControl={true}>
+      <MapContainer center={center} zoom={7} style={{ width: '100%', height: '100%' }} zoomControl={false}>
         {showSatellite ? (
           <TileLayer
             url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"

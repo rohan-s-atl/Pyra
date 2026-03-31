@@ -31,7 +31,7 @@ function ContainmentBar({ pct }) {
   )
 }
 
-export default function MultiIncidentPanel({ incidents, units, alerts, selectedId, onSelect, onClose }) {
+export default function MultiIncidentPanel({ incidents, units, alerts, selectedId, onSelect, onClose, panelWidth = 360, topOffset = 86, bottomOffset = 12, rightOffset = 12 }) {
   const [priorityData, setPriorityData] = useState(null)  // API response
 
   // Fetch priority data on mount and every 30s
@@ -89,30 +89,33 @@ export default function MultiIncidentPanel({ incidents, units, alerts, selectedI
 
   return (
     <div style={{
-      position: 'fixed', top: 0, right: 0, bottom: 0,
-      width: '420px', background: 'linear-gradient(180deg, rgba(26,34,48,0.96) 0%, rgba(18,24,34,0.98) 100%)',
-      borderLeft: '1px solid rgba(255,255,255,0.1)',
+      position: 'fixed', top: `${topOffset}px`, right: `${rightOffset}px`, bottom: `${bottomOffset}px`,
+      width: `${panelWidth}px`,
+      background: 'linear-gradient(180deg, rgba(28,35,47,0.94) 0%, rgba(18,24,34,0.97) 100%)',
+      border: '1px solid rgba(255,255,255,0.1)',
+      borderRadius: '24px',
       zIndex: 3000, display: 'flex', flexDirection: 'column',
-      boxShadow: '-14px 0 42px rgba(0,0,0,0.42)',
+      overflow: 'hidden',
+      boxShadow: '0 24px 56px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.05)',
       animation: 'slideInRight 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
       backdropFilter: 'blur(14px)',
     }}>
       {/* Header */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '14px 16px', borderBottom: '1px solid #262626', flexShrink: 0,
+        padding: '14px 16px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0,
       }}>
         <div>
           <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '13px', color: '#d4dce8', letterSpacing: '0.04em' }}>
             COMMAND OVERVIEW
           </div>
-          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#5a6878', marginTop: '2px' }}>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#8b9bb0', marginTop: '2px' }}>
             {sorted.length} incident{sorted.length !== 1 ? 's' : ''}
           </div>
         </div>
         <button
           onClick={onClose}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#555', fontSize: '16px', padding: '2px 4px' }}
+          style={{ width: '34px', height: '34px', borderRadius: '12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', color: '#c3d0df', fontSize: '16px', padding: 0 }}
         >
           ✕
         </button>
@@ -120,8 +123,9 @@ export default function MultiIncidentPanel({ incidents, units, alerts, selectedI
 
       {/* Summary strip */}
       <div style={{
-        display: 'flex', gap: '1px', background: 'rgba(255,255,255,0.07)',
-        borderBottom: '1px solid #262626', flexShrink: 0,
+        display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px',
+        padding: '12px 14px',
+        borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0,
       }}>
         {[
           { label: 'CRITICAL', count: sorted.filter(i => i.severity === 'critical').length, color: '#ef4444' },
@@ -129,17 +133,17 @@ export default function MultiIncidentPanel({ incidents, units, alerts, selectedI
           { label: 'MODERATE', count: sorted.filter(i => i.severity === 'moderate').length, color: '#facc15' },
           { label: 'TOTAL UNITS', count: units.filter(u => u.assigned_incident_id).length, color: '#38bdf8' },
         ].map(s => (
-          <div key={s.label} style={{ flex: 1, background: 'var(--bg)', padding: '8px 0', textAlign: 'center' }}>
-            <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '16px', color: s.color }}>{s.count}</div>
-            <div style={{ fontFamily: 'var(--font-sans)', fontSize: '8px', color: '#555', letterSpacing: '0.08em' }}>{s.label}</div>
+          <div key={s.label} style={{ background: 'rgba(10,14,20,0.45)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '18px', padding: '10px 12px', textAlign: 'center' }}>
+            <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '17px', color: s.color }}>{s.count}</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '8px', color: '#8b9bb0', letterSpacing: '0.08em' }}>{s.label}</div>
           </div>
         ))}
       </div>
 
       {/* Incident cards */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '8px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '10px 10px 12px' }}>
         {sorted.length === 0 && (
-          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', color: '#5a6878', padding: '20px 8px' }}>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', color: '#8b9bb0', padding: '20px 8px' }}>
             No active incidents.
           </div>
         )}
@@ -153,11 +157,12 @@ export default function MultiIncidentPanel({ incidents, units, alerts, selectedI
               key={inc.id}
               onClick={() => onSelect(inc.id)}
               style={{
-                background: isSelected ? 'rgba(245,110,15,0.1)' : 'rgba(255,255,255,0.05)',
+                background: isSelected ? 'linear-gradient(180deg, rgba(61,39,37,0.94) 0%, rgba(48,33,33,0.9) 100%)' : 'rgba(255,255,255,0.05)',
                 border: `1px solid ${isSelected ? '#ff4d1a' : 'rgba(255,255,255,0.1)'}`,
-                borderRadius: '14px', padding: '12px 14px',
+                borderRadius: '22px', padding: '14px 14px 12px',
                 cursor: 'pointer', marginBottom: '6px',
                 transition: 'all 0.15s',
+                boxShadow: isSelected ? '0 16px 36px rgba(255,77,26,0.12), inset 0 1px 0 rgba(255,255,255,0.04)' : 'inset 0 1px 0 rgba(255,255,255,0.04)',
               }}
               onMouseEnter={e => { if (!isSelected) e.currentTarget.style.borderColor = '#333' }}
               onMouseLeave={e => { if (!isSelected) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)' }}
@@ -168,12 +173,12 @@ export default function MultiIncidentPanel({ incidents, units, alerts, selectedI
                   <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '13px', color: '#d4dce8', marginBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {inc.name}
                   </div>
-                  <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#5a6878' }}>
+                  <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#8b9bb0' }}>
                     {inc.fire_type.replace(/_/g, ' ')} · {formatAcres(inc.acres_burned)}
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '3px', flexShrink: 0, marginLeft: '8px' }}>
-                  <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '10px', color, background: `${color}18`, border: `1px solid ${color}44`, borderRadius: '2px', padding: '1px 6px', letterSpacing: '0.04em' }}>
+                  <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '10px', color, background: `${color}18`, border: `1px solid ${color}44`, borderRadius: '8px', padding: '3px 8px', letterSpacing: '0.04em' }}>
                     {inc.severity.toUpperCase()}
                   </span>
                   {priorityScores[inc.id]?.score != null && (() => {
@@ -196,7 +201,7 @@ export default function MultiIncidentPanel({ incidents, units, alerts, selectedI
                         fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '9px',
                         color: ps.score >= 70 ? '#ef4444' : ps.score >= 45 ? '#ff4d1a' : '#878787',
                         background: 'rgba(255,255,255,0.04)', border: '1px solid #333',
-                        borderRadius: '2px', padding: '1px 5px', letterSpacing: '0.04em',
+                        borderRadius: '8px', padding: '3px 7px', letterSpacing: '0.04em',
                         cursor: 'help',
                       }} title={`Priority score ${Math.round(ps.score)}/100\nFactors: ${factorStr || 'none'}${containmentSuppressed ? '\n⚠ Score reduced: high containment' : ''}`}>
                         P{Math.round(ps.score)}
@@ -207,7 +212,7 @@ export default function MultiIncidentPanel({ incidents, units, alerts, selectedI
                     )
                   })()}
                   {s.alertsCount > 0 && (
-                    <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '9px', color: '#ef4444', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '2px', padding: '1px 5px' }}>
+                    <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '9px', color: '#ef4444', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '8px', padding: '3px 7px' }}>
                       {s.alertsCount} ALERT{s.alertsCount !== 1 ? 'S' : ''}
                     </span>
                   )}
@@ -216,7 +221,7 @@ export default function MultiIncidentPanel({ incidents, units, alerts, selectedI
 
               {/* Containment bar */}
               <div style={{ marginBottom: '8px' }}>
-                <div style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#555', letterSpacing: '0.06em', marginBottom: '3px' }}>CONTAINMENT</div>
+                <div style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#8b9bb0', letterSpacing: '0.06em', marginBottom: '3px' }}>CONTAINMENT</div>
                 <ContainmentBar pct={inc.containment_percent} />
               </div>
 
@@ -229,7 +234,7 @@ export default function MultiIncidentPanel({ incidents, units, alerts, selectedI
                   { label: 'HUMIDITY', value: inc.humidity_percent != null ? `${inc.humidity_percent.toFixed(0)}%` : '—', color: '#d4dce8' },
                 ].map(stat => (
                   <div key={stat.label} style={{ flex: 1 }}>
-                    <div style={{ fontFamily: 'var(--font-sans)', fontSize: '8px', color: '#555', letterSpacing: '0.06em', marginBottom: '2px' }}>{stat.label}</div>
+                    <div style={{ fontFamily: 'var(--font-sans)', fontSize: '8px', color: '#8b9bb0', letterSpacing: '0.06em', marginBottom: '2px' }}>{stat.label}</div>
                     <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '13px', color: stat.color }}>{stat.value}</div>
                   </div>
                 ))}
@@ -238,7 +243,7 @@ export default function MultiIncidentPanel({ incidents, units, alerts, selectedI
               {/* Spread risk */}
               {inc.spread_risk && (
                 <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#555', letterSpacing: '0.06em' }}>SPREAD</div>
+                  <div style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#8b9bb0', letterSpacing: '0.06em' }}>SPREAD</div>
                   <div style={{
                     fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '9px',
                     color: inc.spread_risk === 'extreme' ? '#ef4444' : inc.spread_risk === 'high' ? '#ff4d1a' : inc.spread_risk === 'moderate' ? '#facc15' : '#22c55e',

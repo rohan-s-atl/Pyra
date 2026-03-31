@@ -406,7 +406,7 @@ function AlertRecommendationPanel({ alert, recData, recLoading, units, incidents
   )
 }
 
-export default function RightPanel({ alerts, units, incidents = [], selectedIncidentId, onUnitClick, onAlertsChanged, confirmedLoadouts = {}, focusedUnitId = null }) {
+export default function RightPanel({ alerts, units, incidents = [], selectedIncidentId, onUnitClick, onAlertsChanged, confirmedLoadouts = {}, focusedUnitId = null, panelWidth = 360 }) {
   const [activeAlertId, setActiveAlertId] = useState(null)
   const [triageCache, setTriageCache] = useState({})
   const [unitFilter, setUnitFilter] = useState('all')
@@ -545,9 +545,9 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
 
   return (
     <div style={{
-      width: 'min(360px, 34vw)',
-      minWidth: '260px',
-      maxWidth: '400px',
+      width: `${panelWidth}px`,
+      minWidth: `${panelWidth}px`,
+      maxWidth: `${panelWidth}px`,
       height: '100%',
       background: 'linear-gradient(180deg, rgba(28,35,47,0.9) 0%, rgba(18,24,34,0.95) 100%)',
       border: '1px solid rgba(255,255,255,0.1)',
