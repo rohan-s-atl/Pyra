@@ -234,7 +234,8 @@ async def dispatch_advice(
         )
 
     prompt = (
-        f"You are a CAL FIRE dispatch advisor AI. Evaluate this unit dispatch in exactly 2 sentences.\n\n"
+        f"You are a CAL FIRE dispatch advisor AI. Evaluate this unit dispatch in exactly 2 plain sentences. "
+        f"No markdown, no labels, no bullet points — just 2 sentences of plain text.\n\n"
         f"INCIDENT: {incident_snapshot['name']}\n"
         f"TYPE: {incident_snapshot['fire_type'].replace('_',' ').title()} | SEVERITY: {incident_snapshot['severity'].upper()}\n"
         f"WIND: {incident_snapshot['wind_speed_mph'] or 0:.0f} mph {incident_snapshot['spread_direction'] or ''} | "
@@ -243,8 +244,9 @@ async def dispatch_advice(
         f"ALREADY ON SCENE/EN ROUTE: {on_scene_str}\n"
         f"SYSTEM RECOMMENDATION: {rec_str}\n"
         f"PROPOSED DISPATCH: {loadout_str}\n\n"
-        f"Sentence 1: OPTIMAL (matches or exceeds recommendation) / ADEQUATE / SUBOPTIMAL\n"
-        f"Sentence 2: single biggest risk or gap, or confirmation if optimal. No extra text."
+        f"First sentence must start with one of these exact words: OPTIMAL, ADEQUATE, or SUBOPTIMAL — "
+        f"then explain why in that same sentence. "
+        f"Second sentence: state the single biggest risk, gap, or confirmation if optimal."
     )
 
     try:

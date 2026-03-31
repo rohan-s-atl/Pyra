@@ -341,8 +341,9 @@ function ShortageRow({ entry }) {
 export default function DispatchRecommendations({
   incident,
   onDispatchSuccess,
-  externalSelectedUnits,   // if provided, use this as the selection state
-  onSelectionChange,       // callback when selection changes
+  onConfirmLoadouts,           // notify parent of loadouts so hover tooltip works
+  externalSelectedUnits,
+  onSelectionChange,
 }) {
   const auth = useAuth()
   const isViewer = auth?.role === 'viewer'
@@ -433,6 +434,21 @@ export default function DispatchRecommendations({
         return next
       })
 
+      // Notify parent with default loadouts so LeftSidebar hover shows STD correctly
+      if (onConfirmLoadouts) {
+        const dispatchedUnits = (data?.recommended_units ?? []).filter(u => selectedUnits.includes(u.unit_id))
+        const defaultLoadouts = dispatchedUnits.map(u => ({
+          unit_id:       u.unit_id,
+          unit_type:     u.unit_type,
+          designation:   u.designation,
+          water_pct:     100,
+          foam_pct:      0,
+          retardant_pct: u.unit_type === 'air_tanker' ? 100 : 0,
+          equipment:     [],
+        }))
+        if (defaultLoadouts.length > 0) onConfirmLoadouts(defaultLoadouts)
+      }
+
       // Submit accepted feedback with actual units
       const recommended = (data?.recommended_units ?? []).map(u => u.unit_id)
       const isOverride = selectedUnits.some(id => !recommended.includes(id)) ||
@@ -450,8 +466,9 @@ export default function DispatchRecommendations({
         'success'
       )
       onDispatchSuccess?.()
-      // Refresh recommendations so scores reflect newly assigned units
-      fetchRecommendations(incident.id)
+      // Delay refresh so DB has time to update unit statuses.
+      // dispatchedUnitIds filter handles immediate UI update in the meantime.
+      setTimeout(() => fetchRecommendations(incident.id), 3000)
     } catch (e) {
       toast(e.message ?? 'Dispatch failed', 'error')
     } finally {

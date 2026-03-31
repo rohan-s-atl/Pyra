@@ -280,6 +280,8 @@ export default function IncidentDetailPanel({
         loadout_profile: recommendation?.loadout_profile ?? 'initial_attack',
         route_id:        '',
       })
+      // Persist confirmed loadouts so LeftSidebar hover tooltip shows LOADED not STD
+      if (loadouts.length > 0) onConfirmLoadouts?.(loadouts)
       setDispatched(true)
       toast(`${selectedUnits.length} unit${selectedUnits.length !== 1 ? 's' : ''} dispatched to ${incident.name}`, 'success')
       onPreviewUnits?.([])
@@ -654,6 +656,7 @@ export default function IncidentDetailPanel({
             <DispatchRecommendations
               incident={incident}
               onDispatchSuccess={onDispatchSuccess}
+              onConfirmLoadouts={onConfirmLoadouts}
               externalSelectedUnits={selectedUnits}
               onSelectionChange={(unitIds) => setSelectedUnits(unitIds)}
             />
@@ -798,7 +801,7 @@ export default function IncidentDetailPanel({
                 )}
               </div>
               <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#FBFBFB', lineHeight: 1.5 }}>
-                {adviceLoading ? 'Analyzing loadout...' : dispatchAdvice?.advice}
+                {adviceLoading ? 'Analyzing loadout...' : dispatchAdvice?.advice?.replace(/\*\*[^*]*\*\*:?\s*/g, '').trim()}
               </div>
             </div>
           )}
