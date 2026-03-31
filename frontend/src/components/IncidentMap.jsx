@@ -459,8 +459,8 @@ export default function IncidentMap({
                   if (!newSel) setFollowMode(false)
                 }}}
               >
-                <Tooltip direction="top" offset={[0, -8]}>
-                  <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', lineHeight: 1.5 }}>
+                <Tooltip direction="top" offset={[0, -8]} className="pyra-tooltip">
+                  <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', lineHeight: 1.5, padding: '12px 14px', color: '#d4dce8' }}>
                     <div style={{ fontWeight: 700, marginBottom: '2px', color }}>{UNIT_TYPE_SYMBOL[unit.unit_type]} {unit.designation}</div>
                     <div style={{ color, fontFamily: 'var(--font-mono)', fontSize: '10px', letterSpacing: '0.06em' }}>{unit.status.replace(/_/g, ' ').toUpperCase()}</div>
                     {unit.status === 'returning' && <div style={{ color: '#a7b5c7', fontSize: '10px' }}>← RTB to station</div>}
@@ -534,8 +534,8 @@ export default function IncidentMap({
               eventHandlers={{ click: (e) => { e.originalEvent.stopPropagation(); setSelectedUnit(null); onSelect(inc.id) } }}
               zIndexOffset={selected ? 1000 : 0}
             >
-              <Tooltip direction="top" offset={[0, -sz/2]}>
-                <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', lineHeight: 1.5 }}>
+              <Tooltip direction="top" offset={[0, -sz/2]} className="pyra-tooltip">
+                <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', lineHeight: 1.5, padding: '12px 14px', color: '#d4dce8' }}>
                   <div style={{ fontWeight: 700, marginBottom: '3px', color: fc.core }}>{inc.name}</div>
                   <div>{inc.acres_burned?.toLocaleString()} ac · <span style={{ color: fc.ring }}>{inc.severity?.toUpperCase()}</span></div>
                   <div style={{ color: '#a7b5c7' }}>Wind: {inc.wind_speed_mph} mph · RH: {inc.humidity_percent}%</div>

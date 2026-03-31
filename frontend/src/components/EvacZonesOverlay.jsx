@@ -232,17 +232,17 @@ export default function EvacZonesOverlay({ visible, data, activeZones }) {
               opacity:     0.9,
             }}
           >
-            <Tooltip sticky direction="top">
-              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', minWidth: '180px' }}>
-                <div style={{ fontWeight: 700, color: p.color, marginBottom: '3px' }}>
+            <Tooltip sticky direction="top" className="pyra-tooltip">
+              <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', minWidth: '190px', padding: '14px 16px', color: '#d4dce8', lineHeight: 1.45 }}>
+                <div style={{ fontWeight: 700, color: p.color, marginBottom: '6px', letterSpacing: '0.03em' }}>
                   {p.label}
                 </div>
-                <div style={{ color: '#555', fontSize: '11px', marginBottom: '4px' }}>
+                <div style={{ color: '#a7b5c7', fontSize: '11px', marginBottom: '6px' }}>
                   {p.description}
                 </div>
-                <div>{p.forward_km.toFixed(1)} km forward extent</div>
-                <div>{p.area_sq_mi.toFixed(1)} mi² total area</div>
-                <div style={{ color: '#878787', fontSize: '10px', marginTop: '3px' }}>
+                <div style={{ color: '#d4dce8' }}>{p.forward_km.toFixed(1)} km forward extent</div>
+                <div style={{ color: '#d4dce8' }}>{p.area_sq_mi.toFixed(1)} mi² total area</div>
+                <div style={{ color: '#a7b5c7', fontSize: '10px', marginTop: '5px' }}>
                   Based on +{p.based_on_hours}hr fire growth projection
                 </div>
               </div>

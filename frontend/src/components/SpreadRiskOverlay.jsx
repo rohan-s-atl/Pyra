@@ -71,28 +71,28 @@ export default function SpreadRiskOverlay({ incidents, selectedId }) {
               opacity:     isSelected ? 0.95 : 0.8,
             }}
           >
-            <Tooltip direction="top" sticky>
-              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', background: 'rgba(20,26,36,0.96)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', padding: '10px 12px', boxShadow: '0 16px 36px rgba(0,0,0,0.42)' }}>
-                <div style={{ fontWeight: 700, marginBottom: '2px', color }}>
+            <Tooltip direction="top" sticky className="pyra-tooltip">
+              <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', minWidth: '220px', padding: '14px 16px', color: '#d4dce8', lineHeight: 1.45 }}>
+                <div style={{ fontWeight: 700, fontSize: '11px', letterSpacing: '0.04em', marginBottom: '6px', color }}>
                   Spread Risk Zone
                 </div>
-                <div>
-                  Risk: <strong>{terrainRisk.toUpperCase()}</strong>
+                <div style={{ color: '#d4dce8', marginBottom: '3px' }}>
+                  Risk: <strong style={{ color }}>{terrainRisk.toUpperCase()}</strong>
                   {terrainAdjusted && (
-                    <span style={{ color: '#F56E0F', marginLeft: '4px', fontSize: '11px' }}>
+                    <span style={{ color: '#F56E0F', marginLeft: '6px', fontSize: '11px', fontWeight: 600 }}>
                       ▲ terrain-adjusted
                     </span>
                   )}
                 </div>
                 {terrainAdjusted && risk !== terrainRisk && (
-                  <div style={{ color: '#878787', fontSize: '11px' }}>
+                  <div style={{ color: '#a7b5c7', fontSize: '11px', marginBottom: '4px' }}>
                     Base: {risk.toUpperCase()} · Slope: {cone.properties?.slope_percent?.toFixed(0) ?? '?'}%
                   </div>
                 )}
-                <div>Direction: {cone.properties?.spread_direction ?? '—'}</div>
-                <div>Radius: {cone.properties?.radius_km} km</div>
+                <div style={{ color: '#c3d0df' }}>Direction: {cone.properties?.spread_direction ?? '—'}</div>
+                <div style={{ color: '#c3d0df' }}>Radius: {cone.properties?.radius_km} km</div>
                 {cone.properties?.slope_percent != null && (
-                  <div>Slope: {cone.properties.slope_percent.toFixed(0)}% ({cone.properties?.aspect_cardinal ?? '—'} aspect)</div>
+                  <div style={{ color: '#c3d0df' }}>Slope: {cone.properties.slope_percent.toFixed(0)}% ({cone.properties?.aspect_cardinal ?? '—'} aspect)</div>
                 )}
               </div>
             </Tooltip>

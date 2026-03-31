@@ -137,36 +137,49 @@ export default function WaterSourcesOverlay({ selectedIncident, visible, onStatu
         const assigned = assignments[id] ?? []
 
         return (
-          <CircleMarker
-            key={id}
-            center={[lat, lon]}
-            radius={cfg.radius}
-            pathOptions={{
-              color:       cfg.color,
-              fillColor:   cfg.color,
-              fillOpacity: 0.8,
-              weight:      assigned.length > 0 ? 2.5 : 1.5,
-              dashArray:   assigned.length > 0 ? null : '3 2',
-              opacity:     0.9,
-            }}
-          >
-            <Tooltip direction="top" sticky>
-              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', minWidth: '170px' }}>
+          <>
+            <CircleMarker
+              key={`${id}-glow`}
+              center={[lat, lon]}
+              radius={cfg.radius + (assigned.length > 0 ? 8 : 6)}
+              pathOptions={{
+                color: 'transparent',
+                fillColor: cfg.color,
+                fillOpacity: assigned.length > 0 ? 0.16 : 0.1,
+                weight: 0,
+                opacity: 0,
+              }}
+            />
+            <CircleMarker
+              key={id}
+              center={[lat, lon]}
+              radius={cfg.radius}
+              pathOptions={{
+                color:       assigned.length > 0 ? '#f8fbff' : `${cfg.color}dd`,
+                fillColor:   cfg.color,
+                fillOpacity: 0.92,
+                weight:      assigned.length > 0 ? 2.5 : 1.8,
+                dashArray:   assigned.length > 0 ? null : '3 2',
+                opacity:     1,
+              }}
+            >
+            <Tooltip direction="top" sticky className="pyra-tooltip">
+              <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', minWidth: '180px', padding: '14px 16px', color: '#d4dce8', lineHeight: 1.45 }}>
                 <div style={{ fontWeight: 700, color: cfg.color, marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '5px' }}>
                   {cfg.icon} {cfg.label}
                   {osm_type && osm_type !== 'node' && (
-                    <span style={{ fontSize: '9px', color: '#7a8ba0', fontWeight: 400, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '999px', padding: '2px 6px' }}>
+                    <span style={{ fontSize: '9px', color: '#a7b5c7', fontWeight: 400, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '999px', padding: '2px 6px' }}>
                       OSM {osm_type}
                     </span>
                   )}
                 </div>
                 <div style={{ color: '#FBFBFB', marginBottom: '2px', fontWeight: 600 }}>{name}</div>
-                <div style={{ color: '#878787', fontSize: '11px' }}>
+                <div style={{ color: '#a7b5c7', fontSize: '11px' }}>
                   {distance_from_incident_km != null
                     ? `${distance_from_incident_km.toFixed(1)} km from incident`
                     : '—'}
                 </div>
-                <div style={{ color: '#878787', fontSize: '11px' }}>
+                <div style={{ color: '#a7b5c7', fontSize: '11px' }}>
                   Fill rate: <span style={{ color: '#60a5fa' }}>{fill_rate_gpm} gal/min</span>
                 </div>
                 {assigned.length > 0 && (
@@ -178,7 +191,7 @@ export default function WaterSourcesOverlay({ selectedIncident, visible, onStatu
                       <div key={a.unit_id} style={{ fontSize: '10px', color: '#FBFBFB', marginBottom: '2px' }}>
                         {a.designation} ({a.unit_type})
                         {a.road_distance_km != null && (
-                          <span style={{ color: '#878787' }}> · {a.road_distance_km.toFixed(1)} km</span>
+                          <span style={{ color: '#a7b5c7' }}> · {a.road_distance_km.toFixed(1)} km</span>
                         )}
                         {a.fill_time_minutes != null && (
                           <span style={{ color: '#a78bfa' }}> · {a.fill_time_minutes}min fill</span>
@@ -190,6 +203,7 @@ export default function WaterSourcesOverlay({ selectedIncident, visible, onStatu
               </div>
             </Tooltip>
           </CircleMarker>
+          </>
         )
       })}
     </>

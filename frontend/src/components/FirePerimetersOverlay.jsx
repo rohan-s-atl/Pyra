@@ -35,12 +35,12 @@ export default function FirePerimetersOverlay({ visible }) {
             data={geojsonFeature}
             style={{ color: '#F56E0F', weight: 2, fillColor: '#F56E0F', fillOpacity: 0.30, opacity: 0.85 }}
           >
-            <Tooltip sticky>
-              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px' }}>
-                <div style={{ fontWeight: 700, marginBottom: '3px' }}>{p.name}</div>
-                {p.acres != null && <div>{Math.round(p.acres).toLocaleString()} acres</div>}
-                {p.containment != null && <div>{p.containment}% contained</div>}
-                <div style={{ color: '#F56E0F', fontSize: '10px', marginTop: '3px' }}>NIFC OFFICIAL PERIMETER</div>
+            <Tooltip sticky className="pyra-tooltip">
+              <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', padding: '14px 16px', color: '#d4dce8', lineHeight: 1.45 }}>
+                <div style={{ fontWeight: 700, marginBottom: '5px', color: '#F56E0F' }}>{p.name}</div>
+                {p.acres != null && <div style={{ color: '#d4dce8' }}>{Math.round(p.acres).toLocaleString()} acres</div>}
+                {p.containment != null && <div style={{ color: '#d4dce8' }}>{p.containment}% contained</div>}
+                <div style={{ color: '#F56E0F', fontSize: '10px', marginTop: '5px' }}>NIFC OFFICIAL PERIMETER</div>
               </div>
             </Tooltip>
           </GeoJSON>

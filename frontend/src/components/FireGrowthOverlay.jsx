@@ -237,20 +237,20 @@ export default function FireGrowthOverlay({ incidents, selectedId, visible, time
                 opacity:     0.85,
               }}
             >
-              <Tooltip sticky direction="top">
-                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', minWidth: '160px' }}>
-                  <div style={{ fontWeight: 700, color: style.color, marginBottom: '3px' }}>
+              <Tooltip sticky direction="top" className="pyra-tooltip">
+                <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', minWidth: '170px', padding: '14px 16px', color: '#d4dce8', lineHeight: 1.45 }}>
+                  <div style={{ fontWeight: 700, color: style.color, marginBottom: '6px', letterSpacing: '0.03em' }}>
                     {style.label} PROJECTION
                   </div>
-                  <div>~{(feature.properties.projected_acres || 0).toLocaleString()} acres</div>
-                  <div style={{ color: '#666', fontSize: '11px', marginTop: '2px' }}>
+                  <div style={{ color: '#d4dce8' }}>~{(feature.properties.projected_acres || 0).toLocaleString()} acres</div>
+                  <div style={{ color: '#a7b5c7', fontSize: '11px', marginTop: '4px' }}>
                     {feature.properties.forward_km.toFixed(1)} km forward spread
                   </div>
-                  <div style={{ color: '#666', fontSize: '11px' }}>
+                  <div style={{ color: '#a7b5c7', fontSize: '11px' }}>
                     ROS: {feature.properties.ros_mph} mph
                   </div>
                   {data.wind_shift_risk && hrs >= 4 && (
-                    <div style={{ color: '#ef4444', fontSize: '10px', marginTop: '3px' }}>
+                    <div style={{ color: '#ef4444', fontSize: '10px', marginTop: '5px' }}>
                       ⚠ Wind shift may alter direction
                     </div>
                   )}
