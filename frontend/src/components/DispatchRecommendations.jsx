@@ -341,8 +341,10 @@ function ShortageRow({ entry }) {
 export default function DispatchRecommendations({
   incident,
   onDispatchSuccess,
-  onConfirmLoadouts,           // notify parent of loadouts so hover tooltip works
-  alreadyAssignedIds = [],     // unit IDs already on this incident — hide from list
+  onConfirmLoadouts,
+  onOpenLoadout,                    // open LoadoutConfigurator with selected unit IDs
+  alreadyAssignedIds = [],
+  alreadyAssignedDesignations = [],
   externalSelectedUnits,
   onSelectionChange,
 }) {
@@ -397,12 +399,15 @@ export default function DispatchRecommendations({
 
   // ── Derived lists ─────────────────────────────────────────────────────────
   const allRecommendedUnits = data?.recommended_units ?? []
-  // Filter out units dispatched this session OR already assigned to this incident
-  const assignedSet = new Set(alreadyAssignedIds.map(String))
+  // Filter out units already on this incident — match by ID or designation
+  const assignedIdSet    = new Set(alreadyAssignedIds.map(String))
+  const assignedDesigSet = new Set(alreadyAssignedDesignations.map(String))
   const normalUnits = allRecommendedUnits.filter(u =>
-    !dispatchedUnitIds.has(u.unit_id) && !assignedSet.has(String(u.unit_id))
+    !dispatchedUnitIds.has(u.unit_id) &&
+    !assignedIdSet.has(String(u.unit_id)) &&
+    !assignedDesigSet.has(u.designation)
   )
-  const shortages   = data?.summary?.shortages ?? []
+  const shortages = data?.summary?.shortages ?? []
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   function toggleUnit(unitId) {
@@ -591,14 +596,20 @@ export default function DispatchRecommendations({
               <button
                 style={S.approveBtn(canApprove)}
                 disabled={!canApprove}
-                onClick={handleApproveDispatch}
+                onClick={() => {
+                  if (onOpenLoadout) {
+                    onOpenLoadout(selectedUnits)
+                  } else {
+                    handleApproveDispatch()
+                  }
+                }}
                 className={canApprove ? 'pyra-btn-press' : ''}
               >
                 {dispatching
                   ? 'DISPATCHING...'
                   : selectedUnits.length === 0
                     ? 'SELECT UNITS TO DISPATCH'
-                    : `APPROVE DISPATCH — ${selectedUnits.length} UNIT${selectedUnits.length !== 1 ? 'S' : ''}`
+                    : `CONFIGURE LOADOUT & DISPATCH — ${selectedUnits.length} UNIT${selectedUnits.length !== 1 ? 'S' : ''}`
                 }
               </button>
             </>
