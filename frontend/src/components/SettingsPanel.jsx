@@ -47,15 +47,17 @@ export default function SettingsPanel({ onClose }) {
 
   return (
     <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+      position: 'fixed', inset: 0, background: 'rgba(5,8,12,0.7)',
       zIndex: 4000, display: 'flex', alignItems: 'center', justifyContent: 'center',
       animation: 'fadeIn 0.15s ease',
+      backdropFilter: 'blur(10px)',
     }}>
       <div style={{
-        width: '480px', background: 'var(--bg)',
-        border: '1px solid #262626', borderRadius: '8px',
-        boxShadow: '0 16px 48px rgba(0,0,0,0.6)',
+        width: '480px', background: 'rgba(20,26,36,0.96)',
+        border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px',
+        boxShadow: '0 24px 56px rgba(0,0,0,0.56)',
         animation: 'slideInUp 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+        backdropFilter: 'blur(16px)',
       }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid #262626' }}>
@@ -82,8 +84,8 @@ export default function SettingsPanel({ onClose }) {
                 placeholder="sk-ant-api03-..."
                 style={{
                   flex: 1, padding: '9px 12px',
-                  background: 'var(--surface)', border: '1px solid #333',
-                  borderRadius: '3px', color: '#d4dce8',
+                  background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '12px', color: '#d4dce8',
                   fontFamily: 'var(--font-sans)', fontSize: '12px', outline: 'none',
                 }}
                 onFocus={e => e.target.style.borderColor = '#ff4d1a'}
@@ -94,7 +96,7 @@ export default function SettingsPanel({ onClose }) {
                 disabled={!apiKey.trim()}
                 style={{
                   padding: '9px 16px', background: apiKey.trim() ? (saved ? '#22c55e' : '#ff4d1a') : 'rgba(255,255,255,0.07)',
-                  border: 'none', borderRadius: '3px', cursor: apiKey.trim() ? 'pointer' : 'not-allowed',
+                  border: 'none', borderRadius: '12px', cursor: apiKey.trim() ? 'pointer' : 'not-allowed',
                   fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '11px', color: '#d4dce8',
                   transition: 'background 0.15s', flexShrink: 0,
                 }}
@@ -115,7 +117,7 @@ export default function SettingsPanel({ onClose }) {
                 disabled={testing}
                 style={{
                   padding: '8px 14px', background: 'transparent',
-                  border: '1px solid #444', borderRadius: '3px', cursor: 'pointer',
+                  border: '1px solid rgba(255,255,255,0.12)', borderRadius: '12px', cursor: 'pointer',
                   fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '11px', color: '#5a6878',
                   transition: 'all 0.15s',
                 }}
@@ -147,7 +149,7 @@ export default function SettingsPanel({ onClose }) {
                 <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{
                     fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '10px',
-                    background: 'rgba(255,255,255,0.07)', border: '1px solid #333', borderRadius: '3px',
+                    background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px',
                     padding: '2px 7px', color: '#d4dce8', minWidth: '36px', textAlign: 'center',
                   }}>{key}</span>
                   <span style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#5a6878' }}>{desc}</span>
@@ -162,7 +164,7 @@ export default function SettingsPanel({ onClose }) {
             onClick={onClose}
             style={{
               padding: '8px 20px', background: '#ff4d1a', border: 'none',
-              borderRadius: '3px', cursor: 'pointer',
+              borderRadius: '12px', cursor: 'pointer',
               fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '12px', color: '#d4dce8',
             }}
           >

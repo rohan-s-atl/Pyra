@@ -112,9 +112,11 @@ export default function RiskHeatmapOverlay({ visible }) {
       {/* Legend overlay */}
       <div style={{
         position: 'absolute', bottom: '32px', right: '12px', zIndex: 1000,
-        background: 'rgba(21,20,25,0.88)', border: '1px solid #262626',
-        borderRadius: '4px', padding: '8px 12px',
+        background: 'rgba(22,28,38,0.94)', border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: '14px', padding: '10px 12px',
         fontFamily: 'Inter, sans-serif', pointerEvents: 'none',
+        backdropFilter: 'blur(14px)',
+        boxShadow: '0 16px 36px rgba(0,0,0,0.4)',
       }}>
         <div style={{ fontSize: '9px', color: '#878787', letterSpacing: '0.06em', marginBottom: '6px' }}>
           COMPOSITE RISK · {meta?.incidentCount ?? '—'} INCIDENTS

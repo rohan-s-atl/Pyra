@@ -56,13 +56,14 @@ export default function WeatherPanel({ incidents, onClose }) {
       width: '900px',                         // ✅ WIDER
       maxWidth: 'calc(100vw - 40px)',
       zIndex: 900,
-      background: 'var(--bg)',
-      border: '1px solid #333',
-      borderRadius: '6px',
-      boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+      background: 'rgba(20,26,36,0.96)',
+      border: '1px solid rgba(255,255,255,0.1)',
+      borderRadius: '20px',
+      boxShadow: '0 24px 56px rgba(0,0,0,0.52)',
       display: 'flex',
       flexDirection: 'column',
       maxHeight: '85vh',                      // ✅ MORE HEIGHT
+      backdropFilter: 'blur(16px)',
     }}>
       
       {/* HEADER */}
@@ -136,9 +137,9 @@ export default function WeatherPanel({ incidents, onClose }) {
 
           return (
             <div key={inc.id} style={{
-              background: 'var(--surface)',
-              border: '1px solid #262626',
-              borderRadius: '4px',
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '14px',
               padding: '10px',
             }}>
               

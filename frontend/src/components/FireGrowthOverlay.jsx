@@ -29,9 +29,9 @@ export function FireGrowthLegend({ data, visible, onClose, timeMode, onTimeModeC
     <div style={{
       position: 'absolute', top: '12px', right: '12px', zIndex: 1000,
       maxHeight: 'calc(50vh - 24px)', overflowY: 'auto',
-      background: 'rgba(21,20,25,0.96)', border: '1px solid #F56E0F44',
-      borderRadius: '4px', padding: '10px 14px', minWidth: '220px',
-      backdropFilter: 'blur(8px)', boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+      background: 'rgba(22,28,38,0.96)', border: '1px solid rgba(255,255,255,0.1)',
+      borderRadius: '16px', padding: '12px 14px', minWidth: '220px',
+      backdropFilter: 'blur(14px)', boxShadow: '0 18px 40px rgba(0,0,0,0.45)',
     }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
@@ -53,8 +53,8 @@ export function FireGrowthLegend({ data, visible, onClose, timeMode, onTimeModeC
             style={{
               flex: 1, padding: '4px 0', fontSize: '9px', fontFamily: 'Inter, sans-serif',
               fontWeight: 700, letterSpacing: '0.04em', cursor: 'pointer', borderRadius: '3px',
-              border: timeMode === key ? '1px solid #F56E0F' : '1px solid #333',
-              background: timeMode === key ? 'rgba(245,110,15,0.18)' : 'rgba(255,255,255,0.04)',
+              border: timeMode === key ? '1px solid #F56E0F' : '1px solid rgba(255,255,255,0.1)',
+              background: timeMode === key ? 'rgba(245,110,15,0.18)' : 'rgba(255,255,255,0.05)',
               color: timeMode === key ? '#F56E0F' : '#878787',
               transition: 'all 0.15s',
             }}

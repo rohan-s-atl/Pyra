@@ -417,8 +417,10 @@ export default function IncidentDetailPanel({
       position: 'absolute', top: 0, right: `${rightOffset}px`, bottom: 0, width: 'min(420px, 100vw)',
       transition: 'right 0.2s ease',
       animation: 'slideInRight 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
-      background: 'var(--bg)', borderLeft: '1px solid #262626',
+      background: 'linear-gradient(180deg, rgba(26,34,48,0.96) 0%, rgba(18,24,34,0.98) 100%)', borderLeft: '1px solid rgba(255,255,255,0.1)',
       display: 'flex', flexDirection: 'column', zIndex: 1000, overflow: 'hidden',
+      boxShadow: '-14px 0 42px rgba(0,0,0,0.42)',
+      backdropFilter: 'blur(14px)',
     }}>
 
       {/* Header */}
@@ -1053,13 +1055,13 @@ export default function IncidentDetailPanel({
       {closeoutOpen && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 5000,
-          background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          backdropFilter: 'blur(4px)',
+          background: 'rgba(5,8,12,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          backdropFilter: 'blur(10px)',
         }} onClick={e => { if (e.target === e.currentTarget) setCloseoutOpen(false) }}>
           <div style={{
-            background: '#1a1920', border: '1px solid #ef444444',
-            borderRadius: '6px', padding: '20px 24px', minWidth: '360px', maxWidth: '440px',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+            background: 'rgba(20,26,36,0.97)', border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '18px', padding: '20px 24px', minWidth: '360px', maxWidth: '440px',
+            boxShadow: '0 20px 48px rgba(0,0,0,0.56)',
           }}>
             <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '13px', color: '#ef4444', letterSpacing: '0.06em', marginBottom: '4px' }}>
               ⬡ INCIDENT CLOSE-OUT

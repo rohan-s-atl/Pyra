@@ -90,11 +90,12 @@ export default function MultiIncidentPanel({ incidents, units, alerts, selectedI
   return (
     <div style={{
       position: 'fixed', top: 0, right: 0, bottom: 0,
-      width: '420px', background: 'var(--bg)',
-      borderLeft: '1px solid #262626',
+      width: '420px', background: 'linear-gradient(180deg, rgba(26,34,48,0.96) 0%, rgba(18,24,34,0.98) 100%)',
+      borderLeft: '1px solid rgba(255,255,255,0.1)',
       zIndex: 3000, display: 'flex', flexDirection: 'column',
-      boxShadow: '-4px 0 24px rgba(0,0,0,0.5)',
+      boxShadow: '-14px 0 42px rgba(0,0,0,0.42)',
       animation: 'slideInRight 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+      backdropFilter: 'blur(14px)',
     }}>
       {/* Header */}
       <div style={{
@@ -152,9 +153,9 @@ export default function MultiIncidentPanel({ incidents, units, alerts, selectedI
               key={inc.id}
               onClick={() => onSelect(inc.id)}
               style={{
-                background: isSelected ? 'rgba(245,110,15,0.08)' : '#1B1B1E',
-                border: `1px solid ${isSelected ? '#ff4d1a' : 'rgba(255,255,255,0.07)'}`,
-                borderRadius: '4px', padding: '12px 14px',
+                background: isSelected ? 'rgba(245,110,15,0.1)' : 'rgba(255,255,255,0.05)',
+                border: `1px solid ${isSelected ? '#ff4d1a' : 'rgba(255,255,255,0.1)'}`,
+                borderRadius: '14px', padding: '12px 14px',
                 cursor: 'pointer', marginBottom: '6px',
                 transition: 'all 0.15s',
               }}

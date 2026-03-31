@@ -497,11 +497,11 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
       <div style={{
         width: '58px',
         height: '100%',
-        background: 'rgba(10,14,19,0.72)',
-        border: '1px solid rgba(255,255,255,0.12)',
+        background: 'linear-gradient(180deg, rgba(28,35,47,0.9) 0%, rgba(18,24,34,0.95) 100%)',
+        border: '1px solid rgba(255,255,255,0.1)',
         borderRadius: '20px',
-        backdropFilter: 'blur(18px)',
-        boxShadow: '0 28px 60px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08)',
+        backdropFilter: 'blur(14px)',
+        boxShadow: '0 24px 56px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.05)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -538,11 +538,11 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
       minWidth: '260px',
       maxWidth: '400px',
       height: '100%',
-      background: 'rgba(10,14,19,0.72)',
-      border: '1px solid rgba(255,255,255,0.12)',
+      background: 'linear-gradient(180deg, rgba(28,35,47,0.9) 0%, rgba(18,24,34,0.95) 100%)',
+      border: '1px solid rgba(255,255,255,0.1)',
       borderRadius: '20px',
-      backdropFilter: 'blur(18px)',
-      boxShadow: '0 28px 60px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08)',
+      backdropFilter: 'blur(14px)',
+      boxShadow: '0 24px 56px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.05)',
       display: 'flex', flexDirection: 'column', overflow: 'hidden',
       animation: 'slide-left 0.25s ease-out',
     }}>
@@ -565,7 +565,7 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
           style={{
             width: '30px', height: '30px', borderRadius: '9px',
             border: '1px solid rgba(255,255,255,0.14)',
-            background: 'rgba(255,255,255,0.04)',
+            background: 'rgba(255,255,255,0.06)',
             cursor: 'pointer', color: '#9baac0', fontSize: '15px',
           }}
         >
@@ -579,7 +579,7 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
           style={{
             borderRadius: '999px',
             border: `1px solid ${showResolved ? 'rgba(34,197,94,0.35)' : 'rgba(255,255,255,0.12)'}`,
-            background: showResolved ? 'rgba(34,197,94,0.1)' : 'rgba(255,255,255,0.03)',
+            background: showResolved ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.05)',
             color: showResolved ? '#22c55e' : '#9baac0',
             fontFamily: 'var(--font-mono)', fontSize: '8px', letterSpacing: '0.06em',
             padding: '4px 9px', cursor: 'pointer',
@@ -631,7 +631,7 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
                 }}
                 style={{
                   border: `1px solid ${isActive ? s.border : 'rgba(255,255,255,0.11)'}`,
-                  background: isActive ? s.bg : 'rgba(255,255,255,0.02)',
+                  background: isActive ? s.bg : 'rgba(255,255,255,0.04)',
                   borderRadius: isActive ? '12px 12px 0 0' : '12px',
                   padding: '9px 10px',
                   cursor: isAlert && !event.acknowledged ? 'pointer' : 'default',
@@ -712,7 +712,7 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
                 <div style={{
                   border: `1px solid ${s.border}`,
                   borderTop: 'none',
-                  background: 'rgba(12,16,22,0.9)',
+                  background: 'rgba(18,24,34,0.96)',
                   borderRadius: '0 0 12px 12px',
                   padding: '10px',
                 }}>
@@ -743,8 +743,8 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
               onClick={() => setUnitFilter(f.key)}
               style={{
                 flex: 1, padding: '4px 0',
-                background: unitFilter === f.key ? 'rgba(56,189,248,0.16)' : 'rgba(255,255,255,0.03)',
-                border: `1px solid ${unitFilter === f.key ? 'rgba(56,189,248,0.35)' : 'rgba(255,255,255,0.1)'}`,
+                background: unitFilter === f.key ? 'rgba(56,189,248,0.14)' : 'rgba(255,255,255,0.05)',
+                border: `1px solid ${unitFilter === f.key ? 'rgba(56,189,248,0.3)' : 'rgba(255,255,255,0.1)'}`,
                 borderRadius: '999px', cursor: 'pointer',
                 fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '8px',
                 color: unitFilter === f.key ? '#7dd3fc' : '#9baac0',

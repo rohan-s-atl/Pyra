@@ -45,9 +45,9 @@ export function ToastContainer({ toasts }) {
         const s = TYPE_STYLE[t.type] ?? TYPE_STYLE.info
         return (
           <div key={t.id} style={{
-            background: 'var(--surface)',
+            background: 'rgba(22,28,38,0.96)',
             border: `1px solid ${s.border}`,
-            borderRadius: '4px',
+            borderRadius: '14px',
             padding: '8px 16px',
             display: 'flex', alignItems: 'center', gap: '8px',
             boxShadow: `0 4px 16px rgba(0,0,0,0.4), 0 0 0 1px ${s.border}22`,
@@ -56,6 +56,7 @@ export function ToastContainer({ toasts }) {
             fontWeight: 500, color: '#d4dce8',
             letterSpacing: '0.02em',
             whiteSpace: 'nowrap',
+            backdropFilter: 'blur(14px)',
           }}>
             <span style={{ color: s.color, fontWeight: 700 }}>{s.icon}</span>
             {t.message}

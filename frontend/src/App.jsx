@@ -272,9 +272,11 @@ export default function App() {
     <AuthContext.Provider value={{ ...auth, logout: handleLogout }}>
       <div 
         style={{ 
-          height: '100vh', 
-          width: '100vw', 
-          background: 'radial-gradient(1300px 700px at 50% -200px, rgba(56,189,248,0.08), transparent 60%), #0d0f11',
+          height: '100vh',
+          width: '100vw',
+          minHeight: '100vh',
+          minWidth: '100vw',
+          background: 'radial-gradient(1200px 720px at 50% -180px, rgba(56,189,248,0.08), transparent 58%), radial-gradient(900px 600px at 0% 100%, rgba(255,77,26,0.06), transparent 65%), #090d14',
           display: 'flex', 
           flexDirection: 'column', 
           overflow: 'hidden',
@@ -307,15 +309,16 @@ export default function App() {
           onToggleSettings={() => setShowSettings(v => !v)}
         />
 
-        <div style={{ flex: 1, minHeight: 0, padding: '12px 14px 14px' }}>
+        <div style={{ flex: 1, minHeight: 0, padding: '8px' }}>
           <div style={{
             position: 'relative',
             width: '100%',
             height: '100%',
-            borderRadius: '24px',
+            borderRadius: '22px',
             overflow: 'hidden',
-            border: '1px solid rgba(255,255,255,0.1)',
-            boxShadow: '0 30px 70px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            boxShadow: '0 26px 72px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.04)',
+            background: 'var(--surface)',
           }}>
             <IncidentMap
               incidents={incidents}
@@ -366,11 +369,11 @@ export default function App() {
               <div style={{
                 position: 'absolute', top: '18px', left: '50%', transform: 'translateX(-50%)',
                 zIndex: 1000, pointerEvents: 'none',
-                background: 'rgba(13,15,17,0.82)', border: '1px solid rgba(56,189,248,0.3)',
+                background: 'rgba(24,30,40,0.92)', border: '1px solid rgba(56,189,248,0.22)',
                 borderRadius: '999px', padding: '6px 16px',
                 fontFamily: 'var(--font-mono)', fontSize: '10px', letterSpacing: '0.07em',
                 color: waterSourceStatus.loading ? '#38bdf8' : '#7a8ba0',
-                backdropFilter: 'blur(12px)', whiteSpace: 'nowrap',
+                backdropFilter: 'blur(14px)', whiteSpace: 'nowrap',
                 boxShadow: '0 8px 18px rgba(0,0,0,0.35)',
               }}>
                 {waterSourceStatus.loading ? '◎ SEARCHING WATER SOURCES…' : '◎ NO WATER SOURCES WITHIN 8 KM'}
@@ -445,15 +448,15 @@ export default function App() {
         {containmentModal && (
           <div style={{
             position: 'fixed', inset: 0, zIndex: 9999,
-            background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)',
+            background: 'rgba(5,8,12,0.78)', backdropFilter: 'blur(10px)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <div style={{
-              background: 'rgba(13,15,17,0.96)',
-              border: '1px solid rgba(34,197,94,0.35)',
-              borderRadius: '12px', padding: '32px 36px', maxWidth: '380px', width: '90vw',
-              boxShadow: '0 0 60px rgba(34,197,94,0.12), 0 16px 48px rgba(0,0,0,0.6)',
-              backdropFilter: 'blur(16px)',
+              background: 'rgba(20,26,36,0.96)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '20px', padding: '32px 36px', maxWidth: '380px', width: '90vw',
+              boxShadow: '0 0 60px rgba(34,197,94,0.12), 0 24px 56px rgba(0,0,0,0.56)',
+              backdropFilter: 'blur(18px)',
               fontFamily: 'var(--font-sans)', textAlign: 'center',
               animation: 'fade-up 0.3s ease-out',
             }}>

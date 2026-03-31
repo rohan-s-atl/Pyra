@@ -34,10 +34,10 @@ export function EvacZonesPanel({ data, visible, loading, onClose, onExport, acti
   return (
     <div style={{
       position: 'absolute', bottom: '44px', right: '12px', zIndex: 1000,
-      background: 'rgba(21,20,25,0.97)', border: '1px solid #ef444444',
-      borderRadius: '4px', width: '260px',
+      background: 'rgba(22,28,38,0.97)', border: '1px solid rgba(255,255,255,0.1)',
+      borderRadius: '16px', width: '260px',
       maxHeight: 'calc(100vh - 140px)', display: 'flex', flexDirection: 'column',
-      backdropFilter: 'blur(8px)', boxShadow: '0 4px 24px rgba(0,0,0,0.6)',
+      backdropFilter: 'blur(14px)', boxShadow: '0 18px 40px rgba(0,0,0,0.45)',
       overflow: 'hidden',
     }}>
       {/* Header */}
@@ -69,7 +69,7 @@ export function EvacZonesPanel({ data, visible, loading, onClose, onExport, acti
         {data && !loading && (
           <>
             {/* Conditions strip */}
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '10px', padding: '6px 8px', background: '#1B1B1E', borderRadius: '3px' }}>
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '10px', padding: '8px 10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px' }}>
               <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#878787' }}>
                 ROS <span style={{ color: '#FBFBFB', fontWeight: 700 }}>{data.ros_mph} mph</span>
               </div>
@@ -94,9 +94,9 @@ export function EvacZonesPanel({ data, visible, loading, onClose, onExport, acti
                     onClick={() => onToggleZone?.(ztype)}
                     style={{
                       display: 'flex', alignItems: 'flex-start', gap: '8px',
-                      padding: '7px 9px', borderRadius: '3px', cursor: 'pointer',
-                      background: active ? `${meta.color}18` : '#1B1B1E',
-                      border: `1px solid ${active ? meta.color + '55' : '#262626'}`,
+                      padding: '7px 9px', borderRadius: '12px', cursor: 'pointer',
+                      background: active ? `${meta.color}18` : 'rgba(255,255,255,0.05)',
+                      border: `1px solid ${active ? meta.color + '55' : 'rgba(255,255,255,0.08)'}`,
                       transition: 'all 0.15s',
                     }}
                   >
@@ -130,8 +130,8 @@ export function EvacZonesPanel({ data, visible, loading, onClose, onExport, acti
 
             {/* Rationale */}
             <div style={{
-              background: '#1B1B1E', border: '1px solid #262626',
-              borderRadius: '3px', padding: '7px 9px', marginBottom: '10px',
+              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '12px', padding: '8px 10px', marginBottom: '10px',
             }}>
               <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', color: '#F56E0F', fontWeight: 700, letterSpacing: '0.04em', marginBottom: '4px' }}>
                 ⬡ AI RATIONALE
@@ -145,7 +145,7 @@ export function EvacZonesPanel({ data, visible, loading, onClose, onExport, acti
             {data.structures_threatened > 0 && (
               <div style={{
                 background: 'rgba(239,68,68,0.08)', border: '1px solid #ef444433',
-                borderRadius: '3px', padding: '6px 9px', marginBottom: '10px',
+                borderRadius: '12px', padding: '6px 9px', marginBottom: '10px',
                 fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#ef4444',
               }}>
                 ⚠ {data.structures_threatened.toLocaleString()} structures in threatened area
@@ -159,7 +159,7 @@ export function EvacZonesPanel({ data, visible, loading, onClose, onExport, acti
                 width: '100%', padding: '7px',
                 background: 'rgba(239,68,68,0.12)',
                 border: '1px solid #ef444455',
-                borderRadius: '3px', cursor: 'pointer',
+                borderRadius: '12px', cursor: 'pointer',
                 fontFamily: 'Inter, sans-serif', fontWeight: 700,
                 fontSize: '10px', color: '#ef4444', letterSpacing: '0.04em',
               }}

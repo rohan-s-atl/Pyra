@@ -89,18 +89,18 @@ export default function TopBar({
   const S = {
     bar: {
       height: '58px',
-      margin: '10px 14px 0',
-      borderRadius: '18px',
-      background: 'rgba(10,14,19,0.72)',
-      border: '1px solid rgba(255,255,255,0.12)',
+      margin: '8px 8px 0',
+      borderRadius: '20px',
+      background: 'linear-gradient(180deg, rgba(28,35,47,0.92) 0%, rgba(18,24,34,0.94) 100%)',
+      border: '1px solid rgba(255,255,255,0.1)',
       display: 'flex', alignItems: 'center', gap: '0',
       padding: '0 16px',
       flexShrink: 0,
       position: 'relative', zIndex: 9000,
-      backdropFilter: 'blur(16px)',
-      boxShadow: '0 18px 38px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)',
+      backdropFilter: 'blur(14px)',
+      boxShadow: '0 18px 38px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.05)',
     },
-    divider: { width: '1px', height: '28px', background: 'rgba(255,255,255,0.06)', flexShrink: 0, margin: '0 14px' },
+    divider: { width: '1px', height: '28px', background: 'rgba(255,255,255,0.08)', flexShrink: 0, margin: '0 14px' },
   }
 
   return (
@@ -166,9 +166,9 @@ export default function TopBar({
           }}
           style={{
             display: 'flex', alignItems: 'center', gap: '6px',
-            background: optionsOpen ? 'rgba(255,255,255,0.06)' : 'transparent',
-            border: '1px solid rgba(255,255,255,0.07)',
-            borderRadius: '4px', padding: '4px 10px', cursor: 'pointer',
+            background: optionsOpen ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '10px', padding: '6px 12px', cursor: 'pointer',
             fontFamily: 'var(--font-mono)', fontWeight: 500, fontSize: '10px',
             color: optionsOpen ? '#d4dce8' : '#5a6878', letterSpacing: '0.08em',
             transition: 'all 0.15s', flexShrink: 0,
@@ -212,9 +212,9 @@ export default function TopBar({
           onClick={onToggleCommand}
           style={{
             display: 'flex', alignItems: 'center', gap: '6px',
-            background: showCommand ? 'rgba(56,189,248,0.1)' : 'transparent',
-            border: `1px solid ${showCommand ? 'rgba(56,189,248,0.3)' : 'rgba(255,255,255,0.07)'}`,
-            borderRadius: '4px', padding: '5px 12px', cursor: 'pointer',
+            background: showCommand ? 'rgba(56,189,248,0.12)' : 'rgba(255,255,255,0.03)',
+            border: `1px solid ${showCommand ? 'rgba(56,189,248,0.26)' : 'rgba(255,255,255,0.1)'}`,
+            borderRadius: '10px', padding: '6px 12px', cursor: 'pointer',
             transition: 'all 0.2s', flexShrink: 0,
           }}
         >
@@ -246,9 +246,9 @@ export default function TopBar({
               onClick={() => setUserMenuOpen(v => !v)}
               style={{
                 display: 'flex', alignItems: 'center', gap: '8px',
-                background: userMenuOpen ? 'rgba(255,255,255,0.05)' : 'transparent',
-                border: '1px solid rgba(255,255,255,0.07)',
-                borderRadius: '5px', padding: '5px 10px', cursor: 'pointer',
+                background: userMenuOpen ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '10px', padding: '6px 10px', cursor: 'pointer',
                 transition: 'all 0.15s',
               }}
             >
@@ -265,10 +265,10 @@ export default function TopBar({
             {userMenuOpen && (
               <div style={{
                 position: 'fixed', top: '58px', right: '120px', zIndex: 99999,
-                background: 'rgba(13,15,17,0.96)', border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: '7px', overflow: 'hidden',
+                background: 'rgba(22,28,38,0.96)', border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '14px', overflow: 'hidden',
                 boxShadow: '0 8px 40px rgba(0,0,0,0.7)', minWidth: '160px',
-                backdropFilter: 'blur(16px)',
+                backdropFilter: 'blur(14px)',
               }}>
                 {[
                   { label: 'Audit Log',  action: () => { onToggleAudit();   setUserMenuOpen(false) } },
@@ -315,12 +315,12 @@ export default function TopBar({
           data-opts-menu="true"
           style={{
             position: 'fixed', top: optionsPos.top, left: optionsPos.left, zIndex: 99999,
-            background: 'rgba(13,15,17,0.96)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: '8px', overflow: 'hidden',
+            background: 'rgba(22,28,38,0.96)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '14px', overflow: 'hidden',
             boxShadow: '0 8px 40px rgba(0,0,0,0.7)',
             minWidth: '200px',
-            backdropFilter: 'blur(16px)',
+            backdropFilter: 'blur(14px)',
           }}
         >
           <div style={{ padding: '8px 14px 6px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>

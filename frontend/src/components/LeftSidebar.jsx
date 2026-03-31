@@ -219,11 +219,11 @@ export default function LeftSidebar({ units, activeView, onViewChange, selectedI
     <div style={{
       width: '272px',
       display: 'flex', flexDirection: 'column',
-      background: 'rgba(10,14,19,0.72)',
-      border: '1px solid rgba(255,255,255,0.12)',
+      background: 'linear-gradient(180deg, rgba(28,35,47,0.9) 0%, rgba(18,24,34,0.95) 100%)',
+      border: '1px solid rgba(255,255,255,0.1)',
       borderRadius: '20px',
-      backdropFilter: 'blur(18px)',
-      boxShadow: '0 28px 60px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08)',
+      backdropFilter: 'blur(14px)',
+      boxShadow: '0 24px 56px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.05)',
       overflow: 'hidden',
       animation: 'slide-right 0.25s ease-out',
       maxHeight: '100%',
@@ -240,8 +240,8 @@ export default function LeftSidebar({ units, activeView, onViewChange, selectedI
               onClick={() => onViewChange(v.id)}
               style={{
                 flex: 1, padding: '6px 0',
-                background: activeView === v.id ? 'rgba(56,189,248,0.14)' : 'rgba(255,255,255,0.04)',
-                border: `1px solid ${activeView === v.id ? 'rgba(56,189,248,0.35)' : 'rgba(255,255,255,0.12)'}`,
+                background: activeView === v.id ? 'rgba(56,189,248,0.12)' : 'rgba(255,255,255,0.05)',
+                border: `1px solid ${activeView === v.id ? 'rgba(56,189,248,0.28)' : 'rgba(255,255,255,0.1)'}`,
                 borderRadius: '999px', cursor: 'pointer', transition: 'all 0.15s',
               }}
             >
@@ -263,8 +263,8 @@ export default function LeftSidebar({ units, activeView, onViewChange, selectedI
             onClick={() => setFilter(filter === c.key ? 'all' : c.key)}
             style={{
               flex: 1, textAlign: 'center', padding: '6px 4px',
-              background: filter === c.key ? `${c.color}16` : 'rgba(255,255,255,0.03)',
-              border: `1px solid ${filter === c.key ? `${c.color}35` : 'rgba(255,255,255,0.12)'}`,
+              background: filter === c.key ? `${c.color}14` : 'rgba(255,255,255,0.05)',
+              border: `1px solid ${filter === c.key ? `${c.color}32` : 'rgba(255,255,255,0.1)'}`,
               borderRadius: '10px', cursor: 'pointer', transition: 'all 0.15s',
             }}
           >

@@ -115,10 +115,11 @@ export default function SitrepChat({ incident, onClose }) {
       position: 'fixed', left: `${pos.x}px`, top: `${pos.y}px`,
       width: '380px', height: '480px',
       animation: 'slideInUp 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
-      background: 'var(--bg)', border: '1px solid #262626',
-      borderRadius: '6px', zIndex: 2500,
-      boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+      background: 'rgba(20,26,36,0.96)', border: '1px solid rgba(255,255,255,0.1)',
+      borderRadius: '18px', zIndex: 2500,
+      boxShadow: '0 24px 56px rgba(0,0,0,0.52)',
       display: 'flex', flexDirection: 'column',
+      backdropFilter: 'blur(16px)',
     }}>
       {/* Header — drag handle */}
       <div
