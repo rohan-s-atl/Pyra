@@ -78,11 +78,11 @@ export default function LoginScreen({ onLogin }) {
 
         {/* Login card */}
         <div style={{
-          background: 'rgba(13,15,17,0.9)',
-          border: '1px solid rgba(255,255,255,0.07)',
-          borderRadius: '12px', padding: '28px',
+          background: 'rgba(20,26,36,0.94)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: '20px', padding: '28px',
           backdropFilter: 'blur(16px)',
-          boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
+          boxShadow: '0 24px 56px rgba(0,0,0,0.5)',
           marginBottom: '12px',
         }}>
           <div style={{ fontWeight: 700, fontSize: '15px', color: '#d4dce8', marginBottom: '5px' }}>
@@ -108,7 +108,7 @@ export default function LoginScreen({ onLogin }) {
                     width: '100%', padding: '10px 13px',
                     background: 'rgba(255,255,255,0.03)',
                     border: '1px solid rgba(255,255,255,0.08)',
-                    borderRadius: '6px', color: '#d4dce8',
+                    borderRadius: '12px', color: '#d4dce8',
                     fontFamily: 'var(--font-mono)', fontSize: '13px',
                     outline: 'none', boxSizing: 'border-box',
                     transition: 'border-color 0.15s, box-shadow 0.15s',
@@ -123,7 +123,7 @@ export default function LoginScreen({ onLogin }) {
             {error && (
               <div style={{
                 background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.3)',
-                borderRadius: '5px', padding: '9px 12px',
+                borderRadius: '12px', padding: '9px 12px',
                 fontFamily: 'var(--font-mono)', fontSize: '10px', color: '#ef4444',
                 letterSpacing: '0.04em', marginBottom: '14px',
               }}>
@@ -138,7 +138,7 @@ export default function LoginScreen({ onLogin }) {
               style={{
                 width: '100%', padding: '12px',
                 background: canSubmit ? '#ff4d1a' : 'rgba(255,255,255,0.04)',
-                border: 'none', borderRadius: '7px',
+                border: 'none', borderRadius: '14px',
                 cursor: canSubmit ? 'pointer' : 'not-allowed',
                 fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '11px',
                 color: canSubmit ? '#fff' : '#3a4558', letterSpacing: '0.1em',
@@ -155,9 +155,9 @@ export default function LoginScreen({ onLogin }) {
 
         {/* Demo credentials */}
         <div style={{
-          background: 'rgba(13,15,17,0.7)',
-          border: '1px solid rgba(255,255,255,0.05)',
-          borderRadius: '10px', padding: '16px',
+          background: 'rgba(20,26,36,0.82)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: '18px', padding: '16px',
           backdropFilter: 'blur(12px)',
         }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#3a4558', letterSpacing: '0.12em', marginBottom: '10px' }}>
@@ -172,7 +172,7 @@ export default function LoginScreen({ onLogin }) {
               }}
               style={{
                 display: 'flex', alignItems: 'center', gap: '10px',
-                padding: '7px 8px', borderRadius: '5px', cursor: 'pointer',
+                padding: '8px 10px', borderRadius: '12px', cursor: 'pointer',
                 marginBottom: '2px', transition: 'background 0.1s',
               }}
               onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}

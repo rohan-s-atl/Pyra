@@ -306,6 +306,11 @@ export default function IncidentMap({
     })
   }, [selectedUnit, units, incidents])
 
+  useEffect(() => {
+    if (!focusedUnit?.id) return
+    setSelectedUnit(focusedUnit.id)
+  }, [focusedUnit?.id])
+
   return (
     <div style={{ position: 'absolute', inset: 0 }}>
       <MapContainer center={center} zoom={7} style={{ width: '100%', height: '100%' }} zoomControl={true}>
@@ -409,6 +414,8 @@ export default function IncidentMap({
           if (isNaN(lat) || isNaN(lon)) return null
           const color      = UNIT_STATUS_COLOR[unit.status] ?? '#3a4558'
           const isSelected = unit.id === selectedUnit
+          const isFocused  = unit.id === focusedUnit?.id
+          const isEmphasis = isSelected || isFocused
           return (
             <div key={unit.id}>
               {showLabels && (
@@ -416,12 +423,34 @@ export default function IncidentMap({
               )}
               <CircleMarker
                 center={[lat, lon]}
-                radius={isSelected ? 10 : 6}
+                radius={isEmphasis ? 18 : 12}
                 pathOptions={{
-                  color: isSelected ? '#ffffff' : color,
+                  color,
                   fillColor: color,
+                  fillOpacity: isEmphasis ? 0.12 : 0.08,
+                  opacity: 0,
+                  weight: 0,
+                }}
+              />
+              <CircleMarker
+                center={[lat, lon]}
+                radius={isEmphasis ? 11 : 8}
+                pathOptions={{
+                  color: isEmphasis ? `${color}` : 'rgba(255,255,255,0.18)',
+                  fillColor: color,
+                  fillOpacity: isEmphasis ? 0.26 : 0.16,
+                  opacity: isEmphasis ? 0.9 : 0.45,
+                  weight: isEmphasis ? 1.5 : 1,
+                }}
+              />
+              <CircleMarker
+                center={[lat, lon]}
+                radius={isEmphasis ? 6.5 : 5.2}
+                pathOptions={{
+                  color: isEmphasis ? '#f8fbff' : color,
+                  fillColor: isEmphasis ? '#f8fbff' : color,
                   fillOpacity: isSelected ? 1 : 0.85,
-                  weight: isSelected ? 2.5 : 1.5,
+                  weight: isEmphasis ? 2 : 1.4,
                 }}
                 eventHandlers={{ click: (e) => {
                   e.originalEvent.stopPropagation()
@@ -434,9 +463,9 @@ export default function IncidentMap({
                   <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', lineHeight: 1.5 }}>
                     <div style={{ fontWeight: 700, marginBottom: '2px', color }}>{UNIT_TYPE_SYMBOL[unit.unit_type]} {unit.designation}</div>
                     <div style={{ color, fontFamily: 'var(--font-mono)', fontSize: '10px', letterSpacing: '0.06em' }}>{unit.status.replace(/_/g, ' ').toUpperCase()}</div>
-                    {unit.status === 'returning' && <div style={{ color: '#5a6878', fontSize: '10px' }}>← RTB to station</div>}
+                    {unit.status === 'returning' && <div style={{ color: '#a7b5c7', fontSize: '10px' }}>← RTB to station</div>}
                     {unit.assigned_incident_id && unit.status !== 'returning' && (
-                      <div style={{ color: '#5a6878', fontSize: '10px' }}>
+                      <div style={{ color: '#a7b5c7', fontSize: '10px' }}>
                         → {incidents.find(i => i.id === unit.assigned_incident_id)?.name ?? unit.assigned_incident_id}
                       </div>
                     )}
@@ -509,7 +538,7 @@ export default function IncidentMap({
                 <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', lineHeight: 1.5 }}>
                   <div style={{ fontWeight: 700, marginBottom: '3px', color: fc.core }}>{inc.name}</div>
                   <div>{inc.acres_burned?.toLocaleString()} ac · <span style={{ color: fc.ring }}>{inc.severity?.toUpperCase()}</span></div>
-                  <div style={{ color: '#5a6878' }}>Wind: {inc.wind_speed_mph} mph · RH: {inc.humidity_percent}%</div>
+                  <div style={{ color: '#a7b5c7' }}>Wind: {inc.wind_speed_mph} mph · RH: {inc.humidity_percent}%</div>
                   <div>Containment: <span style={{ color: inc.containment_percent > 50 ? '#22c55e' : fc.core }}>{inc.containment_percent}%</span></div>
                 </div>
               </Tooltip>
@@ -527,7 +556,7 @@ export default function IncidentMap({
                 border: `1px solid ${followMode ? 'rgba(56,189,248,0.4)' : 'rgba(255,255,255,0.1)'}`,
                 borderRadius: '6px', padding: '7px 14px', cursor: 'pointer',
                 fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '10px',
-                color: followMode ? '#38bdf8' : '#5a6878',
+                color: followMode ? '#38bdf8' : '#c3d0df',
                 letterSpacing: '0.08em', display: 'flex', alignItems: 'center', gap: '7px',
                 transition: 'all 0.15s', backdropFilter: 'blur(12px)',
                 boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
@@ -535,7 +564,7 @@ export default function IncidentMap({
             >
               <div style={{
                 width: '6px', height: '6px', borderRadius: '50%',
-                background: followMode ? '#38bdf8' : '#3a4558',
+                background: followMode ? '#38bdf8' : '#66768b',
                 boxShadow: followMode ? '0 0 8px #38bdf8' : 'none',
                 animation: followMode ? 'status-blink 1.5s ease-in-out infinite' : 'none',
               }} />
@@ -545,17 +574,17 @@ export default function IncidentMap({
         )}
 
         {/* Map Legend */}
-        <div style={{
-          position: 'absolute', bottom: '28px', left: '14px', zIndex: 1000,
-          background: 'rgba(13,15,17,0.88)', border: '1px solid rgba(255,255,255,0.07)',
-          borderRadius: '8px', padding: '10px 12px',
+      <div style={{
+        position: 'absolute', bottom: '28px', left: '14px', zIndex: 1000,
+          background: 'rgba(20,26,36,0.92)', border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: '16px', padding: '10px 12px',
           display: 'flex', flexDirection: 'column', gap: '5px', pointerEvents: 'none',
-          backdropFilter: 'blur(12px)',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+          backdropFilter: 'blur(14px)',
+          boxShadow: '0 16px 36px rgba(0,0,0,0.4)',
         }}>
           {showFires && (
             <>
-              <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '8px', color: '#3a4558', letterSpacing: '0.12em', marginBottom: '2px' }}>FIRE SEVERITY</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '8px', color: '#8b9bb0', letterSpacing: '0.12em', marginBottom: '2px' }}>FIRE SEVERITY</div>
               {[
                 { sev: 'critical', color: '#ef4444' },
                 { sev: 'high',     color: '#ff4d1a' },
@@ -564,7 +593,7 @@ export default function IncidentMap({
               ].map(({ sev, color }) => (
                 <div key={sev} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: color, boxShadow: `0 0 5px ${color}60` }} />
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#5a6878', letterSpacing: '0.06em' }}>{sev.toUpperCase()}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#b7c4d4', letterSpacing: '0.06em' }}>{sev.toUpperCase()}</span>
                 </div>
               ))}
             </>
@@ -572,7 +601,7 @@ export default function IncidentMap({
           {showFires && showUnits && <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '3px 0' }} />}
           {showUnits && (
             <>
-              <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '8px', color: '#3a4558', letterSpacing: '0.12em', marginBottom: '2px' }}>UNIT STATUS</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '8px', color: '#8b9bb0', letterSpacing: '0.12em', marginBottom: '2px' }}>UNIT STATUS</div>
               {[
                 { status: 'available',      color: '#22c55e' },
                 { status: 'en route',       color: '#38bdf8' },
@@ -582,7 +611,7 @@ export default function IncidentMap({
               ].map(({ status, color }) => (
                 <div key={status} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: color }} />
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#5a6878', letterSpacing: '0.06em' }}>{status.toUpperCase()}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#b7c4d4', letterSpacing: '0.06em' }}>{status.toUpperCase()}</span>
                 </div>
               ))}
             </>
@@ -590,17 +619,17 @@ export default function IncidentMap({
           {unitRoutes.length > 0 && (
             <>
               <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '3px 0' }} />
-              <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '8px', color: '#3a4558', letterSpacing: '0.12em', marginBottom: '2px' }}>ROUTES</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '8px', color: '#8b9bb0', letterSpacing: '0.12em', marginBottom: '2px' }}>ROUTES</div>
               {[{ status: 'FASTEST', color: '#22c55e' }, { status: 'CAUTION', color: '#eab308' }, { status: 'AVOID', color: '#ef4444' }].map(({ status, color }) => (
                 <div key={status} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '14px', height: '2px', background: color, borderRadius: '1px' }} />
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#5a6878', letterSpacing: '0.06em' }}>{status}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#b7c4d4', letterSpacing: '0.06em' }}>{status}</span>
                 </div>
               ))}
             </>
           )}
           {!showLabels && showUnits && (
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '8.5px', color: '#3a4558', marginTop: '2px' }}>Zoom in for callsigns</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '8.5px', color: '#8b9bb0', marginTop: '2px' }}>Zoom in for callsigns</div>
           )}
         </div>
       </MapContainer>

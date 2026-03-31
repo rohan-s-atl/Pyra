@@ -57,6 +57,7 @@ const UNIT_CAPACITY = {
 }
 const STATUS_FILTERS = [
   { key: 'all', label: 'ALL' },
+  { key: 'available', label: 'AVAIL' },
   { key: 'on_scene', label: 'SCENE' },
   { key: 'en_route', label: 'ROUTE' },
   { key: 'returning', label: 'RTB' },
@@ -105,11 +106,11 @@ function UnitLoadoutTooltip({ unit, loadout, rect }) {
       right: window.innerWidth - rect.left + 10,
       transform: 'translateY(-50%)',
       width: '236px', zIndex: 99999,
-      background: 'rgba(11,15,20,0.9)',
-      border: '1px solid rgba(255,255,255,0.12)',
-      borderRadius: '14px', padding: '12px 14px',
+      background: 'rgba(20,26,36,0.94)',
+      border: '1px solid rgba(255,255,255,0.1)',
+      borderRadius: '16px', padding: '12px 14px',
       boxShadow: '0 18px 48px rgba(0,0,0,0.55)',
-      pointerEvents: 'none', backdropFilter: 'blur(16px)',
+      pointerEvents: 'none', backdropFilter: 'blur(14px)',
     }}>
       <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '9px', color: '#ff4d1a', letterSpacing: '0.1em', marginBottom: '9px' }}>
         ⬡ CONFIRMED LOADOUT · {unit.designation}
@@ -163,7 +164,7 @@ function UnitLoadoutTooltip({ unit, loadout, rect }) {
   )
 }
 
-function RightPanelUnitCard({ unit, confirmedLoadouts, onUnitClick }) {
+function RightPanelUnitCard({ unit, confirmedLoadouts, onUnitClick, focused, incidentName }) {
   const [tooltipRect, setTooltipRect] = useState(null)
   const loadout = confirmedLoadouts?.[unit.id] ?? null
   const cap = UNIT_CAPACITY[unit.unit_type] ?? {}
@@ -176,19 +177,20 @@ function RightPanelUnitCard({ unit, confirmedLoadouts, onUnitClick }) {
         style={{
           display: 'flex', alignItems: 'center', gap: '8px',
           padding: '8px 9px', marginBottom: '5px',
-          background: 'rgba(255,255,255,0.03)',
-          borderRadius: '11px',
-          border: `1px solid ${loadout ? 'rgba(255,77,26,0.22)' : 'rgba(255,255,255,0.08)'}`,
+          background: focused ? 'rgba(56,189,248,0.12)' : 'rgba(255,255,255,0.05)',
+          borderRadius: '14px',
+          border: `1px solid ${focused ? 'rgba(56,189,248,0.28)' : loadout ? 'rgba(255,77,26,0.22)' : 'rgba(255,255,255,0.08)'}`,
           cursor: 'pointer', transition: 'all 0.12s',
+          boxShadow: focused ? '0 12px 24px rgba(56,189,248,0.16)' : 'none',
         }}
         onMouseEnter={e => {
-          e.currentTarget.style.borderColor = loadout ? 'rgba(255,77,26,0.45)' : 'rgba(255,255,255,0.16)'
-          e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+          e.currentTarget.style.borderColor = focused ? 'rgba(56,189,248,0.38)' : loadout ? 'rgba(255,77,26,0.45)' : 'rgba(255,255,255,0.16)'
+          e.currentTarget.style.background = focused ? 'rgba(56,189,248,0.15)' : 'rgba(255,255,255,0.07)'
           if (loadout) setTooltipRect(e.currentTarget.getBoundingClientRect())
         }}
         onMouseLeave={e => {
-          e.currentTarget.style.borderColor = loadout ? 'rgba(255,77,26,0.22)' : 'rgba(255,255,255,0.08)'
-          e.currentTarget.style.background = 'rgba(255,255,255,0.03)'
+          e.currentTarget.style.borderColor = focused ? 'rgba(56,189,248,0.28)' : loadout ? 'rgba(255,77,26,0.22)' : 'rgba(255,255,255,0.08)'
+          e.currentTarget.style.background = focused ? 'rgba(56,189,248,0.12)' : 'rgba(255,255,255,0.05)'
           setTooltipRect(null)
         }}
       >
@@ -211,12 +213,17 @@ function RightPanelUnitCard({ unit, confirmedLoadouts, onUnitClick }) {
             )}
           </div>
           <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#7a8ba0', marginTop: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {loadout
+            {incidentName
+              ? `${incidentName} · ${loadout ? `${(loadout.equipment ?? []).length} items` : UNIT_CAPABILITIES[unit.unit_type]?.note ?? ''}`
+              : loadout
               ? `${(loadout.equipment ?? []).length} items · hover for loadout`
               : UNIT_CAPABILITIES[unit.unit_type]?.note ?? ''}
           </div>
         </div>
-        <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: STATUS_COLOR[unit.status] ?? '#3a4558', flexShrink: 0 }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+          {focused && <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#38bdf8', boxShadow: '0 0 10px #38bdf8' }} />}
+          <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: STATUS_COLOR[unit.status] ?? '#3a4558' }} />
+        </div>
       </div>
     </>
   )
@@ -399,7 +406,7 @@ function AlertRecommendationPanel({ alert, recData, recLoading, units, incidents
   )
 }
 
-export default function RightPanel({ alerts, units, incidents = [], selectedIncidentId, onUnitClick, onAlertsChanged, confirmedLoadouts = {} }) {
+export default function RightPanel({ alerts, units, incidents = [], selectedIncidentId, onUnitClick, onAlertsChanged, confirmedLoadouts = {}, focusedUnitId = null }) {
   const [activeAlertId, setActiveAlertId] = useState(null)
   const [triageCache, setTriageCache] = useState({})
   const [unitFilter, setUnitFilter] = useState('all')
@@ -407,7 +414,7 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
   const [recLoading, setRecLoading] = useState(false)
   const [showResolved, setShowResolved] = useState(false)
   const [pinnedIds, setPinnedIds] = useState(new Set())
-  const [collapsed, setCollapsed] = useState(true)
+  const [collapsed, setCollapsed] = useState(false)
   const feedRef = useRef(null)
 
   async function handleAlertClick(alert) {
@@ -481,12 +488,16 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
 
   const selectedAlert = filteredAlerts.find(a => a.id === activeAlertId) ?? null
 
-  const engagedUnits = units.filter(
-    u => u.assigned_incident_id && (!selectedIncidentId || u.assigned_incident_id === selectedIncidentId) && ['on_scene', 'en_route', 'returning'].includes(u.status)
+  const systemUnits = units.filter(
+    u => ['available', 'en_route', 'on_scene', 'returning'].includes(u.status)
   )
-  const filteredUnits = engagedUnits
+  const filteredUnits = systemUnits
     .filter(u => unitFilter === 'all' || u.status === unitFilter)
     .sort((a, b) => {
+      const statusOrder = { on_scene: 0, en_route: 1, returning: 2, available: 3 }
+      const sa = statusOrder[a.status] ?? 9
+      const sb = statusOrder[b.status] ?? 9
+      if (sa !== sb) return sa - sb
       const ga = UNIT_TYPE_ORDER[a.unit_type] ?? 99
       const gb = UNIT_TYPE_ORDER[b.unit_type] ?? 99
       return ga !== gb ? ga - gb : (a.designation ?? '').localeCompare(b.designation ?? '')
@@ -522,11 +533,11 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
         </button>
         <div style={{ width: '100%', textAlign: 'center' }}>
           <div style={{ color: '#ef4444', fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 700 }}>{unacked.length}</div>
-          <div style={{ color: '#7a8ba0', fontFamily: 'var(--font-mono)', fontSize: '8px', letterSpacing: '0.08em' }}>ACTIVE</div>
+          <div style={{ color: '#a7b5c7', fontFamily: 'var(--font-mono)', fontSize: '8px', letterSpacing: '0.08em' }}>ACTIVE</div>
         </div>
         <div style={{ width: '100%', textAlign: 'center' }}>
-          <div style={{ color: '#38bdf8', fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 700 }}>{activityFeed.length}</div>
-          <div style={{ color: '#7a8ba0', fontFamily: 'var(--font-mono)', fontSize: '8px', letterSpacing: '0.08em' }}>FEED</div>
+          <div style={{ color: '#38bdf8', fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 700 }}>{filteredUnits.length}</div>
+          <div style={{ color: '#a7b5c7', fontFamily: 'var(--font-mono)', fontSize: '8px', letterSpacing: '0.08em' }}>UNITS</div>
         </div>
       </div>
     )
@@ -549,7 +560,7 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
       <div style={{ padding: '12px 13px 10px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', gap: '8px' }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '10px', color: '#d4dce8', letterSpacing: '0.1em' }}>ACTIVITY FEED</div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '8px', color: '#7a8ba0', letterSpacing: '0.08em', marginTop: '2px' }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '8px', color: '#a7b5c7', letterSpacing: '0.08em', marginTop: '2px' }}>
             ALERTS + TIMELINE STREAM
           </div>
         </div>
@@ -566,7 +577,7 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
             width: '30px', height: '30px', borderRadius: '9px',
             border: '1px solid rgba(255,255,255,0.14)',
             background: 'rgba(255,255,255,0.06)',
-            cursor: 'pointer', color: '#9baac0', fontSize: '15px',
+            cursor: 'pointer', color: '#c3d0df', fontSize: '15px',
           }}
         >
           ×
@@ -580,7 +591,7 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
             borderRadius: '999px',
             border: `1px solid ${showResolved ? 'rgba(34,197,94,0.35)' : 'rgba(255,255,255,0.12)'}`,
             background: showResolved ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.05)',
-            color: showResolved ? '#22c55e' : '#9baac0',
+            color: showResolved ? '#22c55e' : '#c3d0df',
             fontFamily: 'var(--font-mono)', fontSize: '8px', letterSpacing: '0.06em',
             padding: '4px 9px', cursor: 'pointer',
           }}
@@ -610,7 +621,7 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
         {activityFeed.length === 0 && (
           <div style={{ padding: '18px', textAlign: 'center' }}>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: '18px', color: '#22c55e', opacity: 0.4, marginBottom: '5px' }}>✓</div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#7a8ba0', letterSpacing: '0.1em' }}>NO ACTIVE EVENTS</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#a7b5c7', letterSpacing: '0.1em' }}>NO ACTIVE EVENTS</div>
           </div>
         )}
 
@@ -648,7 +659,7 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
                   }}>
                     {badgeText}
                   </span>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '8px', color: '#7a8ba0', letterSpacing: '0.04em' }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '8px', color: '#a7b5c7', letterSpacing: '0.04em' }}>
                     {event.time}
                   </span>
                   {isAlert && (
@@ -671,7 +682,7 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
                       marginLeft: isAlert ? 0 : 'auto',
                       background: 'none',
                       border: 'none',
-                      color: isPinned ? '#ff4d1a' : '#7a8ba0',
+                      color: isPinned ? '#ff4d1a' : '#a7b5c7',
                       cursor: 'pointer',
                       fontSize: '10px',
                       lineHeight: 1,
@@ -684,7 +695,7 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
                 <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '12px', color: '#d4dce8', lineHeight: 1.3, marginBottom: '3px' }}>
                   {event.title}
                 </div>
-                <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#9baac0', lineHeight: 1.45 }}>
+                <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#c7d2df', lineHeight: 1.45 }}>
                   {event.subtitle}
                 </div>
                 {triage && (
@@ -702,7 +713,7 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
                   </div>
                 )}
                 {isAlert && event.expires_at && (
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '8px', color: '#7a8ba0', marginTop: '5px', letterSpacing: '0.04em' }}>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '8px', color: '#a7b5c7', marginTop: '5px', letterSpacing: '0.04em' }}>
                     EXP {new Date(event.expires_at).toLocaleTimeString()}
                   </div>
                 )}
@@ -734,7 +745,7 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
 
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', padding: '10px 12px 8px' }}>
         <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '9px', color: '#d4dce8', letterSpacing: '0.1em', marginBottom: '7px' }}>
-          INCIDENT UNITS · {filteredUnits.length}
+          SYSTEM UNITS · {filteredUnits.length}
         </div>
         <div style={{ display: 'flex', gap: '4px', marginBottom: '8px' }}>
           {STATUS_FILTERS.map(f => (
@@ -747,7 +758,7 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
                 border: `1px solid ${unitFilter === f.key ? 'rgba(56,189,248,0.3)' : 'rgba(255,255,255,0.1)'}`,
                 borderRadius: '999px', cursor: 'pointer',
                 fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '8px',
-                color: unitFilter === f.key ? '#7dd3fc' : '#9baac0',
+                color: unitFilter === f.key ? '#7dd3fc' : '#c3d0df',
                 letterSpacing: '0.05em',
               }}
             >
@@ -757,10 +768,17 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
         </div>
         <div style={{ maxHeight: '180px', overflowY: 'auto' }}>
           {filteredUnits.length === 0 ? (
-            <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#7a8ba0', padding: '8px 4px' }}>No active incident units</div>
+            <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#a7b5c7', padding: '8px 4px' }}>No units match this filter</div>
           ) : (
             filteredUnits.map(unit => (
-              <RightPanelUnitCard key={unit.id} unit={unit} confirmedLoadouts={confirmedLoadouts} onUnitClick={onUnitClick} />
+              <RightPanelUnitCard
+                key={unit.id}
+                unit={unit}
+                confirmedLoadouts={confirmedLoadouts}
+                onUnitClick={onUnitClick}
+                focused={focusedUnitId === unit.id}
+                incidentName={incidents.find(i => i.id === unit.assigned_incident_id)?.name ?? (unit.status === 'available' ? 'Available system-wide' : 'Unassigned')}
+              />
             ))
           )}
         </div>

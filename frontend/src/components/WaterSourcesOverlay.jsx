@@ -21,10 +21,12 @@ export function WaterSourceLegend({ visible, summary }) {
   return (
     <div style={{
       position: 'absolute', bottom: '24px', right: '48px', zIndex: 1000,
-      background: 'rgba(21,20,25,0.9)', border: '1px solid #262626',
-      borderRadius: '3px', padding: '8px 12px', minWidth: '140px',
+      background: 'rgba(22,28,38,0.94)', border: '1px solid rgba(255,255,255,0.1)',
+      borderRadius: '14px', padding: '10px 12px', minWidth: '160px',
       pointerEvents: 'none',
       fontFamily: 'Inter, sans-serif',
+      backdropFilter: 'blur(14px)',
+      boxShadow: '0 16px 36px rgba(0,0,0,0.4)',
     }}>
       <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '9px', color: '#878787', letterSpacing: '0.06em', marginBottom: '5px' }}>
         WATER SOURCES
@@ -39,7 +41,7 @@ export function WaterSourceLegend({ visible, summary }) {
         </div>
       ))}
       {summary && (
-        <div style={{ marginTop: '5px', borderTop: '1px solid #262626', paddingTop: '5px', fontSize: '9px', color: '#878787' }}>
+        <div style={{ marginTop: '5px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '5px', fontSize: '9px', color: '#878787' }}>
           {summary.total_sources} sources · {summary.hydrants} hydrants
         </div>
       )}
@@ -153,7 +155,7 @@ export default function WaterSourcesOverlay({ selectedIncident, visible, onStatu
                 <div style={{ fontWeight: 700, color: cfg.color, marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '5px' }}>
                   {cfg.icon} {cfg.label}
                   {osm_type && osm_type !== 'node' && (
-                    <span style={{ fontSize: '9px', color: '#555', fontWeight: 400, background: '#222', borderRadius: '2px', padding: '1px 4px' }}>
+                    <span style={{ fontSize: '9px', color: '#7a8ba0', fontWeight: 400, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '999px', padding: '2px 6px' }}>
                       OSM {osm_type}
                     </span>
                   )}
@@ -168,7 +170,7 @@ export default function WaterSourcesOverlay({ selectedIncident, visible, onStatu
                   Fill rate: <span style={{ color: '#60a5fa' }}>{fill_rate_gpm} gal/min</span>
                 </div>
                 {assigned.length > 0 && (
-                  <div style={{ marginTop: '5px', borderTop: '1px solid #333', paddingTop: '5px' }}>
+                  <div style={{ marginTop: '5px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '5px' }}>
                     <div style={{ fontSize: '10px', color: '#60a5fa', fontWeight: 600, marginBottom: '3px' }}>
                       ASSIGNED UNITS
                     </div>

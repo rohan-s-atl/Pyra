@@ -67,8 +67,9 @@ function UnitLoadoutCard({ unit, loadout, aiLoadout, isAiApplied, onUpdate, onAp
 
   return (
     <div style={{
-      background: 'var(--surface)', border: '1px solid #2a2a2e',
-      borderRadius: '4px', padding: '12px 14px', marginBottom: '8px',
+      background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+      borderRadius: '16px', padding: '14px 15px', marginBottom: '10px',
+      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)',
     }}>
       {/* Unit header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
@@ -88,7 +89,7 @@ function UnitLoadoutCard({ unit, loadout, aiLoadout, isAiApplied, onUpdate, onAp
             style={{
               background: aiApplied ? 'rgba(245,110,15,0.15)' : 'rgba(245,110,15,0.08)',
               border: `1px solid ${aiApplied ? '#ff4d1a' : '#ff4d1a44'}`,
-              borderRadius: '3px', padding: '3px 8px', cursor: 'pointer',
+              borderRadius: '10px', padding: '4px 9px', cursor: 'pointer',
               fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '9px',
               color: aiApplied ? '#ff4d1a' : '#ff4d1aaa', letterSpacing: '0.04em',
             }}
@@ -129,7 +130,7 @@ function UnitLoadoutCard({ unit, loadout, aiLoadout, isAiApplied, onUpdate, onAp
       <div style={{
         background: aiLoadout?.rationale ? 'rgba(245,110,15,0.08)' : '#1B1B1E',
         border: `1px solid ${aiLoadout?.rationale ? '#ff4d1a33' : 'rgba(255,255,255,0.07)'}`,
-        borderRadius: '3px', padding: '8px 10px', marginBottom: '10px',
+        borderRadius: '12px', padding: '8px 10px', marginBottom: '10px',
       }}>
         <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '9px', color: '#ff4d1a', letterSpacing: '0.06em', marginBottom: '4px' }}>
           ⬡ AI RECOMMENDATION
@@ -160,7 +161,7 @@ function UnitLoadoutCard({ unit, loadout, aiLoadout, isAiApplied, onUpdate, onAp
                   }}
                   style={{
                     display: 'flex', alignItems: 'flex-start', gap: '8px',
-                    padding: '6px 8px', borderRadius: '3px', cursor: 'pointer',
+                    padding: '7px 9px', borderRadius: '10px', cursor: 'pointer',
                     border: `1px solid ${borderColor}`,
                     background: checked ? 'rgba(74,222,128,0.06)' : aiRecommends ? 'rgba(245,110,15,0.04)' : 'transparent',
                     transition: 'all 0.1s',
@@ -303,19 +304,31 @@ export default function LoadoutConfigurator({ incident, selectedUnits, units, on
   const finalLoadouts = selectedUnitObjects.map(getLoadout)
 
   return (
-    <div style={{
-      position: 'absolute', top: 0, right: 0, bottom: 0, width: 'min(420px, 100vw)',
-      background: 'var(--bg)', borderLeft: '1px solid #262626',
-      display: 'flex', flexDirection: 'column', zIndex: 1100,
-      animation: 'slideInRight 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+      <div style={{
+      position: 'fixed', inset: 0, zIndex: 5300,
+      background: 'rgba(5,8,12,0.68)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      backdropFilter: 'blur(10px)',
+    }} onClick={e => { if (e.target === e.currentTarget) onBack?.() }}>
+      <div style={{
+      width: 'min(760px, calc(100vw - 40px))',
+      height: 'min(760px, calc(100vh - 56px))',
+      background: 'rgba(20,26,36,0.97)', border: '1px solid rgba(255,255,255,0.1)',
+      borderRadius: '22px',
+      display: 'flex', flexDirection: 'column',
+      zIndex: 1100,
+      animation: 'slideInUp 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+      boxShadow: '0 30px 70px rgba(0,0,0,0.55)',
+      overflow: 'hidden',
+      backdropFilter: 'blur(16px)',
     }}>
 
       {/* Header */}
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid #262626', flexShrink: 0 }}>
+      <div style={{ padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
           <button
             onClick={onBack}
-            style={{ background: 'none', border: 'none', color: '#5a6878', cursor: 'pointer', fontSize: '14px', padding: '2px 6px 2px 0' }}
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#7a8ba0', cursor: 'pointer', fontSize: '14px', padding: '6px 10px', borderRadius: '10px' }}
           >
             ←
           </button>
@@ -372,7 +385,7 @@ export default function LoadoutConfigurator({ incident, selectedUnits, units, on
       </div>
 
       {/* Scrollable unit cards */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 18px' }}>
         {selectedUnitObjects.map(unit => {
           const loadout   = getLoadout(unit)
           const aiLoadout = findAiLoadout(unit)
@@ -419,15 +432,16 @@ export default function LoadoutConfigurator({ incident, selectedUnits, units, on
       </div>
 
       {/* Confirm footer */}
-      <div style={{ padding: '12px 16px', borderTop: '1px solid #262626', flexShrink: 0 }}>
+      <div style={{ padding: '14px 18px 18px', borderTop: '1px solid rgba(255,255,255,0.08)', flexShrink: 0, background: 'rgba(255,255,255,0.03)' }}>
         <button
           onClick={() => onConfirm(finalLoadouts)}
           style={{
             width: '100%', padding: '12px',
-            background: '#ff4d1a', border: 'none', borderRadius: '3px',
+            background: '#ff4d1a', border: 'none', borderRadius: '14px',
             cursor: 'pointer', fontFamily: 'var(--font-sans)',
             fontWeight: 700, fontSize: '13px', color: '#d4dce8',
             letterSpacing: '0.03em',
+            boxShadow: '0 14px 28px rgba(255,77,26,0.28)',
           }}
         >
           CONFIRM LOADOUT & DISPATCH {selectedUnitObjects.length} UNIT{selectedUnitObjects.length !== 1 ? 'S' : ''}
@@ -436,14 +450,15 @@ export default function LoadoutConfigurator({ incident, selectedUnits, units, on
           onClick={onBack}
           style={{
             width: '100%', padding: '9px', marginTop: '6px',
-            background: 'transparent', border: '1px solid #333',
-            borderRadius: '3px', cursor: 'pointer',
+            background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '12px', cursor: 'pointer',
             fontFamily: 'var(--font-sans)', fontSize: '12px', color: '#5a6878',
           }}
         >
           ← BACK TO UNIT SELECTION
         </button>
       </div>
+      </div>
     </div>
-  )
+  , document.body)
 }

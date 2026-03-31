@@ -272,156 +272,146 @@ export default function App() {
     <AuthContext.Provider value={{ ...auth, logout: handleLogout }}>
       <div 
         style={{ 
+          position: 'relative',
           height: '100vh',
           width: '100vw',
           minHeight: '100vh',
           minWidth: '100vw',
           background: 'radial-gradient(1200px 720px at 50% -180px, rgba(56,189,248,0.08), transparent 58%), radial-gradient(900px 600px at 0% 100%, rgba(255,77,26,0.06), transparent 65%), #090d14',
-          display: 'flex', 
-          flexDirection: 'column', 
           overflow: 'hidden',
           '--ui-scale': uiScale,
         }}
       >
+        <div style={{ position: 'absolute', inset: 0 }}>
+          <IncidentMap
+            incidents={incidents}
+            units={units}
+            selectedId={selectedId}
+            onSelect={handleSelectIncident}
+            mapView={activeView}
+            focusedUnit={focusedUnit}
+            focusedIncident={focusedIncident}
+            unitRoutes={unitRoutes}
+            selectedIncident={selectedIncident}
+            showEvacZones={showEvacZones}
+            evacZonesData={evacZonesData}
+            activeEvacZones={activeEvacZones}
+            showFireGrowth={showFireGrowth}
+            fireGrowthTimeMode={fireGrowthTimeMode}
+            showPerimeters={showPerimeters}
+            showHeatmap={showHeatmap}
+            showCommand={showCommand}
+            showSatellite={showSatellite}
+            showWaterSources={showWaterSources}
+            onWaterSourceStatus={setWaterSourceStatus}
+          />
+        </div>
 
-        <TopBar
-          incidents={incidents}
-          units={units}
-          showEvacZones={showEvacZones}
-          onToggleEvacZones={() => setShowEvacZones(v => !v)}
-          showFireGrowth={showFireGrowth}
-          onToggleFireGrowth={() => setShowFireGrowth(v => !v)}
-          showPerimeters={showPerimeters}
-          onTogglePerimeters={() => setShowPerimeters(v => !v)}
-          showHeatmap={showHeatmap}
-          onToggleHeatmap={() => setShowHeatmap(v => !v)}
-          showCommand={showCommand}
-          onToggleCommand={() => setShowCommand(v => !v)}
-          showSatellite={showSatellite}
-          onToggleSatellite={() => setShowSatellite(v => !v)}
-          showWeather={showWeather}
-          onToggleWeather={() => setShowWeather(v => !v)}
-          showWaterSources={showWaterSources}
-          onToggleWaterSources={() => { setShowWaterSources(v => !v); setWaterSourceStatus(null) }}
-          auth={auth}
-          onLogout={handleLogout}
-          onToggleAudit={() => setShowAudit(v => !v)}
-          onToggleSettings={() => setShowSettings(v => !v)}
-        />
+        <div style={{ position: 'absolute', inset: 0, zIndex: 1200 }}>
+          <TopBar
+            incidents={incidents}
+            units={units}
+            showEvacZones={showEvacZones}
+            onToggleEvacZones={() => setShowEvacZones(v => !v)}
+            showFireGrowth={showFireGrowth}
+            onToggleFireGrowth={() => setShowFireGrowth(v => !v)}
+            showPerimeters={showPerimeters}
+            onTogglePerimeters={() => setShowPerimeters(v => !v)}
+            showHeatmap={showHeatmap}
+            onToggleHeatmap={() => setShowHeatmap(v => !v)}
+            showCommand={showCommand}
+            onToggleCommand={() => setShowCommand(v => !v)}
+            showSatellite={showSatellite}
+            onToggleSatellite={() => setShowSatellite(v => !v)}
+            showWeather={showWeather}
+            onToggleWeather={() => setShowWeather(v => !v)}
+            showWaterSources={showWaterSources}
+            onToggleWaterSources={() => { setShowWaterSources(v => !v); setWaterSourceStatus(null) }}
+            auth={auth}
+            onLogout={handleLogout}
+            onToggleAudit={() => setShowAudit(v => !v)}
+            onToggleSettings={() => setShowSettings(v => !v)}
+          />
 
-        <div style={{ flex: 1, minHeight: 0, padding: '8px' }}>
-          <div style={{
-            position: 'relative',
-            width: '100%',
-            height: '100%',
-            borderRadius: '22px',
-            overflow: 'hidden',
-            border: '1px solid rgba(255,255,255,0.08)',
-            boxShadow: '0 26px 72px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.04)',
-            background: 'var(--surface)',
-          }}>
-            <IncidentMap
-              incidents={incidents}
-              units={units}
-              selectedId={selectedId}
-              onSelect={handleSelectIncident}
-              mapView={activeView}
-              focusedUnit={focusedUnit}
-              focusedIncident={focusedIncident}
-              unitRoutes={unitRoutes}
-              selectedIncident={selectedIncident}
-              showEvacZones={showEvacZones}
-              evacZonesData={evacZonesData}
-              activeEvacZones={activeEvacZones}
-              showFireGrowth={showFireGrowth}
-              fireGrowthTimeMode={fireGrowthTimeMode}
-              showPerimeters={showPerimeters}
-              showHeatmap={showHeatmap}
-              showCommand={showCommand}
-              showSatellite={showSatellite}
-              showWaterSources={showWaterSources}
-              onWaterSourceStatus={setWaterSourceStatus}
+          {showEvacZones && (
+            <EvacZonesPanel
+              data={evacZonesData}
+              visible={showEvacZones}
+              loading={evacZonesLoading}
+              onClose={() => setShowEvacZones(false)}
+              onExport={(data, zones) => exportEvacZones(data, zones)}
+              activeZones={activeEvacZones}
+              onToggleZone={ztype => setActiveEvacZones(prev => ({ ...prev, [ztype]: !prev[ztype] }))}
             />
+          )}
 
-            {showEvacZones && (
-              <EvacZonesPanel
-                data={evacZonesData}
-                visible={showEvacZones}
-                loading={evacZonesLoading}
-                onClose={() => setShowEvacZones(false)}
-                onExport={(data, zones) => exportEvacZones(data, zones)}
-                activeZones={activeEvacZones}
-                onToggleZone={ztype => setActiveEvacZones(prev => ({ ...prev, [ztype]: !prev[ztype] }))}
-              />
-            )}
+          {showFireGrowth && (
+            <FireGrowthLegend
+              data={fireGrowthData}
+              visible={showFireGrowth}
+              onClose={() => setShowFireGrowth(false)}
+              timeMode={fireGrowthTimeMode}
+              onTimeModeChange={setFireGrowthTimeMode}
+            />
+          )}
 
-            {showFireGrowth && (
-              <FireGrowthLegend
-                data={fireGrowthData}
-                visible={showFireGrowth}
-                onClose={() => setShowFireGrowth(false)}
-                timeMode={fireGrowthTimeMode}
-                onTimeModeChange={setFireGrowthTimeMode}
-              />
-            )}
+          {showWaterSources && waterSourceStatus && (waterSourceStatus.loading || waterSourceStatus.noResults) && (
+            <div style={{
+              position: 'absolute', top: '88px', left: '50%', transform: 'translateX(-50%)',
+              zIndex: 1000, pointerEvents: 'none',
+              background: 'rgba(24,30,40,0.92)', border: '1px solid rgba(56,189,248,0.22)',
+              borderRadius: '999px', padding: '6px 16px',
+              fontFamily: 'var(--font-mono)', fontSize: '10px', letterSpacing: '0.07em',
+              color: waterSourceStatus.loading ? '#38bdf8' : '#7a8ba0',
+              backdropFilter: 'blur(14px)', whiteSpace: 'nowrap',
+              boxShadow: '0 8px 18px rgba(0,0,0,0.35)',
+            }}>
+              {waterSourceStatus.loading ? '◎ SEARCHING WATER SOURCES…' : '◎ NO WATER SOURCES WITHIN 8 KM'}
+            </div>
+          )}
 
-            {showWaterSources && waterSourceStatus && (waterSourceStatus.loading || waterSourceStatus.noResults) && (
-              <div style={{
-                position: 'absolute', top: '18px', left: '50%', transform: 'translateX(-50%)',
-                zIndex: 1000, pointerEvents: 'none',
-                background: 'rgba(24,30,40,0.92)', border: '1px solid rgba(56,189,248,0.22)',
-                borderRadius: '999px', padding: '6px 16px',
-                fontFamily: 'var(--font-mono)', fontSize: '10px', letterSpacing: '0.07em',
-                color: waterSourceStatus.loading ? '#38bdf8' : '#7a8ba0',
-                backdropFilter: 'blur(14px)', whiteSpace: 'nowrap',
-                boxShadow: '0 8px 18px rgba(0,0,0,0.35)',
-              }}>
-                {waterSourceStatus.loading ? '◎ SEARCHING WATER SOURCES…' : '◎ NO WATER SOURCES WITHIN 8 KM'}
-              </div>
-            )}
-
-            {showLeftSidebar && (
-              <div style={{ position: 'absolute', top: '16px', left: '16px', bottom: '16px', zIndex: 1300 }}>
-                <LeftSidebar
-                  units={units}
-                  activeView={activeView}
-                  onViewChange={setActiveView}
-                  selectedIncidentId={selectedId}
-                  onUnitClick={handleUnitClick}
-                  confirmedLoadouts={confirmedLoadouts}
-                />
-              </div>
-            )}
-
-            {showRightPanel && (
-              <div style={{ position: 'absolute', top: '16px', right: '16px', bottom: '16px', zIndex: 1300 }}>
-                <RightPanel
-                  alerts={alerts}
-                  units={units}
-                  incidents={incidents}
-                  selectedIncidentId={selectedId}
-                  onUnitClick={handleUnitClick}
-                  onAlertsChanged={refreshAlertsDebounced}
-                  confirmedLoadouts={confirmedLoadouts}
-                />
-              </div>
-            )}
-
-            {detailOpen && selectedIncident && (
-              <IncidentDetailPanel
-                incident={selectedIncident}
+          {showLeftSidebar && (
+            <div style={{ position: 'absolute', top: '86px', left: '12px', bottom: '12px', zIndex: 1300 }}>
+              <LeftSidebar
                 units={units}
-                allIncidents={incidents}
-                onClose={() => { setDetailOpen(false); setUnitRoutes([]) }}
-                onDispatchSuccess={handleDispatchSuccess}
-                onUnitRoutesChange={setUnitRoutes}
-                onPreviewUnits={() => {}}
+                activeView={activeView}
+                onViewChange={setActiveView}
+                selectedIncidentId={selectedId}
                 onUnitClick={handleUnitClick}
-                onConfirmLoadouts={handleConfirmLoadouts}
-                rightOffset={(showCommand ? 160 : 0) + (showRightPanel ? 380 : 0)}
+                confirmedLoadouts={confirmedLoadouts}
               />
-            )}
-          </div>
+            </div>
+          )}
+
+          {showRightPanel && (
+            <div style={{ position: 'absolute', top: '86px', right: '12px', bottom: '12px', zIndex: 1300 }}>
+              <RightPanel
+                alerts={alerts}
+                units={units}
+                incidents={incidents}
+                selectedIncidentId={selectedId}
+                onUnitClick={handleUnitClick}
+                onAlertsChanged={refreshAlertsDebounced}
+                confirmedLoadouts={confirmedLoadouts}
+                focusedUnitId={focusedUnit?.id ?? null}
+              />
+            </div>
+          )}
+
+          {detailOpen && selectedIncident && (
+            <IncidentDetailPanel
+              incident={selectedIncident}
+              units={units}
+              allIncidents={incidents}
+              onClose={() => { setDetailOpen(false); setUnitRoutes([]) }}
+              onDispatchSuccess={handleDispatchSuccess}
+              onUnitRoutesChange={setUnitRoutes}
+              onPreviewUnits={() => {}}
+              onUnitClick={handleUnitClick}
+              onConfirmLoadouts={handleConfirmLoadouts}
+              rightOffset={(showCommand ? 160 : 0) + (showRightPanel ? 380 : 0)}
+            />
+          )}
         </div>
 
         {showAudit && <AuditLogPanel onClose={() => setShowAudit(false)} />}

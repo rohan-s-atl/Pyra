@@ -70,7 +70,7 @@ export default function TopBar({
     { label: 'DEPLOYED',    value: `${assignedUnits.length}/${units.length}`, color: '#f59e0b' },
     { label: 'CONTAIN',     value: `${avgContainment}%`,               color: avgContainment > 50 ? '#22c55e' : avgContainment > 20 ? '#f59e0b' : '#ef4444' },
     { label: 'RH',          value: `${minHumidity}%`,                  color: minHumidity < 15 ? '#ef4444' : '#d4dce8' },
-    { label: 'AQI',         value: maxAqi > 0 ? maxAqi : '—',          color: maxAqi >= 151 ? '#ef4444' : maxAqi >= 101 ? '#f59e0b' : maxAqi >= 51 ? '#facc15' : maxAqi > 0 ? '#22c55e' : '#3a4558' },
+    { label: 'AQI',         value: maxAqi > 0 ? maxAqi : '—',          color: maxAqi >= 151 ? '#ef4444' : maxAqi >= 101 ? '#f59e0b' : maxAqi >= 51 ? '#facc15' : maxAqi > 0 ? '#22c55e' : '#8b9bb0' },
     { label: 'THREAT',      value: threatLevel.toUpperCase(),           color: THREAT_COLOR[threatLevel] },
   ]
 
@@ -84,7 +84,7 @@ export default function TopBar({
     { label: 'WATER SOURCES',  active: showWaterSources, onClick: onToggleWaterSources, dot: '#38bdf8' },
   ]
 
-  const roleColor = auth?.role === 'commander' ? '#ff4d1a' : auth?.role === 'dispatcher' ? '#38bdf8' : '#5a6878'
+  const roleColor = auth?.role === 'commander' ? '#ff4d1a' : auth?.role === 'dispatcher' ? '#38bdf8' : '#8b9bb0'
 
   const S = {
     bar: {
@@ -125,7 +125,7 @@ export default function TopBar({
           <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '14px', color: '#edf2f7', letterSpacing: '0.05em', lineHeight: 1 }}>
             PYRA
           </div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 500, fontSize: '9px', color: '#3a4558', letterSpacing: '0.1em', lineHeight: 1, marginTop: '2px' }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 500, fontSize: '9px', color: '#8b9bb0', letterSpacing: '0.1em', lineHeight: 1, marginTop: '2px' }}>
             WILDFIRE C2
           </div>
         </div>
@@ -170,7 +170,7 @@ export default function TopBar({
             border: '1px solid rgba(255,255,255,0.1)',
             borderRadius: '10px', padding: '6px 12px', cursor: 'pointer',
             fontFamily: 'var(--font-mono)', fontWeight: 500, fontSize: '10px',
-            color: optionsOpen ? '#d4dce8' : '#5a6878', letterSpacing: '0.08em',
+            color: optionsOpen ? '#f1f5f9' : '#b7c4d4', letterSpacing: '0.08em',
             transition: 'all 0.15s', flexShrink: 0,
           }}
         >
@@ -194,7 +194,7 @@ export default function TopBar({
             display: 'flex', flexDirection: 'column', justifyContent: 'center',
             overflow: 'hidden',
           }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 500, color: '#3a4558', letterSpacing: '0.1em', marginBottom: '2px', whiteSpace: 'nowrap' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 500, color: '#8b9bb0', letterSpacing: '0.1em', marginBottom: '2px', whiteSpace: 'nowrap' }}>
               {s.label}
             </div>
             <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '14px', color: s.color, lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -218,13 +218,13 @@ export default function TopBar({
             transition: 'all 0.2s', flexShrink: 0,
           }}
         >
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke={showCommand ? '#38bdf8' : '#5a6878'} strokeWidth="1.5">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke={showCommand ? '#38bdf8' : '#b7c4d4'} strokeWidth="1.5">
             <rect x="1" y="1" width="4.5" height="4.5" rx="1"/>
             <rect x="6.5" y="1" width="4.5" height="4.5" rx="1"/>
             <rect x="1" y="6.5" width="4.5" height="4.5" rx="1"/>
             <rect x="6.5" y="6.5" width="4.5" height="4.5" rx="1"/>
           </svg>
-          <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 500, fontSize: '10px', color: showCommand ? '#38bdf8' : '#5a6878', letterSpacing: '0.08em' }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 500, fontSize: '10px', color: showCommand ? '#38bdf8' : '#d4dce8', letterSpacing: '0.08em' }}>
             COMMAND
           </span>
           {criticalCount > 0 && (
@@ -257,9 +257,9 @@ export default function TopBar({
               </div>
               <div>
                 <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '12px', color: '#d4dce8', lineHeight: 1 }}>{auth.username}</div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#3a4558', letterSpacing: '0.06em', lineHeight: 1, marginTop: '2px' }}>{auth.role?.toUpperCase()}</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#8b9bb0', letterSpacing: '0.06em', lineHeight: 1, marginTop: '2px' }}>{auth.role?.toUpperCase()}</div>
               </div>
-              <span style={{ color: '#3a4558', fontSize: '8px' }}>{userMenuOpen ? '▲' : '▼'}</span>
+              <span style={{ color: '#8b9bb0', fontSize: '8px' }}>{userMenuOpen ? '▲' : '▼'}</span>
             </button>
 
             {userMenuOpen && (
@@ -303,7 +303,7 @@ export default function TopBar({
           <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '18px', color: '#d4dce8', letterSpacing: '0.02em', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
             {formatClockTime(time)}
           </div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#3a4558', letterSpacing: '0.1em', marginTop: '2px' }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#8b9bb0', letterSpacing: '0.1em', marginTop: '2px' }}>
             {formatTimezone(time)}
           </div>
         </div>
@@ -324,7 +324,7 @@ export default function TopBar({
           }}
         >
           <div style={{ padding: '8px 14px 6px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 500, color: '#3a4558', letterSpacing: '0.12em' }}>MAP OVERLAYS</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 500, color: '#8b9bb0', letterSpacing: '0.12em' }}>MAP OVERLAYS</span>
           </div>
           {layers.map((l, i) => (
             <button
@@ -344,13 +344,13 @@ export default function TopBar({
               <div style={{
                 width: '7px', height: '7px', borderRadius: '50%',
                 background: l.active ? l.dot : 'transparent',
-                border: `1px solid ${l.active ? l.dot : '#3a4558'}`,
+                border: `1px solid ${l.active ? l.dot : '#66768b'}`,
                 boxShadow: l.active ? `0 0 6px ${l.dot}` : 'none',
                 flexShrink: 0,
               }} />
               <span style={{
                 fontFamily: 'var(--font-mono)', fontWeight: 500, fontSize: '11px',
-                color: l.active ? '#d4dce8' : '#5a6878', letterSpacing: '0.06em', flex: 1, textAlign: 'left',
+                color: l.active ? '#f1f5f9' : '#c3d0df', letterSpacing: '0.06em', flex: 1, textAlign: 'left',
               }}>
                 {l.label}
               </span>

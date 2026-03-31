@@ -81,11 +81,11 @@ function LoadoutTooltip({ unit, loadout, rect, isDefault }) {
     <div style={{
       position: 'fixed', top: rect.top + rect.height / 2, transform: 'translateY(-50%)',
       width: '236px', zIndex: 99999,
-      background: 'rgba(11,15,20,0.86)',
+      background: 'rgba(20,26,36,0.94)',
       border: '1px solid rgba(255,255,255,0.1)',
-      borderRadius: '14px', padding: '12px 14px',
-      boxShadow: '0 20px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)',
-      pointerEvents: 'none', backdropFilter: 'blur(16px)',
+      borderRadius: '16px', padding: '12px 14px',
+      boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+      pointerEvents: 'none', backdropFilter: 'blur(14px)',
       ...pos,
     }}>
       <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '9px', color: isDefault ? '#38bdf8' : '#ff4d1a', letterSpacing: '0.1em', marginBottom: '10px' }}>

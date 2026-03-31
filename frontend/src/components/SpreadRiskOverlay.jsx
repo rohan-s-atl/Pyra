@@ -66,13 +66,14 @@ export default function SpreadRiskOverlay({ incidents, selectedId }) {
               color:       color,
               fillColor:   color,
               fillOpacity: isSelected ? 0.25 : 0.12,
-              weight:      isSelected ? 2 : 1,
+              weight:      isSelected ? 2.4 : 1.4,
               dashArray:   '6 4',
+              opacity:     isSelected ? 0.95 : 0.8,
             }}
           >
             <Tooltip direction="top" sticky>
-              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px' }}>
-                <div style={{ fontWeight: 700, marginBottom: '2px' }}>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', background: 'rgba(20,26,36,0.96)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', padding: '10px 12px', boxShadow: '0 16px 36px rgba(0,0,0,0.42)' }}>
+                <div style={{ fontWeight: 700, marginBottom: '2px', color }}>
                   Spread Risk Zone
                 </div>
                 <div>

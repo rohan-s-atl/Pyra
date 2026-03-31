@@ -35,15 +35,15 @@ const S = {
     fontSize: '8px',
     color: '#151419',
     background: color,
-    borderRadius: '2px',
-    padding: '2px 5px',
+    borderRadius: '999px',
+    padding: '3px 7px',
     letterSpacing: '0.04em',
   }),
   card: (selected) => ({
-    background:   selected ? 'rgba(245,110,15,0.1)' : '#1B1B1E',
-    border:       `1px solid ${selected ? '#ff4d1a' : 'rgba(255,255,255,0.07)'}`,
-    borderRadius: '3px',
-    padding:      '7px 10px',
+    background:   selected ? 'rgba(245,110,15,0.12)' : 'rgba(255,255,255,0.05)',
+    border:       `1px solid ${selected ? '#ff4d1a' : 'rgba(255,255,255,0.08)'}`,
+    borderRadius: '14px',
+    padding:      '10px 12px',
     cursor:       'pointer',
     transition:   'all 0.15s',
     display:      'flex',
@@ -55,8 +55,8 @@ const S = {
   shortageCard: {
     background:   'rgba(239,68,68,0.08)',
     border:       '1px solid rgba(239,68,68,0.3)',
-    borderRadius: '3px',
-    padding:      '7px 10px',
+    borderRadius: '14px',
+    padding:      '9px 12px',
     display:      'flex',
     alignItems:   'center',
     gap:          '8px',
@@ -86,7 +86,7 @@ const S = {
     width:        '14px',
     height:       '14px',
     border:       `1px solid ${selected ? '#ff4d1a' : '#444'}`,
-    borderRadius: '2px',
+    borderRadius: '4px',
     background:   selected ? '#ff4d1a' : 'transparent',
     flexShrink:   0,
     marginTop:    '1px',
@@ -103,7 +103,7 @@ const S = {
     marginTop:   '8px',
     background:  canApprove ? '#ff4d1a' : 'rgba(255,255,255,0.07)',
     border:      'none',
-    borderRadius:'3px',
+    borderRadius:'14px',
     cursor:      canApprove ? 'pointer' : 'not-allowed',
     fontFamily:  'Inter, sans-serif',
     fontWeight:  700,
@@ -125,7 +125,7 @@ const S = {
   successBanner: {
     background:  'rgba(74,222,128,0.1)',
     border:      '1px solid #22c55e',
-    borderRadius:'3px',
+    borderRadius:'14px',
     padding:     '10px',
     textAlign:   'center',
     fontFamily:  'Inter, sans-serif',
@@ -159,10 +159,10 @@ function ConfidenceBar({ score, label }) {
   return (
     <div style={{
       marginBottom: '8px',
-      background: 'rgba(255,255,255,0.03)',
-      border: '1px solid #2a2a2e',
-      borderRadius: '3px',
-      padding: '6px 9px',
+      background: 'rgba(255,255,255,0.05)',
+      border: '1px solid rgba(255,255,255,0.08)',
+      borderRadius: '14px',
+      padding: '9px 10px',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
         <span style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', fontWeight: 700, color: '#5a6878', letterSpacing: '0.06em' }}>
@@ -202,8 +202,8 @@ function RouteSafetyPanel({ routes, summary }) {
       <button
         onClick={() => setExpanded(v => !v)}
         style={{
-          width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid #2a2a2e',
-          borderRadius: '3px', padding: '6px 9px', cursor: 'pointer',
+          width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: '14px', padding: '8px 10px', cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}
       >
@@ -220,7 +220,7 @@ function RouteSafetyPanel({ routes, summary }) {
 
       {/* Expanded route list */}
       {expanded && (
-        <div style={{ border: '1px solid #2a2a2e', borderTop: 'none', borderRadius: '0 0 3px 3px', overflow: 'hidden' }}>
+        <div style={{ border: '1px solid rgba(255,255,255,0.08)', borderTop: 'none', borderRadius: '0 0 14px 14px', overflow: 'hidden', background: 'rgba(255,255,255,0.03)' }}>
           {routes.map(route => (
             <RouteRow key={route.route_id} route={route} />
           ))}
@@ -237,7 +237,7 @@ function StatusPill({ label, status }) {
       color: SAFETY_STATUS_COLOR[status],
       background: SAFETY_STATUS_BG[status],
       border: `1px solid ${SAFETY_STATUS_COLOR[status]}44`,
-      borderRadius: '2px', padding: '1px 5px', letterSpacing: '0.04em',
+      borderRadius: '999px', padding: '2px 7px', letterSpacing: '0.04em',
     }}>
       {label}
     </span>
@@ -252,8 +252,8 @@ function RouteRow({ route }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: '8px',
-      padding: '6px 9px', borderBottom: '1px solid #1e1e22',
-      background: SAFETY_STATUS_BG[status] ?? 'transparent',
+      padding: '8px 10px', borderBottom: '1px solid rgba(255,255,255,0.06)',
+      background: SAFETY_STATUS_BG[status] ?? 'rgba(255,255,255,0.03)',
     }}>
       {/* Score circle */}
       <div style={{

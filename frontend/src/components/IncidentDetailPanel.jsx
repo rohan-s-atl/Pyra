@@ -149,7 +149,7 @@ function UnitRouteCard({ unitRoute }) {
               </span>
             )}
           </div>
-          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#5a6878' }}>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#a7b5c7' }}>
             {unitRoute.distMiles < 1
               ? `${Math.round(unitRoute.distMiles * 5280)} ft`
               : `${unitRoute.distMiles.toFixed(1)} mi`
@@ -158,7 +158,7 @@ function UnitRouteCard({ unitRoute }) {
         </div>
         <button
           onClick={() => setExpanded(v => !v)}
-          style={{ background: 'none', border: 'none', color: '#5a6878', cursor: 'pointer', fontSize: '10px', padding: '2px 4px' }}
+          style={{ background: 'none', border: 'none', color: '#c3d0df', cursor: 'pointer', fontSize: '10px', padding: '2px 4px' }}
         >
           {expanded ? '▲' : '▼'}
         </button>
@@ -446,7 +446,7 @@ export default function IncidentDetailPanel({
         </div>
         <button
           onClick={onClose}
-          style={{ background: 'none', border: 'none', color: '#5a6878', cursor: 'pointer', fontSize: '18px', padding: '4px 8px' }}
+          style={{ background: 'none', border: 'none', color: '#c3d0df', cursor: 'pointer', fontSize: '18px', padding: '4px 8px' }}
         >✕</button>
       </div>
 
@@ -477,7 +477,7 @@ export default function IncidentDetailPanel({
             {/* Confidence + Loadout */}
             <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
               <div style={{ background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '5px', padding: '6px 10px', flex: 1 }}>
-                <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '9px', color: '#5a6878', letterSpacing: '0.06em', marginBottom: '2px' }}>
+                <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '9px', color: '#8b9bb0', letterSpacing: '0.06em', marginBottom: '2px' }}>
                   LOADOUT PROFILE
                 </div>
                 <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '13px', color: '#ff4d1a' }}>
@@ -485,7 +485,7 @@ export default function IncidentDetailPanel({
                 </div>
               </div>
               <div style={{ background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '5px', padding: '6px 10px', flex: 1 }}>
-                <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '9px', color: '#5a6878', letterSpacing: '0.06em', marginBottom: '2px' }}>
+                <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '9px', color: '#8b9bb0', letterSpacing: '0.06em', marginBottom: '2px' }}>
                   CONFIDENCE
                 </div>
                 <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '13px', color: recommendation.confidence === 'high' ? '#4ade80' : recommendation.confidence === 'moderate' ? '#facc15' : '#878787' }}>
@@ -496,7 +496,7 @@ export default function IncidentDetailPanel({
 
             {/* Situation summary */}
             <div style={{ marginBottom: '14px' }}>
-              <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '11px', color: '#5a6878', letterSpacing: '0.06em', marginBottom: '6px' }}>
+              <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '11px', color: '#a7b5c7', letterSpacing: '0.06em', marginBottom: '6px' }}>
                 SITUATION SUMMARY
               </div>
               <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#d4dce8', lineHeight: 1.6, background: 'var(--surface)', borderRadius: '5px', padding: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
@@ -507,7 +507,7 @@ export default function IncidentDetailPanel({
             {/* Fire Intelligence */}
             {fireBehavior && (
               <div style={{ marginBottom: '14px' }}>
-                <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '11px', color: '#5a6878', letterSpacing: '0.06em', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '11px', color: '#a7b5c7', letterSpacing: '0.06em', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   FIRE INTELLIGENCE
                   <span className="pyra-ai-badge" style={{ fontSize: '8px' }}>AI</span>
                 </div>
@@ -515,7 +515,7 @@ export default function IncidentDetailPanel({
                 {/* FBI bar */}
                 <div style={{ background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '5px', padding: '10px', marginBottom: '4px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                    <span style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#5a6878', letterSpacing: '0.04em' }}>FIRE BEHAVIOR INDEX</span>
+                    <span style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#c3d0df', letterSpacing: '0.04em' }}>FIRE BEHAVIOR INDEX</span>
                     <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '13px', color: fireBehavior.fire_behavior_index >= 0.75 ? '#ef4444' : fireBehavior.fire_behavior_index >= 0.5 ? '#ff4d1a' : fireBehavior.fire_behavior_index >= 0.3 ? '#facc15' : '#4ade80' }}>
                       {(fireBehavior.fire_behavior_index * 100).toFixed(0)}
                     </span>
@@ -539,7 +539,7 @@ export default function IncidentDetailPanel({
                     { label: 'SUPPRESSION EFF.', value: fireBehavior.suppression_effectiveness != null ? `${(fireBehavior.suppression_effectiveness * 100).toFixed(0)}%` : '—', color: fireBehavior.suppression_effectiveness >= 0.6 ? '#4ade80' : fireBehavior.suppression_effectiveness >= 0.3 ? '#facc15' : '#ef4444' },
                   ].map(stat => (
                     <div key={stat.label} style={{ background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '5px', padding: '7px 10px' }}>
-                      <div style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#5a6878', letterSpacing: '0.04em', marginBottom: '3px' }}>{stat.label}</div>
+                      <div style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#8b9bb0', letterSpacing: '0.04em', marginBottom: '3px' }}>{stat.label}</div>
                       <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '13px', color: stat.color }}>{stat.value}</div>
                     </div>
                   ))}
@@ -550,24 +550,24 @@ export default function IncidentDetailPanel({
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', marginBottom: '4px' }}>
                     {incident.elevation_m != null && (
                       <div style={{ background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '5px', padding: '7px 10px' }}>
-                        <div style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#5a6878', letterSpacing: '0.04em', marginBottom: '3px' }}>TERRAIN</div>
+                        <div style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#8b9bb0', letterSpacing: '0.04em', marginBottom: '3px' }}>TERRAIN</div>
                         <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '12px', color: '#d4dce8' }}>
                           {Math.round(incident.elevation_m)}m
                           {incident.slope_percent != null && <span style={{ fontWeight: 400, color: incident.slope_percent >= 30 ? '#ff4d1a' : '#878787', fontSize: '11px' }}> · {incident.slope_percent.toFixed(0)}% slope</span>}
                         </div>
                         {incident.aspect_cardinal && (
-                          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#5a6878', marginTop: '2px' }}>{incident.aspect_cardinal} aspect</div>
+                          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#a7b5c7', marginTop: '2px' }}>{incident.aspect_cardinal} aspect</div>
                         )}
                       </div>
                     )}
                     {incident.aqi != null && (
                       <div style={{ background: 'var(--surface)', border: `1px solid ${incident.aqi >= 151 ? '#ef4444' : incident.aqi >= 101 ? '#ff4d1a' : '#262626'}`, borderRadius: '5px', padding: '7px 10px' }}>
-                        <div style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#5a6878', letterSpacing: '0.04em', marginBottom: '3px' }}>AIR QUALITY</div>
+                        <div style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#8b9bb0', letterSpacing: '0.04em', marginBottom: '3px' }}>AIR QUALITY</div>
                         <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '13px', color: incident.aqi >= 151 ? '#ef4444' : incident.aqi >= 101 ? '#ff4d1a' : incident.aqi >= 51 ? '#facc15' : '#4ade80' }}>
                           AQI {incident.aqi}
                         </div>
                         {incident.aqi_category && (
-                          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#5a6878', marginTop: '2px' }}>{incident.aqi_category.replace(/_/g, ' ')}</div>
+                          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#a7b5c7', marginTop: '2px' }}>{incident.aqi_category.replace(/_/g, ' ')}</div>
                         )}
                       </div>
                     )}
@@ -585,7 +585,7 @@ export default function IncidentDetailPanel({
 
             {/* Recommended unit types */}
             <div style={{ marginBottom: '14px' }}>
-              <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '11px', color: '#5a6878', letterSpacing: '0.06em', marginBottom: '6px' }}>
+              <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '11px', color: '#a7b5c7', letterSpacing: '0.06em', marginBottom: '6px' }}>
                 RECOMMENDED UNITS
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -646,7 +646,7 @@ export default function IncidentDetailPanel({
 
             {/* Tactical notes */}
             <div style={{ marginBottom: '14px' }}>
-              <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '11px', color: '#5a6878', letterSpacing: '0.06em', marginBottom: '6px' }}>
+              <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '11px', color: '#a7b5c7', letterSpacing: '0.06em', marginBottom: '6px' }}>
                 TACTICAL NOTES
               </div>
               <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#d4dce8', lineHeight: 1.6, background: 'var(--surface)', borderRadius: '5px', padding: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
@@ -698,7 +698,7 @@ export default function IncidentDetailPanel({
                         {showHeader && (
                           <div style={{
                             fontFamily: 'var(--font-sans)', fontWeight: 700,
-                            fontSize: '10px', color: '#5a6878', letterSpacing: '0.06em',
+                            fontSize: '10px', color: '#a7b5c7', letterSpacing: '0.06em',
                             textTransform: 'uppercase', marginTop: '8px', marginBottom: '3px', paddingLeft: '2px',
                           }}>
                             {unit.unit_type.replace(/_/g, ' ')}
@@ -734,17 +734,17 @@ export default function IncidentDetailPanel({
                               <RouteBadge status={previewRoute.status} statusColor={previewRoute.statusColor} />
                             )}
                             {isSelected && routesLoading && !unitRoute && (
-                              <span style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#5a6878' }}>routing...</span>
+                              <span style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#a7b5c7' }}>routing...</span>
                             )}
                           </div>
                         </div>
                         {/* Inline route drawer — appears below the unit row when selected */}
                         {isSelected && unitRoute && (
                           <div style={{
-                            background: '#0f0f12',
+                            background: 'rgba(255,255,255,0.04)',
                             border: `1px solid ${unitRoute.statusColor}55`,
                             borderTop: 'none',
-                            borderRadius: '0 0 3px 3px',
+                            borderRadius: '0 0 12px 12px',
                             padding: '8px 10px',
                             marginBottom: '1px',
                           }}>
@@ -767,7 +767,7 @@ export default function IncidentDetailPanel({
                   })
                 })()}
                 {units.filter(u => u.status === 'available' && isAirUnitAtAirBase(u)).length === 0 && (
-                  <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', color: '#5a6878' }}>
+                  <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', color: '#a7b5c7' }}>
                     No available units
                   </div>
                 )}
@@ -785,9 +785,9 @@ export default function IncidentDetailPanel({
           {/* Dispatch Advisor — shows when units selected */}
           {(dispatchAdvice || adviceLoading) && selectedUnits.length > 0 && (
             <div style={{
-              background: '#0f0f12',
+              background: 'rgba(255,255,255,0.04)',
               border: `1px solid ${dispatchAdvice?.assessment === 'optimal' ? '#4ade8044' : dispatchAdvice?.assessment === 'suboptimal' ? '#ef444444' : '#26262644'}`,
-              borderRadius: '5px', padding: '8px 10px', marginBottom: '8px',
+              borderRadius: '14px', padding: '10px 12px', marginBottom: '10px',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
                 <div style={{
@@ -795,7 +795,7 @@ export default function IncidentDetailPanel({
                   background: adviceLoading ? '#ff4d1a' : dispatchAdvice?.assessment === 'optimal' ? '#4ade80' : dispatchAdvice?.assessment === 'suboptimal' ? '#ef4444' : '#facc15',
                   boxShadow: adviceLoading ? '0 0 4px #ff4d1a' : 'none',
                 }} />
-                <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '9px', color: '#5a6878', letterSpacing: '0.08em' }}>
+                <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '9px', color: '#a7b5c7', letterSpacing: '0.08em' }}>
                   DISPATCH ADVISOR
                 </span>
                 <span className="pyra-ai-badge">⬡ PYRA AI</span>
@@ -829,11 +829,11 @@ export default function IncidentDetailPanel({
               </div>
               <button onClick={() => { handleDispatch(pendingLoadouts); setConfirmDispatch(false) }}
                 className="pyra-btn-press"
-                style={{ padding: '10px 16px', background: '#ff4d1a', border: 'none', borderRadius: '5px', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '12px', color: '#d4dce8' }}>
+                style={{ padding: '10px 16px', background: '#ff4d1a', border: 'none', borderRadius: '12px', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '12px', color: '#d4dce8' }}>
                 CONFIRM
               </button>
               <button onClick={() => setConfirmDispatch(false)}
-                style={{ padding: '10px 12px', background: 'transparent', border: '1px solid #333', borderRadius: '5px', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: '12px', color: '#5a6878' }}>
+                style={{ padding: '10px 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: '12px', color: '#c3d0df' }}>
                 CANCEL
               </button>
             </div>
@@ -845,10 +845,11 @@ export default function IncidentDetailPanel({
               style={{
                 width: '100%', padding: '12px',
                 background:    canDispatch ? '#ff4d1a' : '#262626',
-                border:        'none', borderRadius: '5px',
+                border:        'none', borderRadius: '14px',
                 cursor:        canDispatch ? 'pointer' : 'not-allowed',
                 fontFamily:    'Inter, sans-serif', fontWeight: 700, fontSize: '13px',
                 color:         '#FBFBFB', letterSpacing: '0.03em', transition: 'background 0.15s',
+                boxShadow: canDispatch ? '0 16px 30px rgba(255,77,26,0.25)' : 'none',
               }}
             >
               {dispatching
@@ -868,17 +869,17 @@ export default function IncidentDetailPanel({
             disabled={briefingLoading || !canBrief}
             style={{
               width: '100%', padding: '10px', marginTop: '8px',
-              background: 'transparent',
-              border: `1px solid ${briefingLoading || !canBrief ? '#262626' : '#444'}`,
-              borderRadius: '5px',
+              background: 'rgba(255,255,255,0.04)',
+              border: `1px solid ${briefingLoading || !canBrief ? '#262626' : 'rgba(255,255,255,0.08)'}`,
+              borderRadius: '12px',
               cursor: briefingLoading || !canBrief ? 'not-allowed' : 'pointer',
               fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '12px',
-              color: briefingLoading || !canBrief ? '#444' : '#878787',
+              color: briefingLoading || !canBrief ? '#5f6c7d' : '#c3d0df',
               letterSpacing: '0.03em', transition: 'all 0.15s',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
             }}
             onMouseEnter={e => { if (!briefingLoading && canBrief) { e.currentTarget.style.borderColor = '#ff4d1a'; e.currentTarget.style.color = '#ff4d1a' }}}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = canBrief ? '#444' : '#262626'; e.currentTarget.style.color = canBrief ? '#878787' : '#444' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = canBrief ? '#444' : '#262626'; e.currentTarget.style.color = canBrief ? '#c3d0df' : '#5f6c7d' }}
           >
             {briefingLoading ? (
               <>
@@ -897,14 +898,14 @@ export default function IncidentDetailPanel({
             onClick={handleDownloadReport}
             style={{
               width: '100%', padding: '10px', marginTop: '6px',
-              background: 'transparent', border: '1px solid #444',
-              borderRadius: '5px', cursor: 'pointer',
+              background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '12px', cursor: 'pointer',
               fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '12px',
-              color: '#5a6878', letterSpacing: '0.03em', transition: 'all 0.15s',
+              color: '#c3d0df', letterSpacing: '0.03em', transition: 'all 0.15s',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
             }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = '#4ade80'; e.currentTarget.style.color = '#4ade80' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = '#444'; e.currentTarget.style.color = '#878787' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '#444'; e.currentTarget.style.color = '#c3d0df' }}
           >
             ↓ EXPORT PDF REPORT
           </button>
@@ -915,8 +916,8 @@ export default function IncidentDetailPanel({
               onClick={handleOpenCloseout}
               style={{
                 width: '100%', padding: '10px', marginTop: '6px',
-                background: 'transparent', border: '1px solid #ef444466',
-                borderRadius: '5px', cursor: 'pointer',
+                background: 'rgba(239,68,68,0.06)', border: '1px solid #ef444466',
+                borderRadius: '12px', cursor: 'pointer',
                 fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '12px',
                 color: '#ef4444aa', letterSpacing: '0.03em', transition: 'all 0.15s',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
@@ -934,16 +935,16 @@ export default function IncidentDetailPanel({
               onClick={() => setChatOpen(v => !v)}
               style={{
                 flex: 1, padding: '9px',
-                background: chatOpen ? 'rgba(245,110,15,0.12)' : 'transparent',
-                border: `1px solid ${chatOpen ? '#ff4d1a' : '#444'}`,
-                borderRadius: '5px', cursor: 'pointer',
+                background: chatOpen ? 'rgba(245,110,15,0.14)' : 'rgba(255,255,255,0.04)',
+                border: `1px solid ${chatOpen ? '#ff4d1a' : 'rgba(255,255,255,0.08)'}`,
+                borderRadius: '12px', cursor: 'pointer',
                 fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '11px',
-                color: chatOpen ? '#ff4d1a' : '#878787',
+                color: chatOpen ? '#ff4d1a' : '#c3d0df',
                 letterSpacing: '0.03em', transition: 'all 0.15s',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
               }}
               onMouseEnter={e => { if (!chatOpen) { e.currentTarget.style.borderColor = '#ff4d1a'; e.currentTarget.style.color = '#ff4d1a' }}}
-              onMouseLeave={e => { if (!chatOpen) { e.currentTarget.style.borderColor = '#444'; e.currentTarget.style.color = '#878787' }}}
+              onMouseLeave={e => { if (!chatOpen) { e.currentTarget.style.borderColor = '#444'; e.currentTarget.style.color = '#c3d0df' }}}
             >
               💬 SITREP CHAT
             </button>
@@ -952,16 +953,16 @@ export default function IncidentDetailPanel({
                 onClick={() => setReviewOpen(v => !v)}
                 style={{
                   flex: 1, padding: '9px',
-                  background: reviewOpen ? 'rgba(96,165,250,0.12)' : 'transparent',
-                  border: `1px solid ${reviewOpen ? '#60a5fa' : '#444'}`,
-                  borderRadius: '5px', cursor: 'pointer',
+                  background: reviewOpen ? 'rgba(96,165,250,0.14)' : 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${reviewOpen ? '#60a5fa' : 'rgba(255,255,255,0.08)'}`,
+                  borderRadius: '12px', cursor: 'pointer',
                   fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '11px',
-                  color: reviewOpen ? '#60a5fa' : '#878787',
+                  color: reviewOpen ? '#60a5fa' : '#c3d0df',
                   letterSpacing: '0.03em', transition: 'all 0.15s',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                 }}
                 onMouseEnter={e => { if (!reviewOpen) { e.currentTarget.style.borderColor = '#60a5fa'; e.currentTarget.style.color = '#60a5fa' }}}
-                onMouseLeave={e => { if (!reviewOpen) { e.currentTarget.style.borderColor = '#444'; e.currentTarget.style.color = '#878787' }}}
+                onMouseLeave={e => { if (!reviewOpen) { e.currentTarget.style.borderColor = '#444'; e.currentTarget.style.color = '#c3d0df' }}}
               >
                 📋 AAR REVIEW
               </button>
@@ -974,7 +975,7 @@ export default function IncidentDetailPanel({
       {briefingOpen && (
         <div ref={briefingRef} style={{
           borderTop: '1px solid rgba(255,255,255,0.06)',
-          background: '#0f0f12',
+          background: 'rgba(10,14,20,0.86)',
           flexShrink: 0,
           maxHeight: '380px',
           display: 'flex',
@@ -1008,18 +1009,18 @@ export default function IncidentDetailPanel({
                   style={{
                     background: 'none', border: '1px solid #333', borderRadius: '2px',
                     padding: '2px 8px', cursor: 'pointer',
-                    fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#5a6878',
+                    fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#c3d0df',
                     transition: 'all 0.15s',
                   }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = '#ff4d1a'; e.currentTarget.style.color = '#ff4d1a' }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.color = '#878787' }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.color = '#c3d0df' }}
                 >
                   COPY
                 </button>
               )}
               <button
                 onClick={() => setBriefingOpen(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#555', fontSize: '14px', padding: '0 2px' }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#c3d0df', fontSize: '14px', padding: '0 2px' }}
               >
                 ✕
               </button>
@@ -1031,7 +1032,7 @@ export default function IncidentDetailPanel({
             color: '#d4dce8', lineHeight: 1.7,
           }}>
             {!briefing && !briefingLoading && (
-              <span style={{ color: '#555' }}>Press Generate to create a briefing.</span>
+              <span style={{ color: '#c3d0df' }}>Press Generate to create a briefing.</span>
             )}
             {(briefing || briefingLoading) && renderBriefing(briefing)}
             {briefingLoading && (
@@ -1066,12 +1067,12 @@ export default function IncidentDetailPanel({
             <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '13px', color: '#ef4444', letterSpacing: '0.06em', marginBottom: '4px' }}>
               ⬡ INCIDENT CLOSE-OUT
             </div>
-            <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#5a6878', marginBottom: '16px' }}>
+            <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#a7b5c7', marginBottom: '16px' }}>
               {incident.name}
             </div>
 
             {checklistLoading && (
-              <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#555', padding: '12px 0' }}>
+              <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#c3d0df', padding: '12px 0' }}>
                 Loading checklist...
               </div>
             )}
@@ -1173,7 +1174,7 @@ export default function IncidentDetailPanel({
         </div>
       )}
 
-      {/* Loadout Configurator — slides over the panel when units selected */}
+      {/* Loadout Configurator — true pop-out workspace */}
       {loadoutOpen && (
         <LoadoutConfigurator
           incident={incident}

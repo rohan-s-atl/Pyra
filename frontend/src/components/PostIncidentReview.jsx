@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { streamReview } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 
@@ -68,15 +69,16 @@ export default function PostIncidentReview({ incident, onClose }) {
     navigator.clipboard.writeText(review).catch(() => {})
   }
 
-  return (
+  return createPortal(
     <div style={{
       position: 'fixed', left: `${pos.x}px`, top: `${pos.y}px`,
       width: '480px', height: '580px',
       animation: 'slideInUp 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
-      background: '#151419', border: '1px solid #262626',
-      borderRadius: '6px', zIndex: 2500,
-      boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+      background: 'rgba(20,26,36,0.97)', border: '1px solid rgba(255,255,255,0.1)',
+      borderRadius: '20px', zIndex: 5200,
+      boxShadow: '0 24px 56px rgba(0,0,0,0.56)',
       display: 'flex', flexDirection: 'column',
+      backdropFilter: 'blur(16px)',
     }}>
       {/* Header — drag handle */}
       <div
@@ -159,6 +161,7 @@ export default function PostIncidentReview({ incident, onClose }) {
           </button>
         </div>
       )}
-    </div>
+    </div>,
+    document.body
   )
 }

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { streamChat } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 
@@ -110,13 +111,13 @@ export default function SitrepChat({ incident, onClose }) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
   }
 
-  return (
+  return createPortal(
     <div style={{
       position: 'fixed', left: `${pos.x}px`, top: `${pos.y}px`,
       width: '380px', height: '480px',
       animation: 'slideInUp 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
       background: 'rgba(20,26,36,0.96)', border: '1px solid rgba(255,255,255,0.1)',
-      borderRadius: '18px', zIndex: 2500,
+      borderRadius: '20px', zIndex: 5200,
       boxShadow: '0 24px 56px rgba(0,0,0,0.52)',
       display: 'flex', flexDirection: 'column',
       backdropFilter: 'blur(16px)',
@@ -136,11 +137,11 @@ export default function SitrepChat({ incident, onClose }) {
             PYRA SITREP
           </span>
           <span className="pyra-ai-badge">⬡ AI</span>
-          <span style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#5a6878' }}>
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#a7b5c7' }}>
             {incident.name}
           </span>
         </div>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#555', fontSize: '14px' }}>✕</button>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#c3d0df', fontSize: '14px' }}>✕</button>
       </div>
 
       {/* Messages */}
@@ -203,6 +204,7 @@ export default function SitrepChat({ incident, onClose }) {
           {streaming ? '...' : 'SEND'}
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
