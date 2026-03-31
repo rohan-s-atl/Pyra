@@ -6,7 +6,6 @@ import LeftSidebar from './components/LeftSidebar'
 import { FireGrowthLegend } from './components/FireGrowthOverlay'
 import { EvacZonesPanel, exportEvacZones } from './components/EvacZonesOverlay'
 import RightPanel from './components/RightPanel'
-import EventTimeline from './components/EventTimeline'
 import IncidentDetailPanel from './components/IncidentDetailPanel'
 import LoginScreen from './components/LoginScreen'
 import AuditLogPanel from './components/AuditLogPanel'
@@ -261,7 +260,7 @@ export default function App() {
         style={{ 
           height: '100vh', 
           width: '100vw', 
-          background: '#0d0f11', 
+          background: 'radial-gradient(1300px 700px at 50% -200px, rgba(56,189,248,0.08), transparent 60%), #0d0f11',
           display: 'flex', 
           flexDirection: 'column', 
           overflow: 'hidden',
@@ -294,20 +293,16 @@ export default function App() {
           onToggleSettings={() => setShowSettings(v => !v)}
         />
 
-        <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
-
-          {showLeftSidebar && (
-            <LeftSidebar
-              units={units}
-              activeView={activeView}
-              onViewChange={setActiveView}
-              selectedIncidentId={selectedId}
-              onUnitClick={handleUnitClick}
-              confirmedLoadouts={confirmedLoadouts}
-            />
-          )}
-
-          <div style={{ flex: 1, position: 'relative', minWidth: 0 }}>
+        <div style={{ flex: 1, minHeight: 0, padding: '12px 14px 14px' }}>
+          <div style={{
+            position: 'relative',
+            width: '100%',
+            height: '100%',
+            borderRadius: '24px',
+            overflow: 'hidden',
+            border: '1px solid rgba(255,255,255,0.1)',
+            boxShadow: '0 30px 70px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06)',
+          }}>
             <IncidentMap
               incidents={incidents}
               units={units}
@@ -355,16 +350,43 @@ export default function App() {
 
             {showWaterSources && waterSourceStatus && (waterSourceStatus.loading || waterSourceStatus.noResults) && (
               <div style={{
-                position: 'absolute', top: '60px', left: '50%', transform: 'translateX(-50%)',
+                position: 'absolute', top: '18px', left: '50%', transform: 'translateX(-50%)',
                 zIndex: 1000, pointerEvents: 'none',
-                background: 'rgba(13,15,17,0.92)', border: '1px solid rgba(56,189,248,0.2)',
-                borderRadius: '20px', padding: '5px 16px',
+                background: 'rgba(13,15,17,0.82)', border: '1px solid rgba(56,189,248,0.3)',
+                borderRadius: '999px', padding: '6px 16px',
                 fontFamily: 'var(--font-mono)', fontSize: '10px', letterSpacing: '0.07em',
-                color: waterSourceStatus.loading ? '#38bdf8' : '#3a4558',
-                backdropFilter: 'blur(10px)', whiteSpace: 'nowrap',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+                color: waterSourceStatus.loading ? '#38bdf8' : '#7a8ba0',
+                backdropFilter: 'blur(12px)', whiteSpace: 'nowrap',
+                boxShadow: '0 8px 18px rgba(0,0,0,0.35)',
               }}>
                 {waterSourceStatus.loading ? '◎ SEARCHING WATER SOURCES…' : '◎ NO WATER SOURCES WITHIN 8 KM'}
+              </div>
+            )}
+
+            {showLeftSidebar && (
+              <div style={{ position: 'absolute', top: '16px', left: '16px', bottom: '16px', zIndex: 1300 }}>
+                <LeftSidebar
+                  units={units}
+                  activeView={activeView}
+                  onViewChange={setActiveView}
+                  selectedIncidentId={selectedId}
+                  onUnitClick={handleUnitClick}
+                  confirmedLoadouts={confirmedLoadouts}
+                />
+              </div>
+            )}
+
+            {showRightPanel && (
+              <div style={{ position: 'absolute', top: '16px', right: '16px', bottom: '16px', zIndex: 1300 }}>
+                <RightPanel
+                  alerts={alerts}
+                  units={units}
+                  incidents={incidents}
+                  selectedIncidentId={selectedId}
+                  onUnitClick={handleUnitClick}
+                  onAlertsChanged={refreshAlertsDebounced}
+                  confirmedLoadouts={confirmedLoadouts}
+                />
               </div>
             )}
 
@@ -379,31 +401,11 @@ export default function App() {
                 onPreviewUnits={() => {}}
                 onUnitClick={handleUnitClick}
                 onConfirmLoadouts={handleConfirmLoadouts}
-                rightOffset={showCommand ? 160 : 0}
+                rightOffset={(showCommand ? 160 : 0) + (showRightPanel ? 380 : 0)}
               />
             )}
           </div>
-
-          {showRightPanel && (
-            <RightPanel
-              alerts={alerts}
-              units={units}
-              incidents={incidents}
-              selectedIncidentId={selectedId}
-              onUnitClick={handleUnitClick}
-              onAlertsChanged={refreshAlertsDebounced}
-              confirmedLoadouts={confirmedLoadouts}
-            />
-          )}
-
         </div>
-
-        <EventTimeline
-          alerts={alerts}
-          incidents={incidents}
-          units={units}
-          onAlertsChanged={refreshAlertsDebounced}
-        />
 
         {showAudit && <AuditLogPanel onClose={() => setShowAudit(false)} />}
 

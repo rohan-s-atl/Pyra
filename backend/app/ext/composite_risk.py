@@ -91,3 +91,27 @@ def compute_risk_score(
             'resource_relief_factor': round(resources, 3),
         },
     }
+
+
+def score_incidents_for_heatmap(incidents: list[dict]) -> list[dict]:
+    """
+    Backwards-compatible batch scorer used by tests and legacy callers.
+    Adds risk fields to each incident dict while preserving existing fields.
+    """
+    scored: list[dict] = []
+    for incident in incidents:
+        risk = compute_risk_score(
+            fire_behavior_index=incident.get('fire_behavior_index', 0.0),
+            spread_risk=incident.get('spread_risk'),
+            severity=incident.get('severity'),
+            structures_threatened=incident.get('structures_threatened'),
+            containment_percent=incident.get('containment_percent'),
+            acres_burned=incident.get('acres_burned'),
+            slope_percent=incident.get('slope_percent'),
+            aspect_cardinal=incident.get('aspect_cardinal'),
+            spread_direction=incident.get('spread_direction'),
+            units_on_scene=incident.get('units_on_scene'),
+            units_en_route=incident.get('units_en_route'),
+        )
+        scored.append({**incident, **risk})
+    return scored

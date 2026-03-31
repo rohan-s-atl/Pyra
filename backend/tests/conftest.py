@@ -18,6 +18,8 @@ from sqlalchemy.orm import sessionmaker
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 os.environ.setdefault("SECRET_KEY", "test-secret-key-not-for-prod")
 os.environ.setdefault("ENV", "development")
+# Force boolean-compatible DEBUG for test settings load, regardless of host env/.env value.
+os.environ["DEBUG"] = "false"
 
 from app.core.database import Base, get_db
 from app.main import app

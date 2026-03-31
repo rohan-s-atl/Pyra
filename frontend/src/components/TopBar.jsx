@@ -88,14 +88,17 @@ export default function TopBar({
 
   const S = {
     bar: {
-      height: '52px',
-      background: 'rgba(13,15,17,0.96)',
-      borderBottom: '1px solid rgba(255,255,255,0.06)',
+      height: '58px',
+      margin: '10px 14px 0',
+      borderRadius: '18px',
+      background: 'rgba(10,14,19,0.72)',
+      border: '1px solid rgba(255,255,255,0.12)',
       display: 'flex', alignItems: 'center', gap: '0',
       padding: '0 16px',
       flexShrink: 0,
       position: 'relative', zIndex: 9000,
       backdropFilter: 'blur(16px)',
+      boxShadow: '0 18px 38px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)',
     },
     divider: { width: '1px', height: '28px', background: 'rgba(255,255,255,0.06)', flexShrink: 0, margin: '0 14px' },
   }
