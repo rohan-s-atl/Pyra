@@ -80,7 +80,7 @@ function MapController({ focusedUnit, focusedIncident, unitRoutes, selectedIncid
     if (allCoords.length < 2) return
     const bounds = L.latLngBounds(allCoords)
     map.flyToBounds(bounds, { padding: [80, 80], duration: 1.2, maxZoom: 13 })
-  }, [unitRoutes?.length])
+  }, [unitRoutes, selectedIncident, map])
 
   // Fit all incidents when command view opens
   useEffect(() => {
@@ -210,9 +210,14 @@ export default function IncidentMap({
       }
     })
     setUnits(u)
+    setDisplayUnits(
+      u.map(unit => {
+        const pos = smoothPositions.current[unit.id]
+        return pos ? { ...unit, latitude: pos.lat, longitude: pos.lon } : unit
+      })
+    )
     if (positionChanged) {
       recordPositions(u)
-      setDisplayUnits(u)
     }
   }, [unitsProp])
 

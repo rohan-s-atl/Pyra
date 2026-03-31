@@ -175,6 +175,12 @@ async def close_incident(
     if incident.status == "out":
         raise HTTPException(status_code=400, detail="Incident is already closed.")
 
+    if force and current_user.role != "commander":
+        raise HTTPException(
+            status_code=403,
+            detail="Commander role required to force close an incident.",
+        )
+
     # --- Checklist validation ---
     if not force:
         active_units = db.query(Unit).filter(

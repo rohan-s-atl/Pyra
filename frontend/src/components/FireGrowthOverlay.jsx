@@ -141,6 +141,17 @@ export function FireGrowthLegend({ data, visible, onClose, timeMode, onTimeModeC
 export default function FireGrowthOverlay({ incidents, selectedId, visible, timeMode = 'standard' }) {
   const [growthData, setGrowthData] = useState({})  // `${incidentId}-${timeMode}` → response
   const fetchedKeys = useRef(new Set())
+  const incidentInputsKey = incidents.map(incident => [
+    incident.id,
+    incident.fire_type,
+    incident.wind_speed_mph,
+    incident.humidity_percent,
+    incident.slope_percent,
+    incident.spread_risk,
+    incident.aqi,
+    incident.spread_direction,
+    incident.acres_burned,
+  ].join(':')).join('|')
 
   useEffect(() => {
     if (!visible) return
@@ -189,7 +200,7 @@ export default function FireGrowthOverlay({ incidents, selectedId, visible, time
   useEffect(() => {
     fetchedKeys.current.clear()
     setGrowthData({})
-  }, [selectedId, timeMode])
+  }, [selectedId, timeMode, incidentInputsKey])
 
   if (!visible) return null
 
@@ -252,4 +263,3 @@ export default function FireGrowthOverlay({ incidents, selectedId, visible, time
     </>
   )
 }
-

@@ -45,6 +45,20 @@ export default function App() {
   const [activeEvacZones, setActiveEvacZones] = useState({ order: true, warning: true, watch: true })
   const [showWaterSources, setShowWaterSources] = useState(false)
   const [waterSourceStatus, setWaterSourceStatus] = useState(null) // {loading, noResults, count}
+  const selectedIncidentForGrowth = incidents.find(i => i.id === selectedId) ?? null
+  const selectedFireGrowthKey = selectedIncidentForGrowth
+    ? [
+        selectedIncidentForGrowth.id,
+        selectedIncidentForGrowth.fire_type,
+        selectedIncidentForGrowth.wind_speed_mph,
+        selectedIncidentForGrowth.humidity_percent,
+        selectedIncidentForGrowth.slope_percent,
+        selectedIncidentForGrowth.spread_risk,
+        selectedIncidentForGrowth.aqi,
+        selectedIncidentForGrowth.spread_direction,
+        selectedIncidentForGrowth.acres_burned,
+      ].join(':')
+    : ''
 
   // Fetch evac zones data whenever toggle turns on or incident changes
   useEffect(() => {
@@ -62,7 +76,7 @@ export default function App() {
     api.fireGrowth(selectedId, minutes)
       .then(setFireGrowthData)
       .catch(() => setFireGrowthData(null))
-  }, [showFireGrowth, selectedId, fireGrowthTimeMode])
+  }, [showFireGrowth, selectedId, fireGrowthTimeMode, selectedFireGrowthKey])
   const [loading,         setLoading]         = useState(false)
   const [error,           setError]           = useState(null)
   const [windowWidth,     setWindowWidth]     = useState(window.innerWidth)
