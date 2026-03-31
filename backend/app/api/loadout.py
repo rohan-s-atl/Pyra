@@ -251,8 +251,8 @@ async def get_loadout_advice(
         client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
 
         message = await client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=4096,   # Haiku at 2048 was truncating JSON for large unit selections
+            model="claude-haiku-4-5-20251001",
+            max_tokens=1200,
             messages=[{"role": "user", "content": prompt}],
         )
 

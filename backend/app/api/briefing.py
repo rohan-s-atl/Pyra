@@ -121,7 +121,7 @@ async def generate_briefing(
         try:
             client = anthropic.AsyncAnthropic(api_key=api_key)
             async with client.messages.stream(
-                model="claude-sonnet-4-6",
+                model="claude-haiku-4-5-20251001",
                 max_tokens=1024,
                 system=(
                     "You are a CAL FIRE incident commander generating ICS-style operational briefings. "
@@ -180,7 +180,7 @@ async def _generate_handoff_text(prompt: str, api_key: str) -> str:
     client = anthropic.AsyncAnthropic(api_key=api_key)
     msg = await asyncio.wait_for(
         client.messages.create(
-            model="claude-sonnet-4-6",
+            model="claude-haiku-4-5-20251001",
             max_tokens=1024,
             system="You are a CAL FIRE incident commander generating ICS shift handoff briefings.",
             messages=[{"role": "user", "content": prompt}],

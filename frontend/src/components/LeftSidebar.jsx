@@ -148,7 +148,7 @@ function UnitLoadoutTooltip({ unit, loadout, rect, isDefault = false }) {
 
 function UnitCard({ unit, confirmedLoadouts, onUnitClick }) {
   const [tooltipRect, setTooltipRect] = useState(null)
-  const confirmedLoadout = confirmedLoadouts[unit.id] ?? null
+  const confirmedLoadout = confirmedLoadouts[String(unit.id)] ?? null
   const isActive = ['en_route', 'on_scene', 'staging'].includes(unit.status)
   const isReturning = unit.status === 'returning'
 

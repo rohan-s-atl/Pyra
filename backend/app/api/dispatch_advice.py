@@ -5,7 +5,7 @@ FIXES APPLIED
 -------------
 1. anthropic.Anthropic (blocking sync) inside asyncio.wait_for is NOT truly
    async — it blocks the event loop thread. Replaced with AsyncAnthropic.
-2. Model kept as claude-sonnet-4-6 (this is a nuanced assessment, not a
+2. Model kept as claude-haiku-4-5-20251001 (this is a nuanced assessment, not a
    structured JSON task — Sonnet quality matters here).
 3. Timeout increased 10s → 15s with proper async handling.
 4. Graceful fallback: on timeout or AI error, returns a rule-based assessment
@@ -251,7 +251,7 @@ async def dispatch_advice(
         client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
         message = await asyncio.wait_for(
             client.messages.create(
-                model="claude-sonnet-4-6",
+                model="claude-haiku-4-5-20251001",
                 max_tokens=120,
                 messages=[{"role": "user", "content": prompt}],
             ),

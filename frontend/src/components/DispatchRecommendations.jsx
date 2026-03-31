@@ -361,8 +361,10 @@ export default function DispatchRecommendations({
   const [dispatching,   setDispatching]   = useState(false)
   const [dispatched,    setDispatched]    = useState(false)
 
-  const [routeSafety,   setRouteSafety]   = useState(null)
-  const [feedbackSent,  setFeedbackSent]  = useState(false)
+  const [routeSafety,       setRouteSafety]       = useState(null)
+  const [feedbackSent,      setFeedbackSent]      = useState(false)
+  // Track unit IDs that have already been dispatched for this incident
+  const [dispatchedUnitIds, setDispatchedUnitIds] = useState(new Set())
 
   // ── Fetch on incident change ──────────────────────────────────────────────
   const fetchRecommendations = useCallback(async (incidentId) => {
@@ -387,11 +389,14 @@ export default function DispatchRecommendations({
 
   useEffect(() => {
     if (!incident?.id) return
+    setDispatchedUnitIds(new Set())
     fetchRecommendations(incident.id)
   }, [incident?.id, fetchRecommendations])
 
   // ── Derived lists ─────────────────────────────────────────────────────────
-  const normalUnits = data?.recommended_units ?? []
+  const allRecommendedUnits = data?.recommended_units ?? []
+  // Filter out units that have already been dispatched in this session
+  const normalUnits = allRecommendedUnits.filter(u => !dispatchedUnitIds.has(u.unit_id))
   const shortages   = data?.summary?.shortages ?? []
 
   // ── Handlers ──────────────────────────────────────────────────────────────
@@ -420,6 +425,13 @@ export default function DispatchRecommendations({
         route_id:        '',
       })
       setDispatched(true)
+
+      // Record these unit IDs as dispatched so they're removed from the list
+      setDispatchedUnitIds(prev => {
+        const next = new Set(prev)
+        selectedUnits.forEach(id => next.add(id))
+        return next
+      })
 
       // Submit accepted feedback with actual units
       const recommended = (data?.recommended_units ?? []).map(u => u.unit_id)
@@ -487,8 +499,13 @@ export default function DispatchRecommendations({
           {data.summary && (
             <div style={S.summaryRow}>
               <span>
-                {data.summary.total_selected} unit{data.summary.total_selected !== 1 ? 's' : ''} recommended
-                {data.summary.shortages?.length > 0 && (
+                {normalUnits.length} unit{normalUnits.length !== 1 ? 's' : ''} remaining
+                {dispatchedUnitIds.size > 0 && (
+                  <span style={{ color: '#4ade80', marginLeft: '6px' }}>
+                    · {dispatchedUnitIds.size} dispatched
+                  </span>
+                )}
+                {data.summary.shortages?.length > 0 && normalUnits.length > 0 && (
                   <span style={{ color: '#ef4444', marginLeft: '6px' }}>
                     · {data.summary.shortages.length} shortage{data.summary.shortages.length !== 1 ? 's' : ''}
                   </span>
@@ -527,10 +544,13 @@ export default function DispatchRecommendations({
 
           {normalUnits.length === 0 && shortages.length === 0 && (
             <div style={{
-              fontFamily: 'Inter, sans-serif', fontSize: '12px', color: '#878787',
+              fontFamily: 'Inter, sans-serif', fontSize: '12px',
               padding: '8px 0',
+              color: dispatchedUnitIds.size > 0 ? '#4ade80' : '#878787',
             }}>
-              No units available for dispatch.
+              {dispatchedUnitIds.size > 0
+                ? '✓ All recommended units have been dispatched.'
+                : 'No units available for dispatch.'}
             </div>
           )}
 
@@ -539,7 +559,7 @@ export default function DispatchRecommendations({
             <ShortageRow key={`shortage-${i}`} entry={s} />
           ))}
 
-          {/* Approve dispatch */}
+          {/* Approve dispatch — only show if there are remaining units to dispatch */}
           {!isViewer && normalUnits.length > 0 && (
             <>
               {dispatched && (

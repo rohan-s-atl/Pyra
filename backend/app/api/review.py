@@ -141,7 +141,7 @@ async def post_incident_review(
             client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
 
             async with client.messages.stream(
-                model="claude-sonnet-4-6",
+                model="claude-haiku-4-5-20251001",
                 max_tokens=1200,
                 system="You are a CAL FIRE after-action review specialist. Be analytical and concise.",
                 messages=[{"role": "user", "content": prompt}],

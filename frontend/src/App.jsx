@@ -121,8 +121,8 @@ export default function App() {
         const next = { ...prev }
         let changed = false
         for (const unit of newUnits) {
-          if ((unit.status === 'available' || unit.status === 'returning') && next[unit.id]) {
-            delete next[unit.id]
+          if ((unit.status === 'available' || unit.status === 'returning') && next[String(unit.id)]) {
+            delete next[String(unit.id)]
             changed = true
           }
         }
@@ -214,7 +214,7 @@ export default function App() {
   function handleConfirmLoadouts(loadouts) {
     setConfirmedLoadouts(prev => {
       const next = { ...prev }
-      for (const l of loadouts) next[l.unit_id] = l
+      for (const l of loadouts) next[String(l.unit_id)] = l
       return next
     })
   }
