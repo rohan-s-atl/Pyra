@@ -8,6 +8,16 @@
 
 * { box-sizing: border-box; }
 
+html, body, #root, #root * {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input, textarea, select, [contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 :root {
   --ui-scale: 1;
   --bg:            #090d14;

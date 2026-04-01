@@ -26,8 +26,10 @@ export default function TopBar({
   const [optionsOpen, setOptionsOpen] = useState(false)
   const [optionsPos, setOptionsPos] = useState(null)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [userMenuPos, setUserMenuPos] = useState(null)
   const [aiReady, setAiReady] = useState(null)
   const optBtnRef = useRef(null)
+  const userBtnRef = useRef(null)
 
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 1000)
@@ -50,6 +52,16 @@ export default function TopBar({
     document.addEventListener('mousedown', h)
     return () => document.removeEventListener('mousedown', h)
   }, [optionsOpen])
+
+  useEffect(() => {
+    if (!userMenuOpen) return
+    const h = (e) => {
+      if (!e.target.closest('[data-user-menu]') && !e.target.closest('[data-user-btn]'))
+        setUserMenuOpen(false)
+    }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [userMenuOpen])
 
   const activeInc = incidents.filter(i => i.status === 'active' || i.status === 'contained')
   const assignedUnits = units.filter(u => u.assigned_incident_id)
@@ -243,7 +255,19 @@ export default function TopBar({
         {auth && (
           <div style={{ position: 'relative' }}>
             <button
-              onClick={() => setUserMenuOpen(v => !v)}
+              ref={userBtnRef}
+              data-user-btn="true"
+              onClick={() => {
+                if (userMenuOpen) {
+                  setUserMenuOpen(false)
+                  return
+                }
+                const r = userBtnRef.current?.getBoundingClientRect()
+                if (r) {
+                  setUserMenuPos({ top: r.bottom + 8, right: Math.max(window.innerWidth - r.right, 8) })
+                }
+                setUserMenuOpen(true)
+              }}
               style={{
                 display: 'flex', alignItems: 'center', gap: '8px',
                 background: userMenuOpen ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)',
@@ -261,40 +285,6 @@ export default function TopBar({
               </div>
               <span style={{ color: '#8b9bb0', fontSize: '8px' }}>{userMenuOpen ? '▲' : '▼'}</span>
             </button>
-
-            {userMenuOpen && (
-              <div style={{
-                position: 'fixed', top: '58px', right: '120px', zIndex: 99999,
-                background: 'rgba(22,28,38,0.96)', border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '14px', overflow: 'hidden',
-                boxShadow: '0 8px 40px rgba(0,0,0,0.7)', minWidth: '160px',
-                backdropFilter: 'blur(14px)',
-              }}>
-                {[
-                  { label: 'Audit Log',  action: () => { onToggleAudit();   setUserMenuOpen(false) } },
-                  { label: 'Settings',   action: () => { onToggleSettings(); setUserMenuOpen(false) } },
-                  { label: 'Sign Out',   action: () => { onLogout();         setUserMenuOpen(false) }, danger: true },
-                ].map((item, i) => (
-                  <button
-                    key={item.label}
-                    onClick={item.action}
-                    style={{
-                      display: 'block', width: '100%', padding: '10px 16px', textAlign: 'left',
-                      background: 'transparent',
-                      border: 'none', borderBottom: i < 2 ? '1px solid rgba(255,255,255,0.05)' : 'none',
-                      cursor: 'pointer',
-                      fontFamily: 'var(--font-sans)', fontWeight: 500, fontSize: '12px',
-                      color: item.danger ? '#ef4444' : '#d4dce8',
-                      transition: 'background 0.1s',
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         )}
 
@@ -357,6 +347,53 @@ export default function TopBar({
               {l.active && (
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: l.dot }}>ON</span>
               )}
+            </button>
+          ))}
+        </div>,
+        document.body
+      )}
+
+      {userMenuOpen && userMenuPos && createPortal(
+        <div
+          data-user-menu="true"
+          style={{
+            position: 'fixed', top: userMenuPos.top, right: userMenuPos.right, zIndex: 99999,
+            background: 'linear-gradient(180deg, rgba(28,35,47,0.96) 0%, rgba(18,24,34,0.98) 100%)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '16px',
+            overflow: 'hidden',
+            boxShadow: '0 18px 44px rgba(0,0,0,0.46)',
+            minWidth: '180px',
+            backdropFilter: 'blur(14px)',
+          }}
+        >
+          {[
+            { label: 'Audit Log', action: () => { onToggleAudit(); setUserMenuOpen(false) } },
+            { label: 'Settings', action: () => { onToggleSettings(); setUserMenuOpen(false) } },
+            { label: 'Sign Out', action: () => { onLogout(); setUserMenuOpen(false) }, danger: true },
+          ].map((item, i) => (
+            <button
+              key={item.label}
+              onClick={item.action}
+              style={{
+                display: 'block',
+                width: '100%',
+                padding: '12px 16px',
+                textAlign: 'left',
+                background: 'transparent',
+                border: 'none',
+                borderBottom: i < 2 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+                cursor: 'pointer',
+                fontFamily: 'var(--font-sans)',
+                fontWeight: 600,
+                fontSize: '12px',
+                color: item.danger ? '#ef4444' : '#d4dce8',
+                transition: 'background 0.1s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+            >
+              {item.label}
             </button>
           ))}
         </div>,

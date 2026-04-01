@@ -18,6 +18,34 @@ export default function LoginScreen({ onLogin }) {
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState(null)
 
+  const loginCardStyle = {
+    position: 'relative',
+    zIndex: 1,
+    background: 'linear-gradient(180deg, rgba(24,31,43,0.9) 0%, rgba(18,24,35,0.94) 100%)',
+    border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: '20px',
+    padding: '28px',
+    backdropFilter: 'blur(16px)',
+    boxShadow: '0 28px 68px rgba(0,0,0,0.44), inset 0 1px 0 rgba(255,255,255,0.05)',
+  }
+
+  const ambientOrbStyle = (background, width, height, top, left, right, bottom, animationDelay = '0s') => ({
+    position: 'absolute',
+    width,
+    height,
+    top,
+    left,
+    right,
+    bottom,
+    borderRadius: '999px',
+    background,
+    filter: 'blur(80px)',
+    opacity: 0.7,
+    animation: 'ambient-drift 16s ease-in-out infinite',
+    animationDelay,
+    pointerEvents: 'none',
+  })
+
   async function handleLogin(e) {
     e.preventDefault()
     if (!username || !password) return
@@ -43,17 +71,34 @@ export default function LoginScreen({ onLogin }) {
   return (
     <div style={{
       height: '100vh', width: '100vw',
-      background: '#0d0f11',
+      position: 'relative',
+      overflow: 'hidden',
+      background: 'linear-gradient(180deg, #18212e 0%, #121a25 44%, #0e151e 100%)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontFamily: 'var(--font-sans)',
-      // Subtle grid background
-      backgroundImage: 'radial-gradient(rgba(255,77,26,0.04) 1px, transparent 1px)',
-      backgroundSize: '32px 32px',
     }}>
-      <div style={{ width: 'min(400px, 90vw)', padding: '0 16px', animation: 'fade-up 0.4s ease-out' }}>
+      <div style={ambientOrbStyle('radial-gradient(circle, rgba(255,115,56,0.32) 0%, rgba(255,115,56,0.12) 38%, rgba(255,115,56,0) 72%)', '420px', '420px', '-120px', '-90px', 'auto', 'auto')} />
+      <div style={ambientOrbStyle('radial-gradient(circle, rgba(56,189,248,0.2) 0%, rgba(56,189,248,0.08) 42%, rgba(56,189,248,0) 74%)', '420px', '420px', 'auto', 'auto', '-120px', '-140px', '-5s')} />
+      <div style={ambientOrbStyle('radial-gradient(circle, rgba(255,207,84,0.16) 0%, rgba(255,207,84,0.06) 36%, rgba(255,207,84,0) 72%)', '300px', '300px', 'auto', '12%', 'auto', '10%', '-9s')} />
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        backgroundImage: 'radial-gradient(rgba(255,255,255,0.035) 1px, transparent 1px)',
+        backgroundSize: '34px 34px',
+        maskImage: 'linear-gradient(180deg, rgba(0,0,0,0.95), rgba(0,0,0,0.7))',
+        opacity: 0.55,
+        pointerEvents: 'none',
+      }} />
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        background: 'linear-gradient(180deg, rgba(10,14,20,0.04) 0%, rgba(10,14,20,0.18) 100%)',
+        pointerEvents: 'none',
+      }} />
+      <div style={{ width: 'min(400px, 90vw)', padding: '0 16px', animation: 'fade-up 0.45s ease-out', position: 'relative', zIndex: 1 }}>
 
         {/* Logo + wordmark */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '40px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '40px', animation: 'panel-float 10s ease-in-out infinite' }}>
           <div style={{
             width: '44px', height: '44px', borderRadius: '10px',
             background: 'linear-gradient(135deg, #ff4d1a 0%, #c0320a 100%)',
@@ -77,14 +122,7 @@ export default function LoginScreen({ onLogin }) {
         </div>
 
         {/* Login card */}
-        <div style={{
-          background: 'rgba(20,26,36,0.94)',
-          border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: '20px', padding: '28px',
-          backdropFilter: 'blur(16px)',
-          boxShadow: '0 24px 56px rgba(0,0,0,0.5)',
-          marginBottom: '12px',
-        }}>
+        <div style={{ ...loginCardStyle, marginBottom: '12px', animation: 'panel-float 11s ease-in-out infinite', animationDelay: '-1.2s' }}>
           <div style={{ fontWeight: 700, fontSize: '15px', color: '#d4dce8', marginBottom: '5px' }}>
             Sign in to Pyra
           </div>
@@ -155,10 +193,12 @@ export default function LoginScreen({ onLogin }) {
 
         {/* Demo credentials */}
         <div style={{
-          background: 'rgba(20,26,36,0.82)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          ...loginCardStyle,
+          background: 'linear-gradient(180deg, rgba(24,31,43,0.78) 0%, rgba(18,24,35,0.86) 100%)',
           borderRadius: '18px', padding: '16px',
           backdropFilter: 'blur(12px)',
+          animation: 'panel-float 12s ease-in-out infinite',
+          animationDelay: '-4s',
         }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#3a4558', letterSpacing: '0.12em', marginBottom: '10px' }}>
             DEMO CREDENTIALS · PASSWORD: pyra2025

@@ -376,9 +376,76 @@ export default function IncidentDetailPanel({
     )
   }
 
-  function copyBriefing() {
-    navigator.clipboard.writeText(briefing).catch(() => {})
-    toast('Briefing copied to clipboard', 'success')
+  function exportBriefingPdf() {
+    const printWindow = window.open('', '_blank', 'width=900,height=1100')
+    if (!printWindow) {
+      toast('Popup blocked while preparing PDF export', 'error')
+      return
+    }
+
+    const escapedBriefing = briefing
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\n/g, '<br/>')
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Pyra ICS Briefing</title>
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+              margin: 40px;
+              color: #0f172a;
+              background: #ffffff;
+              line-height: 1.65;
+            }
+            .header {
+              border-bottom: 2px solid #ff4d1a;
+              padding-bottom: 14px;
+              margin-bottom: 24px;
+            }
+            .eyebrow {
+              font-size: 11px;
+              text-transform: uppercase;
+              letter-spacing: 0.14em;
+              color: #64748b;
+              margin-bottom: 8px;
+            }
+            h1 {
+              margin: 0;
+              font-size: 24px;
+              color: #0f172a;
+            }
+            .incident {
+              margin-top: 6px;
+              font-size: 14px;
+              color: #475569;
+            }
+            .content {
+              white-space: pre-wrap;
+              font-size: 14px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="eyebrow">Pyra AI Operational Briefing</div>
+            <h1>ICS Operational Briefing</h1>
+            <div class="incident">${incident.name}</div>
+          </div>
+          <div class="content">${escapedBriefing}</div>
+        </body>
+      </html>
+    `)
+    printWindow.document.close()
+    printWindow.focus()
+    setTimeout(() => {
+      printWindow.print()
+      printWindow.close()
+    }, 250)
+    toast('PDF export opened in print dialog', 'success')
   }
 
   // Fetch dispatch advice when units are selected — stable dep avoids flicker
@@ -1026,7 +1093,7 @@ export default function IncidentDetailPanel({
       {briefingOpen && (
         <div ref={briefingRef} style={{
           borderTop: '1px solid rgba(255,255,255,0.06)',
-          background: 'rgba(10,14,20,0.86)',
+          background: 'linear-gradient(180deg, rgba(26,34,48,0.92) 0%, rgba(18,24,34,0.96) 100%)',
           flexShrink: 0,
           maxHeight: '380px',
           display: 'flex',
@@ -1035,7 +1102,7 @@ export default function IncidentDetailPanel({
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '10px 16px 8px',
-            borderBottom: '1px solid #1e1e22',
+            borderBottom: '1px solid rgba(255,255,255,0.08)',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{
@@ -1056,17 +1123,32 @@ export default function IncidentDetailPanel({
             <div style={{ display: 'flex', gap: '8px' }}>
               {briefing && !briefingLoading && (
                 <button
-                  onClick={copyBriefing}
+                  onClick={exportBriefingPdf}
                   style={{
-                    background: 'none', border: '1px solid #333', borderRadius: '2px',
-                    padding: '2px 8px', cursor: 'pointer',
-                    fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#c3d0df',
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '10px',
+                    padding: '6px 10px',
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font-sans)',
+                    fontSize: '10px',
+                    fontWeight: 600,
+                    color: '#c3d0df',
+                    letterSpacing: '0.06em',
                     transition: 'all 0.15s',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#ff4d1a'; e.currentTarget.style.color = '#ff4d1a' }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.color = '#c3d0df' }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.borderColor = '#ff4d1a'
+                    e.currentTarget.style.color = '#ff4d1a'
+                    e.currentTarget.style.background = 'rgba(255,77,26,0.08)'
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'
+                    e.currentTarget.style.color = '#c3d0df'
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+                  }}
                 >
-                  COPY
+                  EXPORT PDF
                 </button>
               )}
               <button
@@ -1081,6 +1163,7 @@ export default function IncidentDetailPanel({
             flex: 1, overflowY: 'auto', padding: '14px 16px',
             fontFamily: 'var(--font-sans)', fontSize: '12px',
             color: '#d4dce8', lineHeight: 1.7,
+            background: 'rgba(12,18,27,0.24)',
           }}>
             {!briefing && !briefingLoading && (
               <span style={{ color: '#c3d0df' }}>Press Generate to create a briefing.</span>
