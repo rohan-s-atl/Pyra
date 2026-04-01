@@ -536,7 +536,6 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
     return (
       <div className="ui-shell-panel ui-float-soft-delayed ui-panel-enter" style={{
         width: '58px',
-        height: '100%',
         background: 'linear-gradient(180deg, rgba(28,35,47,0.9) 0%, rgba(18,24,34,0.95) 100%)',
         border: '1px solid rgba(255,255,255,0.1)',
         borderRadius: '20px',

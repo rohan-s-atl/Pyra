@@ -219,6 +219,7 @@ export default function LeftSidebar({ units, activeView, onViewChange, selectedI
       width: '272px',
       display: 'grid',
       gridTemplateRows: 'auto auto auto minmax(0, 1fr)',
+      minHeight: 0,
       background: 'linear-gradient(180deg, rgba(28,35,47,0.9) 0%, rgba(18,24,34,0.95) 100%)',
       border: '1px solid rgba(255,255,255,0.1)',
       borderRadius: '20px',

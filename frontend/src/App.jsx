@@ -445,9 +445,12 @@ export default function App() {
               position: 'absolute',
               top: `${topRailOffset}px`,
               left: `${shellInset}px`,
-              maxHeight: `calc(100vh - ${topRailOffset + shellInset}px)`,
+              bottom: `${shellInset}px`,
               zIndex: 1300,
               pointerEvents: 'auto',
+              display: 'flex',
+              alignItems: 'flex-start',
+              minHeight: 0,
             }}>
               <LeftSidebar
                 units={units}
