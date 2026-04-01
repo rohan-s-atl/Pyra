@@ -104,6 +104,141 @@ function sortUnitsForDispatch(units, incident) {
   })
 }
 
+function sanitizePdfText(text) {
+  return text
+    .replace(/[–—]/g, '-')
+    .replace(/[•]/g, '*')
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/→/g, '->')
+    .split('\n')
+    .map(line => line.replace(/[^\u0020-\u007E]/g, ''))
+    .join('\n')
+}
+
+function escapePdfText(text) {
+  return text.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)')
+}
+
+function wrapPdfLine(text, maxChars = 92) {
+  if (!text.trim()) return ['']
+  const words = text.split(/\s+/)
+  const lines = []
+  let current = ''
+
+  words.forEach(word => {
+    const candidate = current ? `${current} ${word}` : word
+    if (candidate.length > maxChars && current) {
+      lines.push(current)
+      current = word
+    } else {
+      current = candidate
+    }
+  })
+
+  if (current) lines.push(current)
+  return lines
+}
+
+function buildBriefingPdf(incidentName, briefing) {
+  const fontRef = 3
+  const pageWidth = 612
+  const pageHeight = 792
+  const left = 52
+  const top = 742
+  const bottom = 58
+  const lineHeight = 16
+  const firstPageLines = 39
+  const laterPageLines = 43
+
+  const normalized = sanitizePdfText(briefing)
+  const bodyLines = normalized.split('\n').flatMap(line => (
+    line.trim() ? wrapPdfLine(line) : ['']
+  ))
+
+  const pages = []
+  let remaining = bodyLines
+  let firstPage = true
+
+  while (remaining.length > 0 || firstPage) {
+    const capacity = firstPage ? firstPageLines : laterPageLines
+    const pageBody = remaining.slice(0, capacity)
+    remaining = remaining.slice(capacity)
+    pages.push({ firstPage, body: pageBody })
+    firstPage = false
+    if (bodyLines.length === 0) break
+  }
+
+  const objects = []
+  const addObject = (content) => {
+    objects.push(content)
+    return objects.length
+  }
+
+  const catalogRef = addObject('<< /Type /Catalog /Pages 2 0 R >>')
+  const pagesRef = addObject('')
+  addObject('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>')
+
+  const pageRefs = []
+
+  pages.forEach((page) => {
+    let y = top
+    const commands = ['BT']
+
+    if (page.firstPage) {
+      commands.push('/F1 11 Tf 0.34 0.45 0.62 rg')
+      commands.push(`1 0 0 1 ${left} ${y} Tm (${escapePdfText('PYRA AI OPERATIONAL BRIEFING')}) Tj`)
+      y -= 24
+      commands.push('/F1 20 Tf 0.08 0.11 0.16 rg')
+      commands.push(`1 0 0 1 ${left} ${y} Tm (${escapePdfText('ICS Operational Briefing')}) Tj`)
+      y -= 20
+      commands.push('/F1 11 Tf 0.34 0.40 0.49 rg')
+      commands.push(`1 0 0 1 ${left} ${y} Tm (${escapePdfText(incidentName)}) Tj`)
+      y -= 28
+    } else {
+      commands.push('/F1 11 Tf 0.34 0.40 0.49 rg')
+      commands.push(`1 0 0 1 ${left} ${y} Tm (${escapePdfText(`ICS Operational Briefing - ${incidentName}`)}) Tj`)
+      y -= 24
+    }
+
+    commands.push('/F1 12 Tf 0.08 0.11 0.16 rg')
+    page.body.forEach((line) => {
+      if (y < bottom) return
+      commands.push(`1 0 0 1 ${left} ${y} Tm (${escapePdfText(line)}) Tj`)
+      y -= lineHeight
+    })
+    commands.push('ET')
+
+    const stream = commands.join('\n')
+    const contentRef = addObject(`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`)
+
+    const pageRef = addObject(
+      `<< /Type /Page /Parent ${pagesRef} 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 ${fontRef} 0 R >> >> /Contents ${contentRef} 0 R >>`
+    )
+    pageRefs.push(pageRef)
+  })
+
+  objects[pagesRef - 1] = `<< /Type /Pages /Count ${pageRefs.length} /Kids [${pageRefs.map(ref => `${ref} 0 R`).join(' ')}] >>`
+
+  let pdf = '%PDF-1.4\n'
+  const offsets = [0]
+
+  objects.forEach((object, index) => {
+    offsets.push(pdf.length)
+    pdf += `${index + 1} 0 obj\n${object}\nendobj\n`
+  })
+
+  const xrefStart = pdf.length
+  pdf += `xref\n0 ${objects.length + 1}\n`
+  pdf += '0000000000 65535 f \n'
+  offsets.slice(1).forEach(offset => {
+    pdf += `${String(offset).padStart(10, '0')} 00000 n \n`
+  })
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root ${catalogRef} 0 R >>\nstartxref\n${xrefStart}\n%%EOF`
+
+  return new Blob([pdf], { type: 'application/pdf' })
+}
+
 // formatTimeShort imported from utils/timeUtils
 
 // ── Route status badge ────────────────────────────────────────────────────────
@@ -377,75 +512,14 @@ export default function IncidentDetailPanel({
   }
 
   function exportBriefingPdf() {
-    const printWindow = window.open('', '_blank', 'width=900,height=1100')
-    if (!printWindow) {
-      toast('Popup blocked while preparing PDF export', 'error')
-      return
-    }
-
-    const escapedBriefing = briefing
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/\n/g, '<br/>')
-
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Pyra ICS Briefing</title>
-          <style>
-            body {
-              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-              margin: 40px;
-              color: #0f172a;
-              background: #ffffff;
-              line-height: 1.65;
-            }
-            .header {
-              border-bottom: 2px solid #ff4d1a;
-              padding-bottom: 14px;
-              margin-bottom: 24px;
-            }
-            .eyebrow {
-              font-size: 11px;
-              text-transform: uppercase;
-              letter-spacing: 0.14em;
-              color: #64748b;
-              margin-bottom: 8px;
-            }
-            h1 {
-              margin: 0;
-              font-size: 24px;
-              color: #0f172a;
-            }
-            .incident {
-              margin-top: 6px;
-              font-size: 14px;
-              color: #475569;
-            }
-            .content {
-              white-space: pre-wrap;
-              font-size: 14px;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <div class="eyebrow">Pyra AI Operational Briefing</div>
-            <h1>ICS Operational Briefing</h1>
-            <div class="incident">${incident.name}</div>
-          </div>
-          <div class="content">${escapedBriefing}</div>
-        </body>
-      </html>
-    `)
-    printWindow.document.close()
-    printWindow.focus()
-    setTimeout(() => {
-      printWindow.print()
-      printWindow.close()
-    }, 250)
-    toast('PDF export opened in print dialog', 'success')
+    const blob = buildBriefingPdf(incident.name, briefing)
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `pyra_ics_briefing_${incident.id}.pdf`
+    a.click()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+    toast('Briefing exported to PDF', 'success')
   }
 
   // Fetch dispatch advice when units are selected — stable dep avoids flicker

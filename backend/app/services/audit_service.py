@@ -5,6 +5,18 @@ from sqlalchemy.orm import Session
 from app.models.audit_log import AuditLog
 
 
+def _checksum_timestamp(timestamp: datetime) -> str:
+    """
+    Normalize timestamps before hashing so verification remains stable even if
+    the database returns a naive UTC datetime.
+    """
+    if timestamp.tzinfo is None:
+        timestamp = timestamp.replace(tzinfo=UTC)
+    else:
+        timestamp = timestamp.astimezone(UTC)
+    return timestamp.isoformat()
+
+
 def _checksum(timestamp: str, action: str, actor: str, actor_role: str,
               incident_id: str, unit_ids: str, details: str) -> str:
     """SHA-256 of the row's core fields — tamper-evident."""
@@ -25,7 +37,7 @@ def write_audit_log(
     timestamp   = datetime.now(UTC)
     unit_ids_str = ",".join(unit_ids) if unit_ids else None
     checksum    = _checksum(
-        timestamp.isoformat(), action, actor, actor_role,
+        _checksum_timestamp(timestamp), action, actor, actor_role,
         incident_id, unit_ids_str, details,
     )
 
@@ -50,7 +62,7 @@ def verify_log_integrity(entries: list[AuditLog]) -> list[dict]:
     results = []
     for e in entries:
         expected = _checksum(
-            e.timestamp.isoformat(), e.action, e.actor, e.actor_role,
+            _checksum_timestamp(e.timestamp), e.action, e.actor, e.actor_role,
             e.incident_id, e.unit_ids, e.details,
         )
         results.append({
