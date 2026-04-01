@@ -175,6 +175,7 @@ export default function IncidentMap({
   const [unitPulseId,  setUnitPulseId]  = useState(null)
   const [zoomLevel,    setZoomLevel]    = useState(7)
   const [followMode,   setFollowMode]   = useState(false)
+  const [legendCollapsed, setLegendCollapsed] = useState(false)
   const mapRef = useRef(null)
 
   const clickedRouteCache = useRef({})
@@ -698,62 +699,99 @@ export default function IncidentMap({
         )}
 
         {/* Map Legend */}
-      <div style={{
-        position: 'absolute', bottom: `${overlayBottomOffset + 16}px`, left: `${overlayLeftOffset}px`, zIndex: 1250,
+        <div style={{
+          position: 'absolute', bottom: `${overlayBottomOffset + 16}px`, left: `${overlayLeftOffset}px`, zIndex: 1250,
           background: 'rgba(20,26,36,0.92)', border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: '16px', padding: '10px 12px',
-          display: 'flex', flexDirection: 'column', gap: '5px', pointerEvents: 'none',
+          borderRadius: '16px',
+          padding: legendCollapsed ? '8px 10px' : '10px 12px',
+          display: 'flex', flexDirection: 'column', gap: legendCollapsed ? '0' : '5px',
+          pointerEvents: 'auto',
           backdropFilter: 'blur(14px)',
           boxShadow: '0 16px 36px rgba(0,0,0,0.4)',
+          transition: 'all 0.18s ease-out',
         }}>
-          {showFires && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', marginBottom: legendCollapsed ? 0 : '4px' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '8px', color: '#8b9bb0', letterSpacing: '0.12em' }}>
+              MAP LEGEND
+            </div>
+            <button
+              className="ui-interactive-btn"
+              onClick={() => setLegendCollapsed(v => !v)}
+              aria-label={legendCollapsed ? 'Expand map legend' : 'Collapse map legend'}
+              title={legendCollapsed ? 'Expand legend' : 'Hide legend'}
+              style={{
+                width: '22px',
+                height: '22px',
+                borderRadius: '999px',
+                border: '1px solid rgba(255,255,255,0.12)',
+                background: 'rgba(255,255,255,0.04)',
+                color: '#b7c4d4',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontFamily: 'var(--font-mono)',
+                fontSize: '10px',
+                lineHeight: 1,
+                padding: 0,
+              }}
+            >
+              {legendCollapsed ? '↑' : '↓'}
+            </button>
+          </div>
+
+          {!legendCollapsed && (
             <>
-              <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '8px', color: '#8b9bb0', letterSpacing: '0.12em', marginBottom: '2px' }}>FIRE SEVERITY</div>
-              {[
-                { sev: 'critical', color: '#ef4444' },
-                { sev: 'high',     color: '#ff4d1a' },
-                { sev: 'moderate', color: '#f59e0b' },
-                { sev: 'low',      color: '#22c55e' },
-              ].map(({ sev, color }) => (
-                <div key={sev} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: color, boxShadow: `0 0 5px ${color}60` }} />
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#b7c4d4', letterSpacing: '0.06em' }}>{sev.toUpperCase()}</span>
-                </div>
-              ))}
+              {showFires && (
+                <>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '8px', color: '#8b9bb0', letterSpacing: '0.12em', marginBottom: '2px' }}>FIRE SEVERITY</div>
+                  {[
+                    { sev: 'critical', color: '#ef4444' },
+                    { sev: 'high',     color: '#ff4d1a' },
+                    { sev: 'moderate', color: '#f59e0b' },
+                    { sev: 'low',      color: '#22c55e' },
+                  ].map(({ sev, color }) => (
+                    <div key={sev} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: color, boxShadow: `0 0 5px ${color}60` }} />
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#b7c4d4', letterSpacing: '0.06em' }}>{sev.toUpperCase()}</span>
+                    </div>
+                  ))}
+                </>
+              )}
+              {showFires && showUnits && <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '3px 0' }} />}
+              {showUnits && (
+                <>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '8px', color: '#8b9bb0', letterSpacing: '0.12em', marginBottom: '2px' }}>UNIT STATUS</div>
+                  {[
+                    { status: 'available',      color: '#22c55e' },
+                    { status: 'en route',       color: '#38bdf8' },
+                    { status: 'on scene',       color: '#ff4d1a' },
+                    { status: 'staging',        color: '#facc15' },
+                    { status: 'returning',      color: '#a78bfa' },
+                  ].map(({ status, color }) => (
+                    <div key={status} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: color }} />
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#b7c4d4', letterSpacing: '0.06em' }}>{status.toUpperCase()}</span>
+                    </div>
+                  ))}
+                </>
+              )}
+              {unitRoutes.length > 0 && (
+                <>
+                  <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '3px 0' }} />
+                  <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '8px', color: '#8b9bb0', letterSpacing: '0.12em', marginBottom: '2px' }}>ROUTES</div>
+                  {[{ status: 'FASTEST', color: '#22c55e' }, { status: 'CAUTION', color: '#eab308' }, { status: 'AVOID', color: '#ef4444' }].map(({ status, color }) => (
+                    <div key={status} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ width: '14px', height: '2px', background: color, borderRadius: '1px' }} />
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#b7c4d4', letterSpacing: '0.06em' }}>{status}</span>
+                    </div>
+                  ))}
+                </>
+              )}
+              {!showLabels && showUnits && (
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '8.5px', color: '#8b9bb0', marginTop: '2px' }}>Zoom in for callsigns</div>
+              )}
             </>
-          )}
-          {showFires && showUnits && <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '3px 0' }} />}
-          {showUnits && (
-            <>
-              <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '8px', color: '#8b9bb0', letterSpacing: '0.12em', marginBottom: '2px' }}>UNIT STATUS</div>
-              {[
-                { status: 'available',      color: '#22c55e' },
-                { status: 'en route',       color: '#38bdf8' },
-                { status: 'on scene',       color: '#ff4d1a' },
-                { status: 'staging',        color: '#facc15' },
-                { status: 'returning',      color: '#a78bfa' },
-              ].map(({ status, color }) => (
-                <div key={status} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: color }} />
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#b7c4d4', letterSpacing: '0.06em' }}>{status.toUpperCase()}</span>
-                </div>
-              ))}
-            </>
-          )}
-          {unitRoutes.length > 0 && (
-            <>
-              <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '3px 0' }} />
-              <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '8px', color: '#8b9bb0', letterSpacing: '0.12em', marginBottom: '2px' }}>ROUTES</div>
-              {[{ status: 'FASTEST', color: '#22c55e' }, { status: 'CAUTION', color: '#eab308' }, { status: 'AVOID', color: '#ef4444' }].map(({ status, color }) => (
-                <div key={status} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '14px', height: '2px', background: color, borderRadius: '1px' }} />
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#b7c4d4', letterSpacing: '0.06em' }}>{status}</span>
-                </div>
-              ))}
-            </>
-          )}
-          {!showLabels && showUnits && (
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '8.5px', color: '#8b9bb0', marginTop: '2px' }}>Zoom in for callsigns</div>
           )}
         </div>
       </MapContainer>

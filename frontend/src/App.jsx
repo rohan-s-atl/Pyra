@@ -266,9 +266,6 @@ export default function App() {
   const shellInset = 12
   const topRailOffset = 86
   const mapHudLeftInset = shellInset + 16
-  const leftSidebarBottomInset = showLeftSidebar
-    ? shellInset + Math.min(320, Math.max(250, window.innerHeight * 0.24))
-    : shellInset
   const baseOverlayRight = showRightPanel ? shellInset + overlayPanelWidth + overlayGap : shellInset
   const commandPanelRight = baseOverlayRight
   const detailPanelRight = baseOverlayRight + (showCommand ? overlayPanelWidth + overlayGap : 0)
@@ -444,7 +441,7 @@ export default function App() {
           )}
 
           {showLeftSidebar && (
-            <div style={{ position: 'absolute', top: `${topRailOffset}px`, left: `${shellInset}px`, bottom: `${leftSidebarBottomInset}px`, zIndex: 1300, pointerEvents: 'auto' }}>
+            <div style={{ position: 'absolute', top: `${topRailOffset}px`, left: `${shellInset}px`, bottom: `${shellInset}px`, zIndex: 1300, pointerEvents: 'auto' }}>
               <LeftSidebar
                 units={units}
                 activeView={activeView}
