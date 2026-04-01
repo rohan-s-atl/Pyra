@@ -21,6 +21,7 @@ import anthropic
 import json
 import hashlib
 import logging
+import re
 from functools import lru_cache
 from datetime import datetime, UTC
 
@@ -207,6 +208,41 @@ Respond ONLY with valid JSON (no markdown):
 }}"""
 
 
+def _extract_json_object(raw: str) -> str:
+    raw = raw.strip()
+    if raw.startswith("```"):
+        raw = "\n".join(raw.split("\n")[1:])
+    if raw.endswith("```"):
+        raw = "\n".join(raw.split("\n")[:-1])
+
+    start = raw.find("{")
+    end = raw.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        return raw[start:end + 1]
+    return raw
+
+
+def _repair_common_json_issues(raw: str) -> str:
+    repaired = raw
+    repaired = repaired.replace("“", '"').replace("”", '"').replace("’", "'").replace("‘", "'")
+    repaired = re.sub(r",(\s*[}\]])", r"\1", repaired)
+    repaired = re.sub(r'([{,]\s*)([A-Za-z_][A-Za-z0-9_\-]*)(\s*:)', r'\1"\2"\3', repaired)
+    return repaired
+
+
+def _parse_loadout_response(raw: str) -> dict:
+    extracted = _extract_json_object(raw)
+    try:
+        return json.loads(extracted)
+    except json.JSONDecodeError as first_error:
+        repaired = _repair_common_json_issues(extracted)
+        try:
+            return json.loads(repaired)
+        except json.JSONDecodeError:
+            logger.warning("[loadout] JSON parse failed. Raw excerpt: %r", extracted[:800])
+            raise first_error
+
+
 # ── Endpoint ──────────────────────────────────────────────────────────────────
 
 @router.post(
@@ -257,12 +293,7 @@ async def get_loadout_advice(
         )
 
         raw = message.content[0].text.strip()
-        if raw.startswith("```"):
-            raw = "\n".join(raw.split("\n")[1:])
-        if raw.endswith("```"):
-            raw = "\n".join(raw.split("\n")[:-1])
-
-        data = json.loads(raw)
+        data = _parse_loadout_response(raw)
 
         units_by_id    = {u.id: u for u in units}
         units_by_desig = {u.designation: u for u in units}

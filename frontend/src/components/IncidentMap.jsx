@@ -50,6 +50,18 @@ function ZoomTracker({ onZoomChange }) {
   return null
 }
 
+function MapInteractionTracker({ onUserNavigate }) {
+  useMapEvents({
+    movestart: (e) => {
+      if (e.originalEvent) onUserNavigate?.()
+    },
+    zoomstart: (e) => {
+      if (e.originalEvent) onUserNavigate?.()
+    },
+  })
+  return null
+}
+
 function MapHandle({ onReady }) {
   const map = useMap()
   useEffect(() => {
@@ -60,6 +72,23 @@ function MapHandle({ onReady }) {
 
 function MapController({ focusedUnit, focusedIncident, unitRoutes, selectedIncident, followUnit, followMode, fitAll, incidents }) {
   const map = useMap()
+  const routeFitLockRef = useRef(false)
+  const lastRouteSignatureRef = useRef('')
+
+  const routeSignature = unitRoutes?.length
+    ? unitRoutes.map(route => {
+        const first = route.coords?.[0]
+        const last = route.coords?.[route.coords.length - 1]
+        return [
+          route.unitId,
+          route.status,
+          route.isAir ? 'air' : 'ground',
+          first ? `${first[0].toFixed(3)},${first[1].toFixed(3)}` : 'na',
+          last ? `${last[0].toFixed(3)},${last[1].toFixed(3)}` : 'na',
+          route.coords?.length ?? 0,
+        ].join(':')
+      }).sort().join('|')
+    : ''
 
   useEffect(() => {
     if (!focusedUnit) return
@@ -79,16 +108,28 @@ function MapController({ focusedUnit, focusedIncident, unitRoutes, selectedIncid
     const lat = followUnit.latitude
     const lon = followUnit.longitude
     if (!isNaN(lat) && !isNaN(lon)) map.panTo([lat, lon], { animate: true, duration: 0.5 })
-  }, [followUnit?.latitude, followUnit?.longitude, followMode])
+  }, [followUnit?.latitude, followUnit?.longitude, followMode, map])
 
   useEffect(() => {
-    if (!unitRoutes?.length) return
+    if (!unitRoutes?.length) {
+      lastRouteSignatureRef.current = ''
+      routeFitLockRef.current = false
+      return
+    }
+    if (!routeSignature) return
+    const signatureChanged = routeSignature !== lastRouteSignatureRef.current
+    if (signatureChanged) {
+      lastRouteSignatureRef.current = routeSignature
+      routeFitLockRef.current = false
+    }
+    if (routeFitLockRef.current) return
     const allCoords = unitRoutes.flatMap(r => r.coords ?? [])
     if (selectedIncident) allCoords.push([selectedIncident.latitude, selectedIncident.longitude])
     if (allCoords.length < 2) return
     const bounds = L.latLngBounds(allCoords)
+    routeFitLockRef.current = true
     map.flyToBounds(bounds, { padding: [80, 80], duration: 1.2, maxZoom: 13 })
-  }, [unitRoutes, selectedIncident, map])
+  }, [routeSignature, unitRoutes, selectedIncident, map])
 
   // Fit all incidents when command view opens
   useEffect(() => {
@@ -96,9 +137,13 @@ function MapController({ focusedUnit, focusedIncident, unitRoutes, selectedIncid
     const coords = incidents.map(i => [i.latitude, i.longitude])
     if (coords.length < 2) return
     map.flyToBounds(L.latLngBounds(coords), { padding: [60, 60], duration: 1.2, maxZoom: 10 })
-  }, [fitAll])
+  }, [fitAll, incidents, map])
 
-  return null
+  function handleUserNavigate() {
+    routeFitLockRef.current = true
+  }
+
+  return <MapInteractionTracker onUserNavigate={handleUserNavigate} />
 }
 
 function createCallsignIcon(designation, color) {
