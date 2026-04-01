@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { api, BASE_URL, streamBriefing, getDispatchAdvice, generateHandoffBriefing } from '../api/client'
+import { api, BASE_URL, authHeaders, streamBriefing, getDispatchAdvice, generateHandoffBriefing } from '../api/client'
 import { scoreBadges, computeUnitRoutes } from '../services/routeEngine'
 import { formatTimeShort, formatTimestamp } from '../utils/timeUtils'
 import { toast } from './Toast'
@@ -102,141 +102,6 @@ function sortUnitsForDispatch(units, incident) {
     if (groupA !== groupB) return groupA - groupB
     return distToIncident(a, incident) - distToIncident(b, incident)
   })
-}
-
-function sanitizePdfText(text) {
-  return text
-    .replace(/[–—]/g, '-')
-    .replace(/[•]/g, '*')
-    .replace(/[“”]/g, '"')
-    .replace(/[‘’]/g, "'")
-    .replace(/→/g, '->')
-    .split('\n')
-    .map(line => line.replace(/[^\u0020-\u007E]/g, ''))
-    .join('\n')
-}
-
-function escapePdfText(text) {
-  return text.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)')
-}
-
-function wrapPdfLine(text, maxChars = 92) {
-  if (!text.trim()) return ['']
-  const words = text.split(/\s+/)
-  const lines = []
-  let current = ''
-
-  words.forEach(word => {
-    const candidate = current ? `${current} ${word}` : word
-    if (candidate.length > maxChars && current) {
-      lines.push(current)
-      current = word
-    } else {
-      current = candidate
-    }
-  })
-
-  if (current) lines.push(current)
-  return lines
-}
-
-function buildBriefingPdf(incidentName, briefing) {
-  const fontRef = 3
-  const pageWidth = 612
-  const pageHeight = 792
-  const left = 52
-  const top = 742
-  const bottom = 58
-  const lineHeight = 16
-  const firstPageLines = 39
-  const laterPageLines = 43
-
-  const normalized = sanitizePdfText(briefing)
-  const bodyLines = normalized.split('\n').flatMap(line => (
-    line.trim() ? wrapPdfLine(line) : ['']
-  ))
-
-  const pages = []
-  let remaining = bodyLines
-  let firstPage = true
-
-  while (remaining.length > 0 || firstPage) {
-    const capacity = firstPage ? firstPageLines : laterPageLines
-    const pageBody = remaining.slice(0, capacity)
-    remaining = remaining.slice(capacity)
-    pages.push({ firstPage, body: pageBody })
-    firstPage = false
-    if (bodyLines.length === 0) break
-  }
-
-  const objects = []
-  const addObject = (content) => {
-    objects.push(content)
-    return objects.length
-  }
-
-  const catalogRef = addObject('<< /Type /Catalog /Pages 2 0 R >>')
-  const pagesRef = addObject('')
-  addObject('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>')
-
-  const pageRefs = []
-
-  pages.forEach((page) => {
-    let y = top
-    const commands = ['BT']
-
-    if (page.firstPage) {
-      commands.push('/F1 11 Tf 0.34 0.45 0.62 rg')
-      commands.push(`1 0 0 1 ${left} ${y} Tm (${escapePdfText('PYRA AI OPERATIONAL BRIEFING')}) Tj`)
-      y -= 24
-      commands.push('/F1 20 Tf 0.08 0.11 0.16 rg')
-      commands.push(`1 0 0 1 ${left} ${y} Tm (${escapePdfText('ICS Operational Briefing')}) Tj`)
-      y -= 20
-      commands.push('/F1 11 Tf 0.34 0.40 0.49 rg')
-      commands.push(`1 0 0 1 ${left} ${y} Tm (${escapePdfText(incidentName)}) Tj`)
-      y -= 28
-    } else {
-      commands.push('/F1 11 Tf 0.34 0.40 0.49 rg')
-      commands.push(`1 0 0 1 ${left} ${y} Tm (${escapePdfText(`ICS Operational Briefing - ${incidentName}`)}) Tj`)
-      y -= 24
-    }
-
-    commands.push('/F1 12 Tf 0.08 0.11 0.16 rg')
-    page.body.forEach((line) => {
-      if (y < bottom) return
-      commands.push(`1 0 0 1 ${left} ${y} Tm (${escapePdfText(line)}) Tj`)
-      y -= lineHeight
-    })
-    commands.push('ET')
-
-    const stream = commands.join('\n')
-    const contentRef = addObject(`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`)
-
-    const pageRef = addObject(
-      `<< /Type /Page /Parent ${pagesRef} 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 ${fontRef} 0 R >> >> /Contents ${contentRef} 0 R >>`
-    )
-    pageRefs.push(pageRef)
-  })
-
-  objects[pagesRef - 1] = `<< /Type /Pages /Count ${pageRefs.length} /Kids [${pageRefs.map(ref => `${ref} 0 R`).join(' ')}] >>`
-
-  let pdf = '%PDF-1.4\n'
-  const offsets = [0]
-
-  objects.forEach((object, index) => {
-    offsets.push(pdf.length)
-    pdf += `${index + 1} 0 obj\n${object}\nendobj\n`
-  })
-
-  const xrefStart = pdf.length
-  pdf += `xref\n0 ${objects.length + 1}\n`
-  pdf += '0000000000 65535 f \n'
-  offsets.slice(1).forEach(offset => {
-    pdf += `${String(offset).padStart(10, '0')} 00000 n \n`
-  })
-  pdf += `trailer\n<< /Size ${objects.length + 1} /Root ${catalogRef} 0 R >>\nstartxref\n${xrefStart}\n%%EOF`
-
-  return new Blob([pdf], { type: 'application/pdf' })
 }
 
 // formatTimeShort imported from utils/timeUtils
@@ -512,14 +377,25 @@ export default function IncidentDetailPanel({
   }
 
   function exportBriefingPdf() {
-    const blob = buildBriefingPdf(incident.name, briefing)
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `pyra_ics_briefing_${incident.id}.pdf`
-    a.click()
-    setTimeout(() => URL.revokeObjectURL(url), 1000)
-    toast('Briefing exported to PDF', 'success')
+    fetch(`${BASE_URL}/api/briefing/${incident.id}/export.pdf`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ content: briefing }),
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Briefing export failed')
+        return res.blob()
+      })
+      .then(blob => {
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `pyra_ics_briefing_${incident.id}.pdf`
+        a.click()
+        setTimeout(() => URL.revokeObjectURL(url), 1000)
+        toast('Briefing exported to PDF', 'success')
+      })
+      .catch(() => toast('Failed to export briefing PDF', 'error'))
   }
 
   // Fetch dispatch advice when units are selected — stable dep avoids flicker
@@ -1187,7 +1063,9 @@ export default function IncidentDetailPanel({
               <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '11px', color: '#d4dce8', letterSpacing: '0.06em' }}>
                 ICS OPERATIONAL BRIEFING
               </span>
-              <span className="pyra-ai-badge">⬡ PYRA AI</span>
+              <span className="pyra-ai-badge" style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
+                ⬡ PYRA AI
+              </span>
               {briefingLoading && (
                 <span style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#ff4d1a' }}>
                   · GENERATING...
