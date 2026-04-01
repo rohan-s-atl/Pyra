@@ -75,6 +75,7 @@ const SEVERITY_COLOR = {
 
 const AIR_TYPES    = new Set(['helicopter', 'air_tanker'])
 const AIR_STATIONS = new Set(['AAB', 'HB'])
+const ENGAGED_STATUSES = new Set(['en_route', 'on_scene', 'staging'])
 
 const UNIT_TYPE_ORDER = {
   engine: 0, hand_crew: 1, helicopter: 2, air_tanker: 3,
@@ -218,7 +219,11 @@ export default function IncidentDetailPanel({
   const [dispatchAdvice,   setDispatchAdvice]   = useState(null)
   const [adviceLoading,    setAdviceLoading]    = useState(false)
 
-  const alreadyAssigned = units.filter(u => u.assigned_incident_id === incident.id)
+  // Keep the incident summary aligned with dispatch intelligence:
+  // only units actively committed to this incident count as already deployed.
+  const alreadyAssigned = units.filter(
+    u => u.assigned_incident_id === incident.id && ENGAGED_STATUSES.has(u.status)
+  )
   const selectedUnitsKey = selectedUnits.slice().sort().join(',')
   const selectedPreviewUnits = units.filter(u => selectedUnits.includes(u.id))
   const availableUnits = units.filter(u => u.status === 'available' && isAirUnitAtAirBase(u))
