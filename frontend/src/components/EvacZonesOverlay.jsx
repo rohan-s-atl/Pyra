@@ -39,6 +39,7 @@ export function EvacZonesPanel({ data, visible, loading, onClose, onExport, acti
       maxHeight: 'calc(100vh - 140px)', display: 'flex', flexDirection: 'column',
       backdropFilter: 'blur(14px)', boxShadow: '0 18px 40px rgba(0,0,0,0.45)',
       overflow: 'hidden',
+      pointerEvents: 'auto',
     }}>
       {/* Header */}
       <div style={{
