@@ -186,6 +186,7 @@ export default function IncidentMap({
   const smoothPositions  = useRef({})   // current interpolated display positions
   const [displayUnits, setDisplayUnits] = useState([])
   const animFrameRef     = useRef(null)
+  const animateRef       = useRef(null)
   const LERP_SPEED       = 0.12         // fraction to close per frame (~60fps → ~0.6s to arrive)
 
   const center     = [37.5, -119.5]
@@ -196,9 +197,25 @@ export default function IncidentMap({
   // Snapshot of last-known positions for diff — avoids re-renders when nothing moved
   const prevPositions = useRef({})
 
-  // Animation loop — runs at 60fps, lerps each unit toward its target
+  function hasPendingInterpolation() {
+    for (const [id, target] of Object.entries(targetPositions.current)) {
+      const current = smoothPositions.current[id]
+      if (!current) return true
+      if (Math.abs(target.lat - current.lat) > 0.000001 || Math.abs(target.lon - current.lon) > 0.000001) {
+        return true
+      }
+    }
+    return false
+  }
+
+  function ensureAnimationLoop() {
+    if (animFrameRef.current || !animateRef.current || !hasPendingInterpolation()) return
+    animFrameRef.current = requestAnimationFrame(animateRef.current)
+  }
+
+  // Animation loop — only runs while at least one unit is still interpolating
   useEffect(() => {
-    function animate() {
+    animateRef.current = function animate() {
       let dirty = false
       for (const [id, target] of Object.entries(targetPositions.current)) {
         const current = smoothPositions.current[id]
@@ -223,11 +240,16 @@ export default function IncidentMap({
           if (!pos) return u
           return { ...u, latitude: pos.lat, longitude: pos.lon }
         }))
+        animFrameRef.current = requestAnimationFrame(animateRef.current)
+      } else {
+        animFrameRef.current = null
       }
-      animFrameRef.current = requestAnimationFrame(animate)
     }
-    animFrameRef.current = requestAnimationFrame(animate)
-    return () => cancelAnimationFrame(animFrameRef.current)
+    ensureAnimationLoop()
+    return () => {
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current)
+      animFrameRef.current = null
+    }
   }, [])
 
   function recordPositions(unitList) {
@@ -276,6 +298,7 @@ export default function IncidentMap({
     )
     if (positionChanged) {
       recordPositions(u)
+      ensureAnimationLoop()
     }
   }, [unitsProp])
 
@@ -284,9 +307,30 @@ export default function IncidentMap({
     setTrailSnapshot({ ...posHistory.current })
   }, [units])
 
+  const selectedUnitData = selectedUnit ? units.find(u => u.id === selectedUnit) ?? null : null
+  const selectedUnitRouteKey = selectedUnitData
+    ? [
+        selectedUnitData.id,
+        selectedUnitData.status,
+        selectedUnitData.assigned_incident_id ?? 'none',
+        Number.isFinite(selectedUnitData.latitude) ? selectedUnitData.latitude.toFixed(4) : 'na',
+        Number.isFinite(selectedUnitData.longitude) ? selectedUnitData.longitude.toFixed(4) : 'na',
+      ].join(':')
+    : ''
+  const selectedRouteIncident = selectedUnitData?.assigned_incident_id
+    ? incidents.find(i => i.id === selectedUnitData.assigned_incident_id) ?? null
+    : null
+  const selectedRouteIncidentKey = selectedRouteIncident
+    ? [
+        selectedRouteIncident.id,
+        Number.isFinite(selectedRouteIncident.latitude) ? selectedRouteIncident.latitude.toFixed(4) : 'na',
+        Number.isFinite(selectedRouteIncident.longitude) ? selectedRouteIncident.longitude.toFixed(4) : 'na',
+      ].join(':')
+    : ''
+
   useEffect(() => {
     if (!selectedUnit) { setClickedRoute(null); return }
-    const unit = units.find(u => u.id === selectedUnit)
+    const unit = selectedUnitData
     if (!unit || !['en_route', 'returning'].includes(unit.status) || !unit.assigned_incident_id) {
       setClickedRoute(null); return
     }
@@ -328,7 +372,7 @@ export default function IncidentMap({
     }
 
     // en_route — route to incident
-    const incident = incidents.find(i => i.id === unit.assigned_incident_id)
+    const incident = selectedRouteIncident
     if (!incident) { setClickedRoute(null); return }
 
     if (isAir) {
@@ -362,7 +406,7 @@ export default function IncidentMap({
     }).catch(() => {
       setClickedRoute({ type: 'ground', coords: [[ulat, ulon], [incident.latitude, incident.longitude]] })
     })
-  }, [selectedUnit, units, incidents])
+  }, [selectedUnit, selectedUnitRouteKey, selectedRouteIncidentKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!focusedUnit?.id) return
@@ -388,7 +432,7 @@ export default function IncidentMap({
           focusedIncident={focusedIncident}
           unitRoutes={unitRoutes}
           selectedIncident={selectedIncident}
-          followUnit={units.find(u => u.id === selectedUnit)}
+          followUnit={selectedUnitData}
           followMode={followMode}
           fitAll={showCommand}
           incidents={incidents}

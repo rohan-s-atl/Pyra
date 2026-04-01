@@ -24,7 +24,8 @@ function drawHeatmap(map, points, overlayRef) {
   const lonRange = ne.lng - sw.lng
   if (latRange <= 0 || lonRange <= 0) return
 
-  const size   = 800
+  const mapSize = map.getSize()
+  const size = Math.max(420, Math.min(640, Math.round(Math.max(mapSize.x, mapSize.y) * 0.6)))
   const canvas = document.createElement('canvas')
   canvas.width  = size
   canvas.height = size
@@ -59,14 +60,40 @@ function drawHeatmap(map, points, overlayRef) {
 function HeatmapLayer({ points }) {
   const map        = useMap()
   const overlayRef = useRef(null)
+  const redrawFrameRef = useRef(null)
+  const lastSignatureRef = useRef('')
 
   useEffect(() => {
     if (!points?.length) return
 
-    drawHeatmap(map, points, overlayRef)
+    function boundsSignature() {
+      const bounds = map.getBounds()
+      const sw = bounds.getSouthWest()
+      const ne = bounds.getNorthEast()
+      return [
+        sw.lat.toFixed(2),
+        sw.lng.toFixed(2),
+        ne.lat.toFixed(2),
+        ne.lng.toFixed(2),
+        map.getZoom(),
+      ].join(':')
+    }
+
+    function scheduleDraw(force = false) {
+      const nextSignature = boundsSignature()
+      if (!force && nextSignature === lastSignatureRef.current) return
+      lastSignatureRef.current = nextSignature
+      if (redrawFrameRef.current) cancelAnimationFrame(redrawFrameRef.current)
+      redrawFrameRef.current = requestAnimationFrame(() => {
+        drawHeatmap(map, points, overlayRef)
+        redrawFrameRef.current = null
+      })
+    }
+
+    scheduleDraw(true)
 
     function onMapChange() {
-      drawHeatmap(map, points, overlayRef)
+      scheduleDraw()
     }
 
     map.on('moveend', onMapChange)
@@ -75,10 +102,15 @@ function HeatmapLayer({ points }) {
     return () => {
       map.off('moveend', onMapChange)
       map.off('zoomend', onMapChange)
+      if (redrawFrameRef.current) {
+        cancelAnimationFrame(redrawFrameRef.current)
+        redrawFrameRef.current = null
+      }
       if (overlayRef.current) {
         map.removeLayer(overlayRef.current)
         overlayRef.current = null
       }
+      lastSignatureRef.current = ''
     }
   }, [map, points])
 

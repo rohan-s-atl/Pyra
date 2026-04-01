@@ -219,6 +219,45 @@ export default function IncidentDetailPanel({
   const [adviceLoading,    setAdviceLoading]    = useState(false)
 
   const alreadyAssigned = units.filter(u => u.assigned_incident_id === incident.id)
+  const selectedUnitsKey = selectedUnits.slice().sort().join(',')
+  const selectedPreviewUnits = units.filter(u => selectedUnits.includes(u.id))
+  const availableUnits = units.filter(u => u.status === 'available' && isAirUnitAtAirBase(u))
+  const availableUnitsKey = availableUnits
+    .map(unit => [
+      unit.id,
+      unit.status,
+      Number.isFinite(unit.latitude) ? unit.latitude.toFixed(4) : 'na',
+      Number.isFinite(unit.longitude) ? unit.longitude.toFixed(4) : 'na',
+    ].join(':'))
+    .sort()
+    .join('|')
+  const selectedPreviewUnitsKey = selectedPreviewUnits
+    .map(unit => [
+      unit.id,
+      unit.status,
+      Number.isFinite(unit.latitude) ? unit.latitude.toFixed(4) : 'na',
+      Number.isFinite(unit.longitude) ? unit.longitude.toFixed(4) : 'na',
+    ].join(':'))
+    .sort()
+    .join('|')
+  const routeRiskInputsKey = [
+    incident.id,
+    incident.spread_risk,
+    incident.spread_direction,
+    incident.wind_speed_mph,
+    incident.humidity_percent,
+    ...allIncidents
+      .filter(inc => inc.status !== 'out')
+      .map(inc => [
+        inc.id,
+        inc.status,
+        inc.spread_risk,
+        inc.spread_direction,
+        Number.isFinite(inc.latitude) ? inc.latitude.toFixed(3) : 'na',
+        Number.isFinite(inc.longitude) ? inc.longitude.toFixed(3) : 'na',
+      ].join(':'))
+      .sort(),
+  ].join('|')
 
   // Load recommendation on incident change
   useEffect(() => {
@@ -248,31 +287,29 @@ export default function IncidentDetailPanel({
 
   // Instantly score ALL available units using straight-line path — no network
   useEffect(() => {
-    const available = units.filter(u => u.status === 'available' && isAirUnitAtAirBase(u))
-    if (!available.length || !incident || !allIncidents.length) return
-    const badges = scoreBadges(available, incident, allIncidents)
+    if (!availableUnits.length || !incident || !allIncidents.length) return
+    const badges = scoreBadges(availableUnits, incident, allIncidents)
     setAllUnitRoutes(badges)
-  }, [incident, units, allIncidents])
+  }, [availableUnitsKey, routeRiskInputsKey, incident.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Recompute routes whenever selected units change
   useEffect(() => {
-    const selected = units.filter(u => selectedUnits.includes(u.id))
-    onPreviewUnits?.(selected)
+    onPreviewUnits?.(selectedPreviewUnits)
 
-    if (!selected.length) {
+    if (!selectedPreviewUnits.length) {
       setUnitRoutes([])
       onUnitRoutesChange?.([])
       return
     }
 
     setRoutesLoading(true)
-    computeUnitRoutes(selected, incident, allIncidents)
+    computeUnitRoutes(selectedPreviewUnits, incident, allIncidents)
       .then(routes => {
         setUnitRoutes(routes)
         onUnitRoutesChange?.(routes)
       })
       .finally(() => setRoutesLoading(false))
-  }, [selectedUnits, units, incident, allIncidents])
+  }, [selectedUnitsKey, selectedPreviewUnitsKey, routeRiskInputsKey, incident.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleDispatch(loadouts = []) {
     if (selectedUnits.length === 0) return
@@ -399,7 +436,6 @@ export default function IncidentDetailPanel({
   }
 
   // Fetch dispatch advice when units are selected — stable dep avoids flicker
-  const selectedUnitsKey = selectedUnits.slice().sort().join(',')
   useEffect(() => {
     if (selectedUnits.length === 0) { setDispatchAdvice(null); return }
     if (auth?.role === 'viewer') return
