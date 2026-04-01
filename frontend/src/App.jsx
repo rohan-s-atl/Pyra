@@ -441,7 +441,14 @@ export default function App() {
           )}
 
           {showLeftSidebar && (
-            <div style={{ position: 'absolute', top: `${topRailOffset}px`, left: `${shellInset}px`, bottom: `${shellInset}px`, zIndex: 1300, pointerEvents: 'auto' }}>
+            <div style={{
+              position: 'absolute',
+              top: `${topRailOffset}px`,
+              left: `${shellInset}px`,
+              maxHeight: `calc(100vh - ${topRailOffset + shellInset}px)`,
+              zIndex: 1300,
+              pointerEvents: 'auto',
+            }}>
               <LeftSidebar
                 units={units}
                 activeView={activeView}
