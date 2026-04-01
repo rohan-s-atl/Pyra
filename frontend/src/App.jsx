@@ -249,8 +249,7 @@ export default function App() {
   const overlayGap = 12
   const shellInset = 12
   const topRailOffset = 86
-  const leftSidebarWidth = showLeftSidebar ? 272 : 0
-  const mapLeftInset = showLeftSidebar ? leftSidebarWidth + shellInset + overlayGap : shellInset
+  const mapHudLeftInset = shellInset + 16
   const baseOverlayRight = showRightPanel ? shellInset + overlayPanelWidth + overlayGap : shellInset
   const commandPanelRight = baseOverlayRight
   const detailPanelRight = baseOverlayRight + (showCommand ? overlayPanelWidth + overlayGap : 0)
@@ -349,7 +348,7 @@ export default function App() {
             showSatellite={showSatellite}
             showWaterSources={showWaterSources}
             onWaterSourceStatus={setWaterSourceStatus}
-            overlayLeftOffset={mapLeftInset}
+            overlayLeftOffset={mapHudLeftInset}
             overlayRightOffset={mapRightInset}
             overlayTopOffset={topRailOffset}
             overlayBottomOffset={shellInset}
