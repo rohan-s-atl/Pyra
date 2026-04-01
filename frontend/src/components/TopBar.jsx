@@ -122,16 +122,22 @@ export default function TopBar({
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
         <div style={{
           width: '30px', height: '30px', borderRadius: '7px',
-          background: 'linear-gradient(135deg, #ff4d1a 0%, #c0320a 100%)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 0 16px rgba(255,77,26,0.45), inset 0 1px 0 rgba(255,255,255,0.15)',
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          boxShadow: '0 0 16px rgba(245,110,15,0.28), inset 0 1px 0 rgba(255,255,255,0.08)',
           flexShrink: 0,
         }}>
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M7 1 L7 7 L12 10" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
-            <path d="M7 7 L2 10" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
-            <circle cx="7" cy="7" r="1.5" fill="white"/>
-          </svg>
+          <img
+            src="/pyra-logo.svg"
+            alt="Pyra logo"
+            style={{
+              width: '18px',
+              height: '18px',
+              display: 'block',
+              filter: 'drop-shadow(0 0 10px rgba(245,110,15,0.45))',
+            }}
+          />
         </div>
         <div>
           <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '14px', color: '#edf2f7', letterSpacing: '0.05em', lineHeight: 1 }}>

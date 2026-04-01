@@ -101,15 +101,21 @@ export default function LoginScreen({ onLogin }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '40px', animation: 'panel-float 10s ease-in-out infinite' }}>
           <div style={{
             width: '44px', height: '44px', borderRadius: '10px',
-            background: 'linear-gradient(135deg, #ff4d1a 0%, #c0320a 100%)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 0 28px rgba(255,77,26,0.45), inset 0 1px 0 rgba(255,255,255,0.15)',
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            boxShadow: '0 0 28px rgba(245,110,15,0.34), inset 0 1px 0 rgba(255,255,255,0.08)',
           }}>
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M10 2L10 10L17 14" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
-              <path d="M10 10L3 14" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
-              <circle cx="10" cy="10" r="2.5" fill="white"/>
-            </svg>
+            <img
+              src="/pyra-logo.svg"
+              alt="Pyra logo"
+              style={{
+                width: '26px',
+                height: '26px',
+                display: 'block',
+                filter: 'drop-shadow(0 0 16px rgba(245,110,15,0.55))',
+              }}
+            />
           </div>
           <div>
             <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '24px', color: '#edf2f7', letterSpacing: '0.08em', lineHeight: 1 }}>

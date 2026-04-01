@@ -279,8 +279,27 @@ export default function App() {
 
   if (loading) return (
     <div style={{ height: '100vh', width: '100vw', background: '#0d0f11', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '16px' }}>
-      <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'linear-gradient(135deg, #ff4d1a, #c0320a)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 24px rgba(255,77,26,0.4)' }}>
-        <span style={{ color: '#fff', fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '14px' }}>P</span>
+      <div style={{
+        width: '40px',
+        height: '40px',
+        borderRadius: '12px',
+        background: 'rgba(255,255,255,0.03)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        boxShadow: '0 0 26px rgba(245,110,15,0.28), inset 0 1px 0 rgba(255,255,255,0.08)',
+      }}>
+        <img
+          src="/pyra-logo.svg"
+          alt="Pyra logo"
+          style={{
+            width: '22px',
+            height: '22px',
+            display: 'block',
+            filter: 'drop-shadow(0 0 12px rgba(245,110,15,0.52))',
+          }}
+        />
       </div>
       <div style={{ color: '#3a4558', fontFamily: 'var(--font-mono)', fontSize: '10px', letterSpacing: '0.12em', animation: 'status-blink 1.5s ease-in-out infinite' }}>
         INITIALIZING PYRA…
