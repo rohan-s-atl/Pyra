@@ -263,13 +263,12 @@ export default function App() {
   const showRightPanel = !isCompact || !detailOpen
   const overlayPanelWidth = Math.min(360, Math.max(windowWidth * 0.34, 260))
   const overlayGap = 12
-  const leftPanelWidth = showLeftSidebar ? 272 : 0
   const shellInset = 12
   const topRailOffset = 86
   const mapHudLeftInset = shellInset + 16
-  const mapLegendLeftInset = showLeftSidebar
-    ? shellInset + leftPanelWidth + overlayGap + 8
-    : mapHudLeftInset
+  const leftSidebarBottomInset = showLeftSidebar
+    ? shellInset + Math.min(320, Math.max(250, window.innerHeight * 0.24))
+    : shellInset
   const baseOverlayRight = showRightPanel ? shellInset + overlayPanelWidth + overlayGap : shellInset
   const commandPanelRight = baseOverlayRight
   const detailPanelRight = baseOverlayRight + (showCommand ? overlayPanelWidth + overlayGap : 0)
@@ -368,7 +367,7 @@ export default function App() {
             showSatellite={showSatellite}
             showWaterSources={showWaterSources}
             onWaterSourceStatus={setWaterSourceStatus}
-            overlayLeftOffset={mapLegendLeftInset}
+            overlayLeftOffset={mapHudLeftInset}
             overlayRightOffset={mapRightInset}
             overlayTopOffset={topRailOffset}
             overlayBottomOffset={shellInset}
@@ -445,7 +444,7 @@ export default function App() {
           )}
 
           {showLeftSidebar && (
-            <div style={{ position: 'absolute', top: `${topRailOffset}px`, left: `${shellInset}px`, bottom: `${shellInset}px`, zIndex: 1300, pointerEvents: 'auto' }}>
+            <div style={{ position: 'absolute', top: `${topRailOffset}px`, left: `${shellInset}px`, bottom: `${leftSidebarBottomInset}px`, zIndex: 1300, pointerEvents: 'auto' }}>
               <LeftSidebar
                 units={units}
                 activeView={activeView}
