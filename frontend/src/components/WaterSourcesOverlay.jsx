@@ -49,9 +49,6 @@ export function WaterSourceLegend({ visible, summary }) {
   )
 }
 
-// Shared atom so App.jsx can show status outside the MapContainer
-let _waterStatusCallback = null
-export function onWaterSourceStatus(cb) { _waterStatusCallback = cb }
 
 export default function WaterSourcesOverlay({ selectedIncident, visible, onStatusChange }) {
   const [sources,     setSources]     = useState([])
