@@ -169,6 +169,7 @@ export default function TopBar({
       {/* LAYER TOGGLE BUTTON */}
       <div ref={optBtnRef}>
         <button
+          className="ui-interactive-btn"
           data-opts-btn="true"
           onClick={() => {
             if (optionsOpen) { setOptionsOpen(false); return }
@@ -221,6 +222,7 @@ export default function TopBar({
 
         {/* COMMAND BUTTON */}
         <button
+          className="ui-interactive-btn"
           onClick={onToggleCommand}
           style={{
             display: 'flex', alignItems: 'center', gap: '6px',
@@ -255,6 +257,7 @@ export default function TopBar({
         {auth && (
           <div style={{ position: 'relative' }}>
             <button
+              className="ui-interactive-btn"
               ref={userBtnRef}
               data-user-btn="true"
               onClick={() => {
@@ -302,6 +305,7 @@ export default function TopBar({
       {/* LAYERS DROPDOWN */}
       {optionsOpen && optionsPos && createPortal(
         <div
+          className="ui-panel-enter"
           data-opts-menu="true"
           style={{
             position: 'fixed', top: optionsPos.top, left: optionsPos.left, zIndex: 99999,
@@ -318,6 +322,7 @@ export default function TopBar({
           </div>
           {layers.map((l, i) => (
             <button
+              className="ui-interactive-btn"
               key={l.label}
               onClick={() => { l.onClick(); setOptionsOpen(false) }}
               style={{
@@ -355,6 +360,7 @@ export default function TopBar({
 
       {userMenuOpen && userMenuPos && createPortal(
         <div
+          className="ui-panel-enter"
           data-user-menu="true"
           style={{
             position: 'fixed', top: userMenuPos.top, right: userMenuPos.right, zIndex: 99999,
@@ -373,6 +379,7 @@ export default function TopBar({
             { label: 'Sign Out', action: () => { onLogout(); setUserMenuOpen(false) }, danger: true },
           ].map((item, i) => (
             <button
+              className="ui-interactive-btn"
               key={item.label}
               onClick={item.action}
               style={{

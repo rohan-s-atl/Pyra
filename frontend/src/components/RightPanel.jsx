@@ -173,6 +173,7 @@ function RightPanelUnitCard({ unit, confirmedLoadouts, onUnitClick, focused, inc
     <>
       {tooltipRect && <UnitLoadoutTooltip unit={unit} loadout={loadout} rect={tooltipRect} />}
       <div
+        className="ui-hover-lift"
         onClick={() => onUnitClick?.(unit)}
         style={{
           display: 'flex', alignItems: 'center', gap: '8px',
@@ -360,6 +361,7 @@ function AlertRecommendationPanel({ alert, recData, recLoading, units, incidents
                       </div>
                     )}
                     <div
+                      className="ui-hover-lift"
                       onClick={() => setSelectedUnits(prev => prev.includes(unit.id) ? prev.filter(id => id !== unit.id) : [...prev, unit.id])}
                       style={{
                         display: 'flex', alignItems: 'center', gap: '6px',
@@ -380,6 +382,7 @@ function AlertRecommendationPanel({ alert, recData, recLoading, units, incidents
           </div>
 
           <button
+            className={canDispatch ? 'ui-interactive-btn' : ''}
             onClick={handleDispatch}
             disabled={!canDispatch}
             style={{
@@ -531,7 +534,7 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
 
   if (collapsed) {
     return (
-      <div className="ui-shell-panel ui-float-soft-delayed" style={{
+      <div className="ui-shell-panel ui-float-soft-delayed ui-panel-enter" style={{
         width: '58px',
         height: '100%',
         background: 'linear-gradient(180deg, rgba(28,35,47,0.9) 0%, rgba(18,24,34,0.95) 100%)',
@@ -546,6 +549,7 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
         padding: '12px 8px',
       }}>
         <button
+          className="ui-interactive-btn"
           onClick={() => setCollapsed(false)}
           style={{
             width: '40px', height: '40px', borderRadius: '12px',
@@ -570,7 +574,7 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
   }
 
   return (
-    <div ref={panelRef} className="ui-shell-panel ui-float-soft-delayed" style={{
+    <div ref={panelRef} className="ui-shell-panel ui-float-soft-delayed ui-panel-enter" style={{
       width: `${panelWidth}px`,
       minWidth: `${panelWidth}px`,
       maxWidth: `${panelWidth}px`,
@@ -598,6 +602,7 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
           {unacked.length} ACTIVE
         </span>
         <button
+          className="ui-interactive-btn"
           onClick={() => setCollapsed(true)}
           style={{
             width: '30px', height: '30px', borderRadius: '9px',
@@ -612,6 +617,7 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
 
       <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', gap: '7px' }}>
         <button
+          className="ui-interactive-btn"
           onClick={() => setShowResolved(v => !v)}
           style={{
             borderRadius: '999px',
@@ -626,6 +632,7 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
         </button>
         {alerts.length > 5 && (
           <button
+            className="ui-interactive-btn"
             onClick={() => {
               if (window.confirm(`Clear all ${alerts.length} alerts?`)) {
                 api.clearAllAlerts().then(() => onAlertsChanged?.())
@@ -671,6 +678,7 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
           return (
             <div key={event.id} style={{ marginBottom: '7px' }}>
               <div
+                className="ui-hover-lift"
                 onClick={() => {
                   if (isAlert && !event.acknowledged) handleAlertClick(event.raw)
                 }}
@@ -702,6 +710,7 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
                     </span>
                   )}
                   <button
+                    className="ui-interactive-btn"
                     onClick={(e) => {
                       e.stopPropagation()
                       setPinnedIds(prev => {
@@ -801,6 +810,7 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
         <div style={{ display: 'flex', gap: '4px', marginBottom: '8px' }}>
           {STATUS_FILTERS.map(f => (
             <button
+              className="ui-interactive-btn"
               key={f.key}
               onClick={() => setUnitFilter(f.key)}
               style={{

@@ -94,20 +94,20 @@ function MapController({ focusedUnit, focusedIncident, unitRoutes, selectedIncid
     if (!focusedUnit) return
     const lat = focusedUnit.latitude
     const lon = focusedUnit.longitude
-    if (!isNaN(lat) && !isNaN(lon)) map.flyTo([lat, lon], 13, { duration: 1.2 })
+    if (!isNaN(lat) && !isNaN(lon)) map.flyTo([lat, lon], 13, { duration: 1.2, easeLinearity: 0.2 })
   }, [focusedUnit])
 
   // Fly to incident when selected from command panel
   useEffect(() => {
     if (!focusedIncident) return
-    map.flyTo([focusedIncident.latitude, focusedIncident.longitude], 12, { duration: 1.0 })
+    map.flyTo([focusedIncident.latitude, focusedIncident.longitude], 12, { duration: 1.0, easeLinearity: 0.2 })
   }, [focusedIncident?._ts])
 
   useEffect(() => {
     if (!followMode || !followUnit) return
     const lat = followUnit.latitude
     const lon = followUnit.longitude
-    if (!isNaN(lat) && !isNaN(lon)) map.panTo([lat, lon], { animate: true, duration: 0.5 })
+    if (!isNaN(lat) && !isNaN(lon)) map.panTo([lat, lon], { animate: true, duration: 0.52, easeLinearity: 0.2 })
   }, [followUnit?.latitude, followUnit?.longitude, followMode, map])
 
   useEffect(() => {
@@ -128,7 +128,7 @@ function MapController({ focusedUnit, focusedIncident, unitRoutes, selectedIncid
     if (allCoords.length < 2) return
     const bounds = L.latLngBounds(allCoords)
     routeFitLockRef.current = true
-    map.flyToBounds(bounds, { padding: [80, 80], duration: 1.2, maxZoom: 13 })
+    map.flyToBounds(bounds, { padding: [80, 80], duration: 1.2, maxZoom: 13, easeLinearity: 0.2 })
   }, [routeSignature, unitRoutes, selectedIncident, map])
 
   // Fit all incidents when command view opens
@@ -136,7 +136,7 @@ function MapController({ focusedUnit, focusedIncident, unitRoutes, selectedIncid
     if (!fitAll || !incidents?.length) return
     const coords = incidents.map(i => [i.latitude, i.longitude])
     if (coords.length < 2) return
-    map.flyToBounds(L.latLngBounds(coords), { padding: [60, 60], duration: 1.2, maxZoom: 10 })
+    map.flyToBounds(L.latLngBounds(coords), { padding: [60, 60], duration: 1.2, maxZoom: 10, easeLinearity: 0.2 })
   }, [fitAll, incidents, map])
 
   function handleUserNavigate() {
@@ -172,6 +172,7 @@ export default function IncidentMap({
   const [units,        setUnits]        = useState(unitsProp)
   const [selectedUnit, setSelectedUnit] = useState(null)
   const [clickedRoute, setClickedRoute] = useState(null)
+  const [unitPulseId,  setUnitPulseId]  = useState(null)
   const [zoomLevel,    setZoomLevel]    = useState(7)
   const [followMode,   setFollowMode]   = useState(false)
   const mapRef = useRef(null)
@@ -524,25 +525,39 @@ export default function IncidentMap({
               {showLabels && (
                 <Marker position={[lat, lon]} icon={createCallsignIcon(unit.designation, color)} interactive={false} zIndexOffset={-100} />
               )}
+              {unitPulseId === unit.id && (
+                <Marker
+                  position={[lat, lon]}
+                  icon={L.divIcon({
+                    className: '',
+                    html: '<div class="pyra-unit-click-ring"></div>',
+                    iconSize: [0, 0],
+                    iconAnchor: [0, 0],
+                  })}
+                  interactive={false}
+                  zIndexOffset={220}
+                />
+              )}
               <CircleMarker
                 center={[lat, lon]}
-                radius={isEmphasis ? 18 : 12}
+                radius={isEmphasis ? 20 : 13}
                 pathOptions={{
+                  className: 'pyra-unit-halo',
                   color: isEmphasis ? 'rgba(248,251,255,0.88)' : color,
                   fillColor: color,
-                  fillOpacity: isEmphasis ? 0.12 : 0.08,
+                  fillOpacity: isEmphasis ? 0.15 : 0.09,
                   opacity: isEmphasis ? 0.95 : 0,
-                  weight: isEmphasis ? 2.1 : 0,
+                  weight: isEmphasis ? 2.2 : 0,
                 }}
               />
               <CircleMarker
                 center={[lat, lon]}
-                radius={isEmphasis ? 11 : 8}
+                radius={isEmphasis ? 11.5 : 8.5}
                 pathOptions={{
                   color: isEmphasis ? `${color}` : 'rgba(255,255,255,0.18)',
                   fillColor: color,
-                  fillOpacity: isEmphasis ? 0.26 : 0.16,
-                  opacity: isEmphasis ? 0.9 : 0.45,
+                  fillOpacity: isEmphasis ? 0.3 : 0.18,
+                  opacity: isEmphasis ? 0.95 : 0.52,
                   weight: isEmphasis ? 1.5 : 1,
                 }}
               />
@@ -559,8 +574,14 @@ export default function IncidentMap({
                   e.originalEvent.stopPropagation()
                   const newSel = selectedUnit === unit.id ? null : unit.id
                   setSelectedUnit(newSel)
+                  if (newSel) {
+                    setUnitPulseId(unit.id)
+                    window.setTimeout(() => {
+                      setUnitPulseId(current => (current === unit.id ? null : current))
+                    }, 780)
+                  }
                   if (newSel && mapRef.current) {
-                    mapRef.current.flyTo([lat, lon], Math.max(mapRef.current.getZoom(), 11), { duration: 0.9 })
+                    mapRef.current.flyTo([lat, lon], Math.max(mapRef.current.getZoom(), 11), { duration: 0.92, easeLinearity: 0.2 })
                   }
                   if (!newSel) setFollowMode(false)
                 }}}
@@ -584,48 +605,45 @@ export default function IncidentMap({
 
         {showFires && incidents.map(inc => {
           const FIRE_COLORS = {
-            critical: { core: '#ff2200', mid: '#ff6600', outer: '#ff440020', ring: '#ef4444' },
-            high:     { core: '#ff4d1a', mid: '#f59e0b', outer: '#f59e0b15', ring: '#f59e0b' },
-            moderate: { core: '#f59e0b', mid: '#fbbf24', outer: '#fbbf2412', ring: '#fbbf24' },
-            low:      { core: '#22c55e', mid: '#4ade80', outer: '#22c55e10', ring: '#22c55e' },
+            critical: { core: '#ff2a00', mid: '#ff6b00', glow: 'rgba(255,78,0,0.65)', fade: 'rgba(255,87,34,0.18)', ring: '#ef4444' },
+            high:     { core: '#ff4d1a', mid: '#ff8a00', glow: 'rgba(255,110,15,0.48)', fade: 'rgba(245,158,11,0.14)', ring: '#f59e0b' },
+            moderate: { core: '#f59e0b', mid: '#fbbf24', glow: 'rgba(251,191,36,0.38)', fade: 'rgba(251,191,36,0.12)', ring: '#fbbf24' },
+            low:      { core: '#f59e0b', mid: '#fb923c', glow: 'rgba(251,146,60,0.34)', fade: 'rgba(251,146,60,0.1)', ring: '#fb923c' },
           }
           const fc = FIRE_COLORS[inc.severity] ?? FIRE_COLORS.low
-          const sz = { critical: 48, high: 38, moderate: 28, low: 20 }[inc.severity] ?? 22
+          const sz = { critical: 50, high: 40, moderate: 30, low: 24 }[inc.severity] ?? 24
           const selected = inc.id === selectedId
-          const anim = inc.severity === 'critical'
-            ? 'fire-ring-critical 1.8s ease-in-out infinite'
-            : inc.severity === 'high'
-            ? 'fire-ring-high 2.5s ease-in-out infinite'
-            : 'none'
+          const isCritical = inc.severity === 'critical'
+          const glowAnim = isCritical ? 'fire-glow-breathe 1.6s ease-in-out infinite' : 'fire-glow-breathe 2.4s ease-in-out infinite'
+          const coreAnim = isCritical ? 'fire-core-pulse 1.3s ease-in-out infinite' : 'fire-core-pulse 2.2s ease-in-out infinite'
 
           const icon = L.divIcon({
             className: '',
             html: `
               <div style="position:relative;width:${sz}px;height:${sz}px;transform:translate(-50%,-50%)">
-                <!-- Outer glow ring -->
                 <div style="
                   position:absolute;inset:0;border-radius:50%;
-                  background:radial-gradient(circle, ${fc.mid}30 0%, ${fc.outer} 60%, transparent 100%);
-                  animation:${anim};
+                  background:radial-gradient(circle, ${fc.glow} 0%, ${fc.fade} 58%, transparent 100%);
+                  filter:blur(1px);
+                  animation:${glowAnim};
                 "></div>
-                <!-- Mid ring -->
                 <div style="
-                  position:absolute;inset:${sz*0.18}px;border-radius:50%;
-                  background:radial-gradient(circle, ${fc.mid}60 0%, ${fc.mid}20 70%, transparent 100%);
-                  border:1px solid ${fc.ring}40;
+                  position:absolute;inset:${sz*0.2}px;border-radius:50%;
+                  background:radial-gradient(circle, ${fc.mid}88 0%, ${fc.mid}3f 62%, transparent 100%);
+                  border:1px solid ${fc.ring}55;
+                  animation:${isCritical ? 'fire-ring-critical 1.5s ease-in-out infinite' : 'fire-ring-high 2.2s ease-in-out infinite'};
                 "></div>
-                <!-- Core -->
                 <div style="
-                  position:absolute;inset:${sz*0.35}px;border-radius:50%;
-                  background:radial-gradient(circle, #fff 0%, ${fc.core} 50%, ${fc.mid} 100%);
-                  box-shadow:0 0 ${sz*0.6}px ${fc.core}, 0 0 ${sz*0.3}px ${fc.mid};
+                  position:absolute;inset:${sz*0.36}px;border-radius:50%;
+                  background:radial-gradient(circle, #fff8f3 0%, ${fc.core} 42%, ${fc.mid} 100%);
+                  box-shadow:0 0 ${sz*0.68}px ${fc.glow}, 0 0 ${sz*0.36}px ${fc.mid};
+                  animation:${coreAnim};
                 "></div>
                 ${selected ? `
-                <!-- Selected ring -->
                 <div style="
-                  position:absolute;inset:-6px;border-radius:50%;
+                  position:absolute;inset:-5px;border-radius:50%;
                   border:2px solid rgba(255,255,255,0.6);
-                  box-shadow:0 0 12px rgba(255,255,255,0.2);
+                  box-shadow:0 0 14px rgba(255,255,255,0.2);
                 "></div>` : ''}
               </div>`,
             iconSize: [0, 0],

@@ -128,6 +128,7 @@ function UnitRow({ unit, confirmedLoadouts, onUnitClick }) {
   return (
     <>
       <div
+        className="ui-hover-lift"
         ref={rowRef}
         onClick={() => onUnitClick?.(unit)}
         onMouseEnter={() => setTooltipRect(rowRef.current?.getBoundingClientRect())}
@@ -144,12 +145,10 @@ function UnitRow({ unit, confirmedLoadouts, onUnitClick }) {
         onMouseEnterCapture={e => {
           e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
           e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'
-          e.currentTarget.style.transform = 'translateY(-1px)'
         }}
         onMouseLeaveCapture={e => {
           e.currentTarget.style.background = 'rgba(255,255,255,0.02)'
           e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
-          e.currentTarget.style.transform = 'translateY(0)'
         }}
       >
         <div style={{
@@ -236,6 +235,7 @@ export default function LeftSidebar({ units, activeView, onViewChange, selectedI
         <div style={{ display: 'flex', gap: '5px' }}>
           {VIEWS.map(v => (
             <button
+              className="ui-interactive-btn"
               key={v.id}
               onClick={() => onViewChange(v.id)}
               style={{
@@ -284,7 +284,7 @@ export default function LeftSidebar({ units, activeView, onViewChange, selectedI
           ENGAGED UNITS · {filteredUnits.length}
         </span>
         {filter !== 'all' && (
-          <button onClick={() => setFilter('all')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: '8px', color: '#93a4b8', letterSpacing: '0.06em' }}>
+          <button className="ui-interactive-btn" onClick={() => setFilter('all')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: '8px', color: '#93a4b8', letterSpacing: '0.06em' }}>
             CLEAR ×
           </button>
         )}

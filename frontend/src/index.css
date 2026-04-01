@@ -174,6 +174,22 @@ html, body {
   25% { opacity: 0.18; }
   100% { transform: translateX(160%); opacity: 0; }
 }
+@keyframes fire-core-pulse {
+  0%,100% { transform: scale(1); opacity: 0.95; }
+  50% { transform: scale(1.08); opacity: 1; }
+}
+@keyframes fire-glow-breathe {
+  0%,100% { transform: scale(1); opacity: 0.45; }
+  50% { transform: scale(1.12); opacity: 0.62; }
+}
+@keyframes unit-halo-breathe {
+  0%,100% { opacity: 0.45; }
+  50% { opacity: 0.72; }
+}
+@keyframes unit-click-ring {
+  0% { transform: scale(0.4); opacity: 0.72; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
 
 .glass-panel {
   background: var(--glass-bg);
@@ -259,12 +275,12 @@ html, body {
 }
 
 .ui-hover-lift {
-  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, background 180ms ease;
+  transition: transform 170ms ease-out, box-shadow 170ms ease-out, border-color 170ms ease-out, background 170ms ease-out;
 }
 
 .ui-hover-lift:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 22px 44px rgba(0,0,0,0.32), 0 0 26px rgba(56,189,248,0.08);
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 24px 46px rgba(0,0,0,0.34), 0 0 20px rgba(56,189,248,0.08);
 }
 
 .ui-ambient-orb {
@@ -274,4 +290,34 @@ html, body {
   opacity: 0.28;
   pointer-events: none;
   animation: ambient-drift 16s ease-in-out infinite;
+}
+
+.ui-interactive-btn {
+  transition: transform 150ms ease-out, filter 150ms ease-out, box-shadow 150ms ease-out, background 150ms ease-out, border-color 150ms ease-out;
+}
+
+.ui-interactive-btn:hover {
+  transform: translateY(-1px) scale(1.04);
+  filter: brightness(1.07);
+}
+
+.ui-interactive-btn:active {
+  transform: scale(0.96);
+}
+
+.ui-panel-enter {
+  animation: fade-up 220ms ease-out;
+}
+
+.pyra-unit-halo {
+  animation: unit-halo-breathe 2.4s ease-in-out infinite;
+}
+
+.pyra-unit-click-ring {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 2px solid rgba(240,248,255,0.68);
+  box-shadow: 0 0 16px rgba(125,211,252,0.38);
+  animation: unit-click-ring 760ms ease-out forwards;
 }
