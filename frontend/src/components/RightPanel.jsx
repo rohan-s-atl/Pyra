@@ -531,7 +531,7 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
 
   if (collapsed) {
     return (
-      <div style={{
+      <div className="ui-shell-panel ui-float-soft-delayed" style={{
         width: '58px',
         height: '100%',
         background: 'linear-gradient(180deg, rgba(28,35,47,0.9) 0%, rgba(18,24,34,0.95) 100%)',
@@ -570,7 +570,7 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
   }
 
   return (
-    <div ref={panelRef} style={{
+    <div ref={panelRef} className="ui-shell-panel ui-float-soft-delayed" style={{
       width: `${panelWidth}px`,
       minWidth: `${panelWidth}px`,
       maxWidth: `${panelWidth}px`,

@@ -88,7 +88,7 @@ export default function MultiIncidentPanel({ incidents, units, alerts, selectedI
   }, [incidents, units, alerts])
 
   return (
-    <div style={{
+    <div className="ui-shell-panel ui-float-soft-delayed" style={{
       position: 'fixed', top: `${topOffset}px`, right: `${rightOffset}px`, bottom: `${bottomOffset}px`,
       width: `${panelWidth}px`,
       background: 'linear-gradient(180deg, rgba(28,35,47,0.94) 0%, rgba(18,24,34,0.97) 100%)',

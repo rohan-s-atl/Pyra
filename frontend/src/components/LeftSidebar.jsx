@@ -216,7 +216,7 @@ export default function LeftSidebar({ units, activeView, onViewChange, selectedI
   }
 
   return (
-    <div style={{
+    <div className="ui-shell-panel ui-float-soft" style={{
       width: '272px',
       display: 'flex', flexDirection: 'column',
       background: 'linear-gradient(180deg, rgba(28,35,47,0.9) 0%, rgba(18,24,34,0.95) 100%)',
@@ -260,6 +260,7 @@ export default function LeftSidebar({ units, activeView, onViewChange, selectedI
           { key: 'returning', label: 'RTB',   color: '#a78bfa' },
         ].map(c => (
           <div key={c.key}
+            className="ui-hover-lift"
             onClick={() => setFilter(filter === c.key ? 'all' : c.key)}
             style={{
               flex: 1, textAlign: 'center', padding: '6px 4px',

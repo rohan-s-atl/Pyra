@@ -110,7 +110,7 @@ export default function RiskHeatmapOverlay({ visible, rightOffset = 12, bottomOf
     <>
       <HeatmapLayer points={points} />
       {/* Legend overlay */}
-      <div style={{
+      <div className="ui-shell-panel ui-float-soft-delayed" style={{
         position: 'absolute', bottom: `${bottomOffset}px`, right: `${rightOffset}px`, zIndex: 1250,
         background: 'rgba(22,28,38,0.94)', border: '1px solid rgba(255,255,255,0.1)',
         borderRadius: '14px', padding: '10px 12px',

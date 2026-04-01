@@ -32,7 +32,7 @@ export function EvacZonesPanel({ data, visible, loading, onClose, onExport, acti
   if (!visible) return null
 
   return (
-    <div style={{
+    <div className="ui-shell-panel ui-float-soft-delayed" style={{
       position: 'absolute', bottom: `${bottomOffset}px`, right: `${rightOffset}px`, zIndex: 1450,
       background: 'rgba(22,28,38,0.97)', border: '1px solid rgba(255,255,255,0.1)',
       borderRadius: '16px', width: '260px',

@@ -295,6 +295,38 @@ export default function App() {
           '--ui-scale': uiScale,
         }}
       >
+        <div
+          className="ui-ambient-orb"
+          style={{
+            width: '420px',
+            height: '420px',
+            top: '-140px',
+            left: '-80px',
+            background: 'radial-gradient(circle, rgba(56,189,248,0.28) 0%, rgba(56,189,248,0.06) 50%, transparent 72%)',
+          }}
+        />
+        <div
+          className="ui-ambient-orb"
+          style={{
+            width: '520px',
+            height: '520px',
+            right: '-180px',
+            bottom: '-180px',
+            background: 'radial-gradient(circle, rgba(255,77,26,0.18) 0%, rgba(255,77,26,0.05) 52%, transparent 74%)',
+            animationDelay: '-5s',
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            backgroundImage: 'linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)',
+            backgroundSize: '120px 120px',
+            opacity: 0.22,
+            maskImage: 'radial-gradient(circle at center, rgba(0,0,0,0.95), rgba(0,0,0,0.4) 65%, transparent 100%)',
+          }}
+        />
         <div style={{ position: 'absolute', inset: 0 }}>
           <IncidentMap
             incidents={incidents}

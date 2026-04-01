@@ -104,7 +104,7 @@ export default function TopBar({
   }
 
   return (
-    <div style={S.bar}>
+    <div className="ui-shell-panel" style={S.bar}>
 
       {/* LOGO */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>

@@ -26,7 +26,7 @@ export function FireGrowthLegend({ data, visible, onClose, timeMode, onTimeModeC
   const isShort = timeMode === 'short'
 
   return (
-    <div style={{
+    <div className="ui-shell-panel ui-float-soft-delayed" style={{
       position: 'absolute', top: `${topOffset}px`, right: `${rightOffset}px`, zIndex: 1450,
       maxHeight: 'calc(50vh - 24px)', overflowY: 'auto',
       background: 'rgba(22,28,38,0.96)', border: '1px solid rgba(255,255,255,0.1)',

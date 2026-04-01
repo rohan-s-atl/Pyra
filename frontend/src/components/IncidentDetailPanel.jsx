@@ -417,7 +417,7 @@ export default function IncidentDetailPanel({
   }
 
   return (
-    <div style={{
+    <div className="ui-shell-panel ui-float-soft" style={{
       position: 'fixed', top: `${topOffset}px`, right: `${rightOffset}px`, bottom: `${bottomOffset}px`, width: `${panelWidth}px`,
       transition: 'right 0.2s ease',
       animation: 'slideInRight 0.22s cubic-bezier(0.16, 1, 0.3, 1)',

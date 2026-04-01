@@ -146,6 +146,24 @@ html, body {
   0%,100% { opacity: 1; }
   50%      { opacity: 0.25; }
 }
+@keyframes ambient-drift {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  50%  { transform: translate3d(18px, -12px, 0) scale(1.04); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+@keyframes shell-breathe {
+  0%,100% { box-shadow: 0 24px 64px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.05); }
+  50% { box-shadow: 0 28px 74px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06), 0 0 30px rgba(56,189,248,0.06); }
+}
+@keyframes panel-float {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+@keyframes panel-sheen {
+  0% { transform: translateX(-120%); opacity: 0; }
+  25% { opacity: 0.18; }
+  100% { transform: translateX(160%); opacity: 0; }
+}
 
 .glass-panel {
   background: var(--glass-bg);
@@ -202,4 +220,48 @@ html, body {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--text-dim);
+}
+
+.ui-shell-panel {
+  position: relative;
+  overflow: hidden;
+  animation: shell-breathe 9s ease-in-out infinite;
+}
+
+.ui-shell-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.06) 45%, transparent 100%);
+  transform: translateX(-120%);
+  opacity: 0;
+  pointer-events: none;
+  animation: panel-sheen 8s ease-in-out infinite;
+}
+
+.ui-float-soft {
+  animation: panel-float 7s ease-in-out infinite;
+}
+
+.ui-float-soft-delayed {
+  animation: panel-float 9s ease-in-out infinite;
+  animation-delay: -2.4s;
+}
+
+.ui-hover-lift {
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.ui-hover-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 22px 44px rgba(0,0,0,0.32), 0 0 26px rgba(56,189,248,0.08);
+}
+
+.ui-ambient-orb {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(70px);
+  opacity: 0.28;
+  pointer-events: none;
+  animation: ambient-drift 16s ease-in-out infinite;
 }
