@@ -87,13 +87,13 @@ export default function TopBar({
   ]
 
   const layers = [
-    { label: 'EVAC ZONES',     active: showEvacZones,    onClick: onToggleEvacZones,    dot: '#ef4444' },
-    { label: 'FIRE GROWTH',    active: showFireGrowth,   onClick: onToggleFireGrowth,   dot: '#ff4d1a' },
-    { label: 'PERIMETERS',     active: showPerimeters,   onClick: onTogglePerimeters,   dot: '#f59e0b' },
-    { label: 'HEAT MAP',       active: showHeatmap,      onClick: onToggleHeatmap,      dot: '#ef4444' },
-    { label: 'SATELLITE',      active: showSatellite,    onClick: onToggleSatellite,    dot: '#38bdf8' },
-    { label: 'WEATHER',        active: showWeather,      onClick: onToggleWeather,      dot: '#22c55e' },
-    { label: 'WATER SOURCES',  active: showWaterSources, onClick: onToggleWaterSources, dot: '#38bdf8' },
+    { label: 'EVAC ZONES',     active: showEvacZones,    onClick: onToggleEvacZones,    dot: '#ef4444', hotkey: '1' },
+    { label: 'FIRE GROWTH',    active: showFireGrowth,   onClick: onToggleFireGrowth,   dot: '#ff4d1a', hotkey: '2' },
+    { label: 'PERIMETERS',     active: showPerimeters,   onClick: onTogglePerimeters,   dot: '#f59e0b', hotkey: '3' },
+    { label: 'HEAT MAP',       active: showHeatmap,      onClick: onToggleHeatmap,      dot: '#ef4444', hotkey: '4' },
+    { label: 'SATELLITE',      active: showSatellite,    onClick: onToggleSatellite,    dot: '#38bdf8', hotkey: '5' },
+    { label: 'WEATHER',        active: showWeather,      onClick: onToggleWeather,      dot: '#22c55e', hotkey: '6' },
+    { label: 'WATER SOURCES',  active: showWaterSources, onClick: onToggleWaterSources, dot: '#38bdf8', hotkey: '7' },
   ]
 
   const roleColor = auth?.role === 'commander' ? '#ff4d1a' : auth?.role === 'dispatcher' ? '#38bdf8' : '#8b9bb0'
@@ -348,6 +348,19 @@ export default function TopBar({
                 color: l.active ? '#f1f5f9' : '#c3d0df', letterSpacing: '0.06em', flex: 1, textAlign: 'left',
               }}>
                 {l.label}
+              </span>
+              <span style={{
+                fontFamily: 'var(--font-mono)',
+                fontWeight: 600,
+                fontSize: '9px',
+                color: '#8b9bb0',
+                letterSpacing: '0.06em',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: '6px',
+                padding: '1px 5px',
+                marginRight: '6px',
+              }}>
+                {l.hotkey}
               </span>
               {l.active && (
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: l.dot }}>ON</span>

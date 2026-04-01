@@ -9,7 +9,7 @@ FIXES APPLIED
    improvement on this structured-output task with no quality loss.
 3. Added in-process LRU cache keyed on (incident_id, sorted unit_ids hash) so
    repeated calls for the same incident+units return instantly.
-4. max_tokens reduced 2000→1200 — sufficient for the JSON schema used.
+4. max_tokens tuned to reduce truncation risk on larger unit sets.
 5. Prompt tightened to reduce token count and improve response speed.
 """
 
@@ -22,7 +22,6 @@ import json
 import hashlib
 import logging
 import re
-from functools import lru_cache
 from datetime import datetime, UTC
 
 from app.core.database import get_db
@@ -230,6 +229,79 @@ def _repair_common_json_issues(raw: str) -> str:
     return repaired
 
 
+def _extract_string_field(raw: str, field_name: str) -> str:
+    match = re.search(
+        rf'"{re.escape(field_name)}"\s*:\s*("(?:\\.|[^"\\])*")',
+        raw,
+        flags=re.DOTALL,
+    )
+    if not match:
+        return ""
+    try:
+        return json.loads(match.group(1))
+    except json.JSONDecodeError:
+        return ""
+
+
+def _extract_partial_loadouts(raw: str) -> list[dict]:
+    loadouts_match = re.search(r'"loadouts"\s*:\s*\[', raw)
+    if not loadouts_match:
+        return []
+
+    idx = loadouts_match.end()
+    items: list[dict] = []
+    depth = 0
+    obj_start = None
+    in_string = False
+    escape = False
+
+    while idx < len(raw):
+        ch = raw[idx]
+
+        if in_string:
+            if escape:
+                escape = False
+            elif ch == "\\":
+                escape = True
+            elif ch == '"':
+                in_string = False
+            idx += 1
+            continue
+
+        if ch == '"':
+            in_string = True
+        elif ch == "{":
+            if depth == 0:
+                obj_start = idx
+            depth += 1
+        elif ch == "}":
+            if depth > 0:
+                depth -= 1
+                if depth == 0 and obj_start is not None:
+                    candidate = raw[obj_start:idx + 1]
+                    try:
+                        parsed = json.loads(candidate)
+                    except json.JSONDecodeError:
+                        parsed = None
+                    if isinstance(parsed, dict):
+                        items.append(parsed)
+                    obj_start = None
+        elif ch == "]" and depth == 0:
+            break
+
+        idx += 1
+
+    return items
+
+
+def _parse_partial_loadout_response(raw: str) -> dict:
+    repaired = _repair_common_json_issues(raw)
+    return {
+        "overall_strategy": _extract_string_field(repaired, "overall_strategy"),
+        "loadouts": _extract_partial_loadouts(repaired),
+    }
+
+
 def _parse_loadout_response(raw: str) -> dict:
     extracted = _extract_json_object(raw)
     try:
@@ -239,6 +311,13 @@ def _parse_loadout_response(raw: str) -> dict:
         try:
             return json.loads(repaired)
         except json.JSONDecodeError:
+            partial = _parse_partial_loadout_response(extracted)
+            if partial.get("overall_strategy") or partial.get("loadouts"):
+                logger.warning(
+                    "[loadout] JSON parse partially recovered: %d loadouts salvaged",
+                    len(partial.get("loadouts", [])),
+                )
+                return partial
             logger.warning("[loadout] JSON parse failed. Raw excerpt: %r", extracted[:800])
             raise first_error
 
@@ -288,7 +367,7 @@ async def get_loadout_advice(
 
         message = await client.messages.create(
             model="claude-haiku-4-5-20251001",
-            max_tokens=1200,
+            max_tokens=1800,
             messages=[{"role": "user", "content": prompt}],
         )
 

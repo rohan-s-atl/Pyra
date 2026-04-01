@@ -198,15 +198,31 @@ export default function App() {
   // ── Keyboard shortcuts ───────────────────────────────────────────────────
   useEffect(() => {
     function onKey(e) {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
-      if (e.key === 'Escape') {
+      const tag = e.target?.tagName
+      const isEditable = e.target?.isContentEditable || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
+      if (isEditable || e.metaKey || e.ctrlKey || e.altKey || e.repeat) return
+
+      const key = (e.key ?? '').toLowerCase()
+
+      if (key === 'escape') {
         setDetailOpen(false)
         setShowAudit(false)
         setShowCommand(false)
         setUnitRoutes([])
+        return
       }
-      if (e.key === 'c' || e.key === 'C') setShowCommand(v => !v)
-      if (e.key === 'm' || e.key === 'M') setShowSatellite(v => !v)
+
+      if (key === 'c') { setShowCommand(v => !v); return }
+      if (key === 'm') { setShowSatellite(v => !v); return }
+
+      // Layer shortcuts (matches TopBar "LAYERS" menu order)
+      if (key === '1') { e.preventDefault(); setShowEvacZones(v => !v); return }
+      if (key === '2') { e.preventDefault(); setShowFireGrowth(v => !v); return }
+      if (key === '3') { e.preventDefault(); setShowPerimeters(v => !v); return }
+      if (key === '4') { e.preventDefault(); setShowHeatmap(v => !v); return }
+      if (key === '5') { e.preventDefault(); setShowSatellite(v => !v); return }
+      if (key === '6') { e.preventDefault(); setShowWeather(v => !v); return }
+      if (key === '7') { e.preventDefault(); setShowWaterSources(v => !v); return }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -247,9 +263,13 @@ export default function App() {
   const showRightPanel = !isCompact || !detailOpen
   const overlayPanelWidth = Math.min(360, Math.max(windowWidth * 0.34, 260))
   const overlayGap = 12
+  const leftPanelWidth = showLeftSidebar ? 272 : 0
   const shellInset = 12
   const topRailOffset = 86
   const mapHudLeftInset = shellInset + 16
+  const mapLegendLeftInset = showLeftSidebar
+    ? shellInset + leftPanelWidth + overlayGap + 8
+    : mapHudLeftInset
   const baseOverlayRight = showRightPanel ? shellInset + overlayPanelWidth + overlayGap : shellInset
   const commandPanelRight = baseOverlayRight
   const detailPanelRight = baseOverlayRight + (showCommand ? overlayPanelWidth + overlayGap : 0)
@@ -348,7 +368,7 @@ export default function App() {
             showSatellite={showSatellite}
             showWaterSources={showWaterSources}
             onWaterSourceStatus={setWaterSourceStatus}
-            overlayLeftOffset={mapHudLeftInset}
+            overlayLeftOffset={mapLegendLeftInset}
             overlayRightOffset={mapRightInset}
             overlayTopOffset={topRailOffset}
             overlayBottomOffset={shellInset}

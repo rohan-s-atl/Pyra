@@ -217,6 +217,7 @@ export default function LeftSidebar({ units, activeView, onViewChange, selectedI
   return (
     <div className="ui-shell-panel ui-float-soft" style={{
       width: '272px',
+      height: '100%',
       display: 'flex', flexDirection: 'column',
       background: 'linear-gradient(180deg, rgba(28,35,47,0.9) 0%, rgba(18,24,34,0.95) 100%)',
       border: '1px solid rgba(255,255,255,0.1)',
@@ -290,7 +291,7 @@ export default function LeftSidebar({ units, activeView, onViewChange, selectedI
         )}
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, padding: '0 12px 10px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, padding: '0 12px 14px' }}>
         {!selectedIncidentId ? (
           <div style={{ padding: '24px 16px', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '10px', color: '#7a8ba0', letterSpacing: '0.06em' }}>
             SELECT AN INCIDENT TO VIEW DEPLOYED UNITS
