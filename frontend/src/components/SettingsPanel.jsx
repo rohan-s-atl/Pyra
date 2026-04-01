@@ -144,6 +144,13 @@ export default function SettingsPanel({ onClose }) {
                 ['Esc',   'Close panels'],
                 ['C',     'Toggle command view'],
                 ['M',     'Toggle satellite map'],
+                ['1',     'Toggle evac zones'],
+                ['2',     'Toggle fire growth'],
+                ['3',     'Toggle perimeters'],
+                ['4',     'Toggle heat map'],
+                ['5',     'Toggle satellite layer'],
+                ['6',     'Toggle weather panel'],
+                ['7',     'Toggle water sources'],
                 ['Enter', 'Confirm / Send chat'],
               ].map(([key, desc]) => (
                 <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
