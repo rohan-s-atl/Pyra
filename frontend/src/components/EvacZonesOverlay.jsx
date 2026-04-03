@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Polygon, Tooltip } from 'react-leaflet'
 import { api } from '../api/client'
+import { toast } from './Toast'
 
 const ZONE_META = {
   order: {
@@ -201,6 +202,7 @@ export function exportEvacZones(data, activeZones) {
   a.download = `evac-zones-${data.incident_name.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.geojson`
   a.click()
   URL.revokeObjectURL(url)
+  toast('Evac zones exported to GeoJSON', 'success')
 }
 
 // ── Map overlay ────────────────────────────────────────────────────────────

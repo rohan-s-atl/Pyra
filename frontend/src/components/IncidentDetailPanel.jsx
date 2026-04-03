@@ -470,8 +470,9 @@ export default function IncidentDetailPanel({
         a.download = `pyra_report_${incident.id}.pdf`
         a.click()
         URL.revokeObjectURL(url)
+        toast('Incident report exported to PDF', 'success')
       })
-      .catch(err => console.error('Report error:', err))
+      .catch(err => { console.error('Report error:', err); toast('Failed to export incident report', 'error') })
   }
 
   return (
@@ -1095,17 +1096,17 @@ export default function IncidentDetailPanel({
             padding: '10px 16px 8px',
             borderBottom: '1px solid rgba(255,255,255,0.08)',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, overflow: 'hidden' }}>
               <div style={{
-                width: '6px', height: '6px', borderRadius: '50%',
+                width: '6px', height: '6px', borderRadius: '50%', flexShrink: 0,
                 background: briefingLoading ? '#ff4d1a' : '#4ade80',
                 boxShadow: briefingLoading ? '0 0 6px #ff4d1a' : '0 0 6px #4ade80',
               }} />
-              <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '11px', color: '#d4dce8', letterSpacing: '0.06em' }}>
+              <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '11px', color: '#d4dce8', letterSpacing: '0.06em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 ICS OPERATIONAL BRIEFING
               </span>
-              <span className="pyra-ai-badge" style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
-                ⬡ PYRA AI
+              <span className="pyra-ai-badge">
+                PYRA AI
               </span>
               {briefingLoading && (
                 <span style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#ff4d1a' }}>

@@ -20,6 +20,7 @@ CAL FIRE designation conventions:
 """
 
 from __future__ import annotations
+import math
 import uuid
 from datetime import datetime, UTC
 from app.core.database import SessionLocal
@@ -122,6 +123,14 @@ _COPTER_NUMBERS = {
 }
 
 
+def _dist_km(lat1, lon1, lat2, lon2):
+    """Haversine distance in km."""
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = math.sin(dlat / 2) ** 2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2) ** 2
+    return 6371 * 2 * math.asin(math.sqrt(a))
+
+
 def seed() -> None:
     db = SessionLocal()
     try:
@@ -216,6 +225,26 @@ def seed() -> None:
                     units.append(_u(f"Copter {c2}", "helicopter", sid, lat, lon, 3, 0, False, True))
 
         db.add_all(units)
+        db.commit()
+
+        # ── Pre-dispatch units to active wildland incidents ────────────────────
+        # Makes the map kinetic on first load — 2-3 ground units already en route.
+        wildland_incidents = [i for i in incidents if i.fire_type == "wildland" and i.status == "active"]
+        GROUND_TYPES = {"engine", "hand_crew", "water_tender"}
+        dispatched = set()
+
+        for inc in wildland_incidents:
+            candidates = sorted(
+                [u for u in units if u.unit_type in GROUND_TYPES and u.id not in dispatched],
+                key=lambda u: _dist_km(inc.latitude, inc.longitude, u.latitude, u.longitude),
+            )
+            # LNU gets 3 units (larger, more complex fire); others get 2
+            n = 3 if inc.name == "LNU Lightning Complex" else 2
+            for unit in candidates[:n]:
+                unit.status = "en_route"
+                unit.assigned_incident_id = inc.id
+                dispatched.add(unit.id)
+
         db.commit()
 
         # Count by type

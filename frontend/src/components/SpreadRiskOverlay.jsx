@@ -12,11 +12,12 @@ const RISK_COLOR = {
 export default function SpreadRiskOverlay({ incidents, selectedId }) {
   const [cones,    setCones]   = useState({})
   const fetchedIds = useRef(new Set())
+  const failedIds  = useRef(new Set())
 
   useEffect(() => {
     const newIds = incidents
       .map(i => i.id)
-      .filter(id => !fetchedIds.current.has(id))
+      .filter(id => !fetchedIds.current.has(id) && !failedIds.current.has(id))
 
     if (newIds.length === 0) return
 
@@ -29,6 +30,7 @@ export default function SpreadRiskOverlay({ incidents, selectedId }) {
           fetchedIds.current.add(id)
         } catch (e) {
           console.warn(`Failed to load spread risk for ${id}`)
+          failedIds.current.add(id)
         }
       }
       setCones(prev => ({ ...prev, ...results }))
@@ -36,6 +38,15 @@ export default function SpreadRiskOverlay({ incidents, selectedId }) {
 
     fetchNew()
   }, [incidents])
+
+  // Refresh cones every 60 seconds without flickering existing ones
+  useEffect(() => {
+    const id = setInterval(() => {
+      fetchedIds.current = new Set()
+      failedIds.current  = new Set()
+    }, 60_000)
+    return () => clearInterval(id)
+  }, [])
 
   return (
     <>

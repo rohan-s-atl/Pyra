@@ -24,6 +24,8 @@ export default function App() {
   // Containment modal — shown when a fire reaches 100% containment
   const [containmentModal, setContainmentModal] = useState(null) // { incidentName, alertId }
   const _seenContainmentAlerts = useRef(new Set())
+  const incidentsRef = useRef([])
+  useEffect(() => { incidentsRef.current = incidents }, [incidents])
   const [activeView,      setActiveView]      = useState('live')
   const [detailOpen,      setDetailOpen]      = useState(false)
   const [focusedUnit,     setFocusedUnit]     = useState(null)
@@ -116,7 +118,7 @@ export default function App() {
         !_seenContainmentAlerts.current.has(alert.id)
       ) {
         _seenContainmentAlerts.current.add(alert.id)
-        const incident = incidents.find(i => i.id === alert.incident_id)
+        const incident = incidentsRef.current.find(i => i.id === alert.incident_id)
         setContainmentModal({
           incidentName: incident?.name ?? alert.title,
           alertId: alert.id,
@@ -124,7 +126,7 @@ export default function App() {
         break  // show one modal at a time
       }
     }
-  }).catch(() => {}), [incidents])
+  }).catch(() => {}), [])
   const refreshUnits = useCallback(() =>
     api.units().then(newUnits => {
       setUnits(newUnits)

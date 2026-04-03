@@ -197,10 +197,11 @@ export default function FireGrowthOverlay({ incidents, selectedId, visible, time
     fetchAll()
   }, [visible, selectedId, incidents, timeMode])
 
-  // Clear cache on incident or mode change
+  // Invalidate the fetch cache when incident data or mode changes so stale
+  // projections are re-fetched, but keep growthData in state so existing
+  // polygons stay visible on the map while the new fetch is in progress.
   useEffect(() => {
     fetchedKeys.current.clear()
-    setGrowthData({})
   }, [selectedId, timeMode, incidentInputsKey])
 
   if (!visible) return null
@@ -210,8 +211,10 @@ export default function FireGrowthOverlay({ incidents, selectedId, visible, time
   return (
     <>
       {displayIds.map(incidentId => {
-        const key  = `${incidentId}-${timeMode}`
-        const data = growthData[key]
+        const key    = `${incidentId}-${timeMode}`
+        const altKey = `${incidentId}-${timeMode === 'short' ? 'standard' : 'short'}`
+        // Fall back to the other mode's cached data while the preferred fetch is in-flight
+        const data = growthData[key] ?? growthData[altKey]
         if (!data?.projections) return null
 
         return [...data.projections].reverse().map(feature => {

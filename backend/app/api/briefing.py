@@ -16,6 +16,7 @@ import json
 import logging
 import asyncio
 import io
+import re
 from pydantic import BaseModel
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch
@@ -84,20 +85,29 @@ def _fmt_num(v, decimals=1, suffix=''):
 
 
 def _parse_briefing_sections(content: str) -> list[tuple[str, str]]:
+    # Matches optional markdown bold wrappers, an all-caps header (2+ words or 4+ chars),
+    # a colon, then optional inline content on the same line.
+    # e.g. "TACTICS: Prioritize..." or "**COMMUNICATIONS:**" or "SITUATION:"
+    _HEADER_RE = re.compile(r'^\*{0,2}([A-Z][A-Z\s\-]{2,})\*{0,2}:\s*(.*)')
+
     sections = []
     current_title = None
     current_lines = []
+
     for raw_line in content.splitlines():
         line = raw_line.strip()
         if not line:
             continue
-        if line.endswith(':') and line[:-1].replace(' ', '').replace('-', '').isupper():
+        m = _HEADER_RE.match(line)
+        if m:
             if current_title:
                 sections.append((current_title, ' '.join(current_lines).strip()))
-            current_title = line[:-1]
-            current_lines = []
+            current_title = m.group(1).strip()
+            rest = m.group(2).strip()
+            current_lines = [rest] if rest else []
         else:
             current_lines.append(line)
+
     if current_title:
         sections.append((current_title, ' '.join(current_lines).strip()))
     return sections

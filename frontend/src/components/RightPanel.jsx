@@ -416,6 +416,7 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
   const [recData, setRecData] = useState(null)
   const [recLoading, setRecLoading] = useState(false)
   const [showResolved, setShowResolved] = useState(false)
+  const [chronoMode, setChronoMode] = useState(false)
   const [pinnedIds, setPinnedIds] = useState(new Set())
   const [collapsed, setCollapsed] = useState(false)
   const [feedRatio, setFeedRatio] = useState(0.62)
@@ -476,7 +477,7 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
     onAlertsChanged?.()
   }
 
-  const filteredAlerts = selectedIncidentId ? alerts.filter(a => a.incident_id === selectedIncidentId) : alerts
+  const filteredAlerts = (selectedIncidentId && !chronoMode) ? alerts.filter(a => a.incident_id === selectedIncidentId) : alerts
   const unacked = filteredAlerts.filter(a => !a.is_acknowledged)
   const timelineEvents = incidents
     .filter(i => !selectedIncidentId || i.id === selectedIncidentId)
@@ -507,12 +508,14 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
   }))
 
   const activityFeed = [...alertEvents, ...timelineEvents]
-    .filter(e => showResolved || e.type === 'timeline' || !e.acknowledged)
+    .filter(e => chronoMode || showResolved || e.type === 'timeline' || !e.acknowledged)
     .sort((a, b) => {
-      const aPinned = pinnedIds.has(a.id) ? 0 : 1
-      const bPinned = pinnedIds.has(b.id) ? 0 : 1
-      if (aPinned !== bPinned) return aPinned - bPinned
-      return b.ts - a.ts
+      if (!chronoMode) {
+        const aPinned = pinnedIds.has(a.id) ? 0 : 1
+        const bPinned = pinnedIds.has(b.id) ? 0 : 1
+        if (aPinned !== bPinned) return aPinned - bPinned
+      }
+      return chronoMode ? a.ts - b.ts : b.ts - a.ts
     })
 
   const selectedAlert = filteredAlerts.find(a => a.id === activeAlertId) ?? null
@@ -614,7 +617,21 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
         </button>
       </div>
 
-      <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', gap: '7px' }}>
+      <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', gap: '7px', flexWrap: 'wrap' }}>
+        <button
+          className="ui-interactive-btn"
+          onClick={() => setChronoMode(v => !v)}
+          style={{
+            borderRadius: '999px',
+            border: `1px solid ${chronoMode ? 'rgba(56,189,248,0.45)' : 'rgba(255,255,255,0.12)'}`,
+            background: chronoMode ? 'rgba(56,189,248,0.12)' : 'rgba(255,255,255,0.05)',
+            color: chronoMode ? '#38bdf8' : '#c3d0df',
+            fontFamily: 'var(--font-mono)', fontSize: '8px', letterSpacing: '0.06em',
+            padding: '4px 9px', cursor: 'pointer',
+          }}
+        >
+          {chronoMode ? '↑ OLDEST FIRST' : '↑ CHRONO'}
+        </button>
         <button
           className="ui-interactive-btn"
           onClick={() => setShowResolved(v => !v)}
@@ -673,6 +690,7 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
           const triage = isAlert ? triageCache[event.id] : null
           const badgeText = isAlert ? (event.acknowledged ? 'UPDATE' : 'ALERT') : 'LOG'
           const badgeColor = isAlert ? (event.acknowledged ? '#22c55e' : s.text) : '#38bdf8'
+          const incidentName = incidents.find(i => i.id === event.incident_id)?.name
 
           return (
             <div key={event.id} style={{ marginBottom: '7px' }}>
@@ -703,6 +721,15 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: '8px', color: '#a7b5c7', letterSpacing: '0.04em' }}>
                     {event.time}
                   </span>
+                  {incidentName && (
+                    <span style={{
+                      fontFamily: 'var(--font-mono)', fontSize: '8px', color: '#4a5668',
+                      letterSpacing: '0.03em', overflow: 'hidden', textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap', maxWidth: '90px',
+                    }} title={incidentName}>
+                      · {incidentName}
+                    </span>
+                  )}
                   {isAlert && (
                     <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: '10px', color: s.text }}>
                       {TYPE_ICON[event.alert_type] ?? '·'}

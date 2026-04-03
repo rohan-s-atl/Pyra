@@ -230,6 +230,23 @@ html, body {
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 999px;
 }
+.pyra-ai-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(245, 110, 15, 0.1);
+  border: 1px solid rgba(245, 110, 15, 0.35);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  color: #F56E0F;
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1.6;
+}
 .ui-card {
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.08);

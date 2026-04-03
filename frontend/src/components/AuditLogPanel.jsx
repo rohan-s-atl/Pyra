@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { api, BASE_URL } from '../api/client'
 import { formatTimestamp } from '../utils/timeUtils'
 import { useAuth } from '../context/AuthContext'
+import { toast } from './Toast'
 
 const ACTION_COLOR = {
   DISPATCH:       '#ff4d1a',
@@ -49,8 +50,9 @@ export default function AuditLogPanel({ onClose }) {
         a.download = 'pyra_audit_log.csv'
         a.click()
         URL.revokeObjectURL(url)
+        toast('Audit log exported to CSV', 'success')
       })
-      .catch(err => console.error('CSV export failed:', err))
+      .catch(err => { console.error('CSV export failed:', err); toast('Failed to export audit log', 'error') })
   }
 
   return (
