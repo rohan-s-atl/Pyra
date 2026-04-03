@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Polygon, Tooltip, Marker, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { api } from '../api/client'
@@ -142,7 +142,7 @@ export function FireGrowthLegend({ data, visible, onClose, timeMode, onTimeModeC
 export default function FireGrowthOverlay({ incidents, selectedId, visible, timeMode = 'standard' }) {
   const [growthData, setGrowthData] = useState({})  // `${incidentId}-${timeMode}` → response
   const fetchedKeys = useRef(new Set())
-  const incidentInputsKey = incidents.map(incident => [
+  const incidentInputsKey = useMemo(() => incidents.map(incident => [
     incident.id,
     incident.fire_type,
     incident.wind_speed_mph,
@@ -152,7 +152,7 @@ export default function FireGrowthOverlay({ incidents, selectedId, visible, time
     incident.aqi,
     incident.spread_direction,
     incident.acres_burned,
-  ].join(':')).join('|')
+  ].join(':')).join('|'), [incidents])
 
   useEffect(() => {
     if (!visible) return

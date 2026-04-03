@@ -179,6 +179,7 @@ export default function IncidentMap({
   const mapRef = useRef(null)
 
   const clickedRouteCache = useRef({})
+  const mountedRef        = useRef(true)
   const posHistory        = useRef({})
   const [trailSnapshot, setTrailSnapshot] = useState({})
   const TRAIL_MAX         = 30
@@ -190,6 +191,9 @@ export default function IncidentMap({
   const animFrameRef     = useRef(null)
   const animateRef       = useRef(null)
   const LERP_SPEED       = 0.12         // fraction to close per frame (~60fps → ~0.6s to arrive)
+
+  // Mark unmounted so in-flight rAF callbacks don't call setState
+  useEffect(() => () => { mountedRef.current = false }, [])
 
   const center     = [37.5, -119.5]
   const showLabels = zoomLevel >= 9
@@ -236,7 +240,7 @@ export default function IncidentMap({
           dirty = true
         }
       }
-      if (dirty) {
+      if (dirty && mountedRef.current) {
         setDisplayUnits(prev => prev.map(u => {
           const pos = smoothPositions.current[u.id]
           if (!pos) return u
@@ -343,6 +347,7 @@ export default function IncidentMap({
 
     const isAir = new Set(['helicopter', 'air_tanker']).has(unit.unit_type)
     const token = localStorage.getItem('token') ?? ''
+    const controller = new AbortController()
 
     if (unit.status === 'returning') {
       // Build a fresh route from current position to home station
@@ -357,6 +362,7 @@ export default function IncidentMap({
 
       fetch(`${BASE_URL}/api/units/${unit.id}/route`, {
         method: 'POST',
+        signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -367,7 +373,8 @@ export default function IncidentMap({
           ? data.waypoints.map(([lat, lon]) => [lat, lon])
           : [[ulat, ulon], [destLat, destLon]]
         setClickedRoute({ type: data.is_road_routed ? 'ground' : 'ground', coords })
-      }).catch(() => {
+      }).catch(err => {
+        if (err.name === 'AbortError') return
         setClickedRoute({ type: 'ground', coords: [[ulat, ulon], [destLat, destLon]] })
       })
       return
@@ -391,6 +398,7 @@ export default function IncidentMap({
 
     fetch(`${BASE_URL}/api/units/${unit.id}/route`, {
       method: 'POST',
+      signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -400,14 +408,20 @@ export default function IncidentMap({
       const coords = Array.isArray(data.waypoints) ? data.waypoints.map(([lat, lon]) => [lat, lon]) : []
       const type = data.is_road_routed ? 'ground' : (isAir ? 'air' : 'ground')
       if (coords.length) {
+        // LRU eviction: keep cache bounded to 20 entries
+        const cacheKeys = Object.keys(clickedRouteCache.current)
+        if (cacheKeys.length >= 20) delete clickedRouteCache.current[cacheKeys[0]]
         clickedRouteCache.current[key] = coords
         setClickedRoute({ type, coords })
       } else {
         setClickedRoute({ type: 'ground', coords: [[ulat, ulon], [incident.latitude, incident.longitude]] })
       }
-    }).catch(() => {
+    }).catch(err => {
+      if (err.name === 'AbortError') return
       setClickedRoute({ type: 'ground', coords: [[ulat, ulon], [incident.latitude, incident.longitude]] })
     })
+
+    return () => controller.abort()
   }, [selectedUnit, selectedUnitRouteKey, selectedRouteIncidentKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
