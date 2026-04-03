@@ -36,7 +36,7 @@ export default function AuditLogPanel({ onClose }) {
         .then(setIntegrity)
         .catch(() => {})
     }
-  }, [])
+  }, [auth?.role])
 
   function handleExport() {
     fetch(`${BASE_URL}/api/audit/export.csv`, {

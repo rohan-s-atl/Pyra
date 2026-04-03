@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { Fragment, useEffect, useState, useRef } from 'react'
 import { CircleMarker, Tooltip } from 'react-leaflet'
 import { BASE_URL } from '../api/client'
 
@@ -134,9 +134,8 @@ export default function WaterSourcesOverlay({ selectedIncident, visible, onStatu
         const assigned = assignments[id] ?? []
 
         return (
-          <>
+          <Fragment key={id}>
             <CircleMarker
-              key={`${id}-glow`}
               center={[lat, lon]}
               radius={cfg.radius + (assigned.length > 0 ? 8 : 6)}
               pathOptions={{
@@ -200,7 +199,7 @@ export default function WaterSourcesOverlay({ selectedIncident, visible, onStatu
               </div>
             </Tooltip>
           </CircleMarker>
-          </>
+          </Fragment>
         )
       })}
     </>

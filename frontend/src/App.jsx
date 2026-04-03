@@ -126,7 +126,7 @@ export default function App() {
         break  // show one modal at a time
       }
     }
-  }).catch(() => {}), [])
+  }).catch(err => console.warn('[poll] alerts failed:', err)), [])
   const refreshUnits = useCallback(() =>
     api.units().then(newUnits => {
       setUnits(newUnits)
@@ -143,19 +143,24 @@ export default function App() {
         }
         return changed ? next : prev
       })
-    }).catch(() => {}),
+    }).catch(err => console.warn('[poll] units failed:', err)),
   [])
-  const refreshIncidents = useCallback(() => api.incidents().then(setIncidents).catch(() => {}), [])
+  const refreshIncidents = useCallback(() => api.incidents().then(setIncidents).catch(err => console.warn('[poll] incidents failed:', err)), [])
 
   // Debounced alert refresh — prevents multiple in-flight requests when dispatch
   // events fire rapidly (e.g. bulk dispatch triggers several onAlertsChanged calls)
+  const debounceTimerRef = useRef(null)
   const refreshAlertsDebounced = useCallback(() => {
-    if (refreshAlertsDebounced._timer) clearTimeout(refreshAlertsDebounced._timer)
-    refreshAlertsDebounced._timer = setTimeout(() => {
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
+    debounceTimerRef.current = setTimeout(() => {
       refreshAlerts()
-      refreshAlertsDebounced._timer = null
+      debounceTimerRef.current = null
     }, 800)
   }, [refreshAlerts])
+  // Clear any pending debounce timer on unmount
+  useEffect(() => () => {
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
+  }, [])
 
   // ── Initial load — only run AFTER auth ───────────────────────────────────
   useEffect(() => {
@@ -193,8 +198,7 @@ export default function App() {
     const unitId     = setInterval(refreshUnits,     4_000)   // unit positions every 4s
     const incidentId = setInterval(refreshIncidents, 10_000)  // incidents every 10s
     const alertId    = setInterval(refreshAlerts,    30_000)  // alerts every 30s
-    const id = { clear: () => { clearInterval(unitId); clearInterval(incidentId); clearInterval(alertId) } }
-    return () => id.clear()
+    return () => { clearInterval(unitId); clearInterval(incidentId); clearInterval(alertId) }
   }, [auth, refreshAlerts, refreshUnits, refreshIncidents])
 
   // ── Keyboard shortcuts ───────────────────────────────────────────────────

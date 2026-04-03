@@ -1,20 +1,24 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 
 let _addToast = null
 
 export function useToastProvider() {
   const [toasts, setToasts] = useState([])
+  const timerIds = useRef([])
 
   const addToast = useCallback((message, type = 'success', duration = 3000) => {
     const id = Date.now() + Math.random()
     setToasts(prev => [...prev, { id, message, type }])
-    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), duration)
+    const timerId = setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), duration)
+    timerIds.current.push(timerId)
   }, [])
 
   useEffect(() => {
     _addToast = addToast
     return () => {
       if (_addToast === addToast) _addToast = null
+      timerIds.current.forEach(clearTimeout)
+      timerIds.current = []
     }
   }, [addToast])
 
