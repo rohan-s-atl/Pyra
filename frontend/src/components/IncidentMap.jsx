@@ -25,7 +25,7 @@ const UNIT_STATUS_COLOR = {
   on_scene:       '#F56E0F',
   staging:        '#facc15',
   returning:      '#a78bfa',
-  out_of_service: '#878787',
+  out_of_service: '#9baac0',
 }
 const UNIT_TYPE_SYMBOL = {
   engine: '🚒', hand_crew: '👥', dozer: '🚜', water_tender: '🚛',
@@ -517,7 +517,7 @@ export default function IncidentMap({
           const lat = unit.latitude
           const lon = unit.longitude
           if (isNaN(lat) || isNaN(lon)) return null
-          const color      = UNIT_STATUS_COLOR[unit.status] ?? '#3a4558'
+          const color      = UNIT_STATUS_COLOR[unit.status] ?? '#7a8ba0'
           const isSelected = unit.id === selectedUnit
           const isFocused  = unit.id === focusedUnit?.id
           const isEmphasis = isSelected || isFocused

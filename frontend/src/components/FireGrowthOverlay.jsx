@@ -39,7 +39,7 @@ export function FireGrowthLegend({ data, visible, onClose, timeMode, onTimeModeC
         <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '10px', color: '#F56E0F', letterSpacing: '0.06em' }}>
           ⬡ FIRE GROWTH PROJECTION
         </div>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#878787', cursor: 'pointer', fontSize: '12px', padding: '0 0 0 8px' }}>✕</button>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#9baac0', cursor: 'pointer', fontSize: '12px', padding: '0 0 0 8px' }}>✕</button>
       </div>
 
       {/* Time mode toggle */}
@@ -56,7 +56,7 @@ export function FireGrowthLegend({ data, visible, onClose, timeMode, onTimeModeC
               fontWeight: 700, letterSpacing: '0.04em', cursor: 'pointer', borderRadius: '3px',
               border: timeMode === key ? '1px solid #F56E0F' : '1px solid rgba(255,255,255,0.1)',
               background: timeMode === key ? 'rgba(245,110,15,0.18)' : 'rgba(255,255,255,0.05)',
-              color: timeMode === key ? '#F56E0F' : '#878787',
+              color: timeMode === key ? '#F56E0F' : '#9baac0',
               transition: 'all 0.15s',
             }}
           >
@@ -72,13 +72,13 @@ export function FireGrowthLegend({ data, visible, onClose, timeMode, onTimeModeC
 
       {/* Conditions row */}
       <div style={{ display: 'flex', gap: '10px', marginBottom: '8px' }}>
-        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#878787' }}>
+        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#9baac0' }}>
           ROS <span style={{ color: '#FBFBFB', fontWeight: 700 }}>{ros} mph</span>
         </div>
-        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#878787' }}>
+        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#9baac0' }}>
           Wind <span style={{ color: '#FBFBFB', fontWeight: 700 }}>{wind} mph</span>
         </div>
-        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#878787' }}>
+        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#9baac0' }}>
           RH <span style={{ color: '#FBFBFB', fontWeight: 700 }}>{rh}%</span>
         </div>
       </div>
@@ -111,7 +111,7 @@ export function FireGrowthLegend({ data, visible, onClose, timeMode, onTimeModeC
               <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#FBFBFB' }}>
                 ~{(p.properties.projected_acres || 0).toLocaleString()} ac
               </div>
-              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#878787', marginLeft: 'auto' }}>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#9baac0', marginLeft: 'auto' }}>
                 {p.properties.forward_km.toFixed(1)} km fwd
               </div>
             </div>
@@ -131,7 +131,7 @@ export function FireGrowthLegend({ data, visible, onClose, timeMode, onTimeModeC
       )}
 
       {/* Direction */}
-      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', color: '#555', marginTop: '6px' }}>
+      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', color: '#8b9bb0', marginTop: '6px' }}>
         Primary spread: {data.spread_direction ?? '—'} · Rothermel simplified model
       </div>
     </div>

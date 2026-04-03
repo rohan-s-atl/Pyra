@@ -8,7 +8,7 @@ const ACTION_COLOR = {
   DISPATCH:       '#ff4d1a',
   ALERT_DISPATCH: '#38bdf8',
   LOGIN:          '#22c55e',
-  LOGOUT:         '#878787',
+  LOGOUT:         '#9baac0',
 }
 
 // formatTimestamp from timeUtils — uses browser-local timezone (override with VITE_DISPLAY_TIMEZONE)
@@ -74,7 +74,7 @@ export default function AuditLogPanel({ onClose }) {
           <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '13px', color: '#d4dce8', letterSpacing: '0.04em' }}>
             AUDIT LOG
           </div>
-          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#5a6878', marginTop: '2px' }}>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#8b9bb0', marginTop: '2px' }}>
             {total} entries · tamper-evident
           </div>
         </div>
@@ -105,17 +105,17 @@ export default function AuditLogPanel({ onClose }) {
             style={{
               background: 'transparent', border: '1px solid #333',
               borderRadius: '3px', padding: '4px 10px', cursor: 'pointer',
-              fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#5a6878',
+              fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#8b9bb0',
               transition: 'all 0.15s',
             }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = '#ff4d1a'; e.currentTarget.style.color = '#ff4d1a' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.color = '#878787' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.color = '#9baac0' }}
           >
             EXPORT CSV
           </button>
           <button
             onClick={onClose}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#555', fontSize: '16px', padding: '2px 4px' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8b9bb0', fontSize: '16px', padding: '2px 4px' }}
           >
             ✕
           </button>
@@ -135,7 +135,7 @@ export default function AuditLogPanel({ onClose }) {
           </div>
         )}
         {!loading && entries.length === 0 && (
-          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', color: '#5a6878', padding: '20px 16px' }}>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', color: '#8b9bb0', padding: '20px 16px' }}>
             No audit entries yet. Dispatch actions will appear here.
           </div>
         )}
@@ -148,7 +148,7 @@ export default function AuditLogPanel({ onClose }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{
                   fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '10px',
-                  color: ACTION_COLOR[entry.action] ?? '#878787',
+                  color: ACTION_COLOR[entry.action] ?? '#9baac0',
                   letterSpacing: '0.06em',
                 }}>
                   {entry.action.replace('_', ' ')}
@@ -157,19 +157,19 @@ export default function AuditLogPanel({ onClose }) {
                   {entry.actor}
                 </span>
                 <span style={{
-                  fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#5a6878',
+                  fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#8b9bb0',
                   background: 'rgba(255,255,255,0.07)', borderRadius: '2px', padding: '1px 5px',
                 }}>
                   {entry.actor_role}
                 </span>
               </div>
-              <span style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#555' }}>
+              <span style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#8b9bb0' }}>
                 {formatTimestamp(entry.timestamp)}
               </span>
             </div>
 
             {entry.incident_name && (
-              <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#aaaaaa', marginBottom: '3px' }}>
+              <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#c3d0df', marginBottom: '3px' }}>
                 {entry.incident_name}
               </div>
             )}
@@ -196,10 +196,10 @@ export default function AuditLogPanel({ onClose }) {
 
             <div style={{
               fontFamily: 'var(--font-sans)', fontSize: '10px',
-              color: '#5a6878', letterSpacing: '0.01em', marginTop: '2px',
+              color: '#8b9bb0', letterSpacing: '0.01em', marginTop: '2px',
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
-              <span style={{ color: '#555', marginRight: '4px' }}>SHA-256</span>
+              <span style={{ color: '#8b9bb0', marginRight: '4px' }}>SHA-256</span>
               {entry.checksum}
             </div>
           </div>

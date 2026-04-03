@@ -34,7 +34,7 @@ function SliderRow({ label, value, min, max, unit, color, onChange, disabled }) 
   return (
     <div style={{ marginBottom: '10px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-        <span style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#5a6878', letterSpacing: '0.04em' }}>
+        <span style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#8b9bb0', letterSpacing: '0.04em' }}>
           {label}
         </span>
         <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '12px', color }}>
@@ -79,7 +79,7 @@ function UnitLoadoutCard({ unit, loadout, aiLoadout, isAiApplied, onUpdate, onAp
           <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '13px', color: '#d4dce8' }}>
             {unit.designation}
           </div>
-          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#5a6878' }}>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#8b9bb0' }}>
             {unit.unit_type.replace(/_/g, ' ').toUpperCase()}
             {hasWater && <span style={{ color: '#38bdf8' }}> · {waterGal.toLocaleString()} gal loaded</span>}
           </div>
@@ -122,7 +122,7 @@ function UnitLoadoutCard({ unit, loadout, aiLoadout, isAiApplied, onUpdate, onAp
 
       {/* No sliders for this unit type */}
       {!hasWater && !hasFoam && !hasRetardant && (
-        <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#555', marginBottom: '10px' }}>
+        <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#8b9bb0', marginBottom: '10px' }}>
           No fluid loadout — configure equipment below.
         </div>
       )}
@@ -144,7 +144,7 @@ function UnitLoadoutCard({ unit, loadout, aiLoadout, isAiApplied, onUpdate, onAp
       {/* Equipment checklist */}
       {hasEquipment && (
         <div>
-          <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '9px', color: '#5a6878', letterSpacing: '0.06em', marginBottom: '6px' }}>
+          <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '9px', color: '#8b9bb0', letterSpacing: '0.06em', marginBottom: '6px' }}>
             EQUIPMENT MANIFEST
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
@@ -178,14 +178,14 @@ function UnitLoadoutCard({ unit, loadout, aiLoadout, isAiApplied, onUpdate, onAp
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: checked ? '#FBFBFB' : '#aaa', fontWeight: checked ? 600 : 400 }}>
+                      <span style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: checked ? '#FBFBFB' : '#c3d0df', fontWeight: checked ? 600 : 400 }}>
                         {item}
                       </span>
                       {aiRecommends && !checked && (
                         <span style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#ff4d1a', fontWeight: 700, letterSpacing: '0.03em' }}>⬡ TAKE</span>
                       )}
                       {!aiRecommends && checked && (
-                        <span style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#5a6878', letterSpacing: '0.03em' }}>MANUAL</span>
+                        <span style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#8b9bb0', letterSpacing: '0.03em' }}>MANUAL</span>
                       )}
                     </div>
                     {note && (
@@ -337,7 +337,7 @@ export default function LoadoutConfigurator({ incident, selectedUnits, units, on
             <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '14px', color: '#d4dce8' }}>
               Loadout Configurator
             </div>
-            <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#5a6878' }}>
+            <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#8b9bb0' }}>
               {selectedUnitObjects.length} unit{selectedUnitObjects.length !== 1 ? 's' : ''} · {incident.name}
             </div>
           </div>

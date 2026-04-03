@@ -28,7 +28,7 @@ export function WaterSourceLegend({ visible, summary }) {
       backdropFilter: 'blur(14px)',
       boxShadow: '0 16px 36px rgba(0,0,0,0.4)',
     }}>
-      <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '9px', color: '#878787', letterSpacing: '0.06em', marginBottom: '5px' }}>
+      <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '9px', color: '#9baac0', letterSpacing: '0.06em', marginBottom: '5px' }}>
         WATER SOURCES
       </div>
       {Object.entries(SOURCE_CONFIG).filter(([k]) => k !== 'unknown').map(([type, cfg]) => (
@@ -41,7 +41,7 @@ export function WaterSourceLegend({ visible, summary }) {
         </div>
       ))}
       {summary && (
-        <div style={{ marginTop: '5px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '5px', fontSize: '9px', color: '#878787' }}>
+        <div style={{ marginTop: '5px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '5px', fontSize: '9px', color: '#9baac0' }}>
           {summary.total_sources} sources · {summary.hydrants} hydrants
         </div>
       )}

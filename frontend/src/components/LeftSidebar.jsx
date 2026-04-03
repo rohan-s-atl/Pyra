@@ -7,7 +7,7 @@ const STATUS_COLOR = {
   on_scene:       '#ff4d1a',
   staging:        '#facc15',
   returning:      '#a78bfa',
-  out_of_service: '#3a4558',
+  out_of_service: '#7a8ba0',
 }
 const STATUS_LABEL = {
   available:      'AVAIL',
@@ -94,7 +94,7 @@ function LoadoutTooltip({ unit, loadout, rect, isDefault }) {
       {cap.water_gal > 0 && (
         <div style={{ marginBottom: '8px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#7a8ba0' }}>WATER</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#9baac0' }}>WATER</span>
             <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '9px', color: '#38bdf8' }}>{waterGal.toLocaleString()} gal</span>
           </div>
           <div style={{ height: '2px', background: 'rgba(255,255,255,0.08)', borderRadius: '1px' }}>
@@ -121,7 +121,7 @@ function LoadoutTooltip({ unit, loadout, rect, isDefault }) {
 function UnitRow({ unit, confirmedLoadouts, onUnitClick }) {
   const [tooltipRect, setTooltipRect] = useState(null)
   const rowRef = useRef(null)
-  const statusColor = STATUS_COLOR[unit.status] ?? '#5a6878'
+  const statusColor = STATUS_COLOR[unit.status] ?? '#8b9bb0'
   const loadout = confirmedLoadouts?.[String(unit.id)] ?? DEFAULT_LOADOUTS[unit.unit_type]
   const isDefault = !confirmedLoadouts?.[String(unit.id)]
 
@@ -231,7 +231,7 @@ export default function LeftSidebar({ units, activeView, onViewChange, selectedI
     }}>
 
       <div style={{ padding: '14px 14px 10px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 500, color: '#7a8ba0', letterSpacing: '0.12em', marginBottom: '8px' }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 500, color: '#9baac0', letterSpacing: '0.12em', marginBottom: '8px' }}>
           MAP VIEW
         </div>
         <div style={{ display: 'flex', gap: '5px' }}>
@@ -247,7 +247,7 @@ export default function LeftSidebar({ units, activeView, onViewChange, selectedI
                 borderRadius: '999px', cursor: 'pointer', transition: 'all 0.15s',
               }}
             >
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 600, color: activeView === v.id ? '#7dd3fc' : '#93a4b8', letterSpacing: '0.06em' }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 600, color: activeView === v.id ? '#7dd3fc' : '#a7b5c7', letterSpacing: '0.06em' }}>
                 {v.label}
               </div>
             </button>
@@ -274,7 +274,7 @@ export default function LeftSidebar({ units, activeView, onViewChange, selectedI
             <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '13px', color: c.color, lineHeight: 1 }}>
               {counts[c.key]}
             </div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '8px', color: '#7a8ba0', letterSpacing: '0.08em', marginTop: '2px' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '8px', color: '#9baac0', letterSpacing: '0.08em', marginTop: '2px' }}>
               {c.label}
             </div>
           </div>
@@ -282,11 +282,11 @@ export default function LeftSidebar({ units, activeView, onViewChange, selectedI
       </div>
 
       <div style={{ padding: '10px 14px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 600, color: '#93a4b8', letterSpacing: '0.12em' }}>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 600, color: '#a7b5c7', letterSpacing: '0.12em' }}>
           ENGAGED UNITS · {filteredUnits.length}
         </span>
         {filter !== 'all' && (
-          <button className="ui-interactive-btn" onClick={() => setFilter('all')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: '8px', color: '#93a4b8', letterSpacing: '0.06em' }}>
+          <button className="ui-interactive-btn" onClick={() => setFilter('all')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: '8px', color: '#a7b5c7', letterSpacing: '0.06em' }}>
             CLEAR ×
           </button>
         )}
@@ -294,11 +294,11 @@ export default function LeftSidebar({ units, activeView, onViewChange, selectedI
 
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, padding: '0 12px 14px' }}>
         {!selectedIncidentId ? (
-          <div style={{ padding: '24px 16px', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '10px', color: '#7a8ba0', letterSpacing: '0.06em' }}>
+          <div style={{ padding: '24px 16px', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '10px', color: '#9baac0', letterSpacing: '0.06em' }}>
             SELECT AN INCIDENT TO VIEW DEPLOYED UNITS
           </div>
         ) : filteredUnits.length === 0 ? (
-          <div style={{ padding: '24px 16px', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '10px', color: '#7a8ba0', letterSpacing: '0.06em' }}>
+          <div style={{ padding: '24px 16px', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '10px', color: '#9baac0', letterSpacing: '0.06em' }}>
             NO ACTIVE UNITS FOR THIS INCIDENT
           </div>
         ) : (

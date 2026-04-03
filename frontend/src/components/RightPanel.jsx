@@ -25,7 +25,7 @@ const STATUS_COLOR = {
   on_scene:       '#ff4d1a',
   staging:        '#facc15',
   returning:      '#a78bfa',
-  out_of_service: '#3a4558',
+  out_of_service: '#9baac0',
 }
 const UNIT_TYPE_ICON = {
   engine: '🚒', hand_crew: '👥', dozer: '🚜', water_tender: '🚛',
@@ -118,7 +118,7 @@ function UnitLoadoutTooltip({ unit, loadout, rect }) {
       {hasWater && (
         <div style={{ marginBottom: '7px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#7a8ba0' }}>WATER</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#9baac0' }}>WATER</span>
             <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '9px', color: '#38bdf8' }}>{waterGal.toLocaleString()} gal ({loadout.water_pct}%)</span>
           </div>
           <div style={{ height: '2px', background: 'rgba(255,255,255,0.06)', borderRadius: '1px' }}>
@@ -129,7 +129,7 @@ function UnitLoadoutTooltip({ unit, loadout, rect }) {
       {hasFoam && loadout.foam_pct > 0 && (
         <div style={{ marginBottom: '7px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#7a8ba0' }}>FOAM</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#9baac0' }}>FOAM</span>
             <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '9px', color: '#22c55e' }}>{loadout.foam_pct}%</span>
           </div>
           <div style={{ height: '2px', background: 'rgba(255,255,255,0.06)', borderRadius: '1px' }}>
@@ -140,7 +140,7 @@ function UnitLoadoutTooltip({ unit, loadout, rect }) {
       {hasRetardant && loadout.retardant_pct > 0 && (
         <div style={{ marginBottom: '7px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#7a8ba0' }}>RETARDANT</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#9baac0' }}>RETARDANT</span>
             <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '9px', color: '#ff4d1a' }}>{loadout.retardant_pct}%</span>
           </div>
           <div style={{ height: '2px', background: 'rgba(255,255,255,0.06)', borderRadius: '1px' }}>
@@ -150,7 +150,7 @@ function UnitLoadoutTooltip({ unit, loadout, rect }) {
       )}
       {equipment.length > 0 && (
         <div style={{ marginTop: '8px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '8px' }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#6d7d92', letterSpacing: '0.08em', marginBottom: '5px' }}>EQUIPMENT ({equipment.length})</div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#9baac0', letterSpacing: '0.08em', marginBottom: '5px' }}>EQUIPMENT ({equipment.length})</div>
           {equipment.map(item => (
             <div key={item} style={{ display: 'flex', gap: '5px', marginBottom: '3px' }}>
               <span style={{ color: '#22c55e', fontSize: '9px', flexShrink: 0 }}>✓</span>
@@ -204,7 +204,7 @@ function RightPanelUnitCard({ unit, confirmedLoadouts, onUnitClick, focused, inc
             {loadout && <span style={{ fontFamily: 'var(--font-mono)', fontSize: '8px', color: '#ff4d1a', fontWeight: 700, flexShrink: 0 }}>⬡</span>}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '1px' }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: STATUS_COLOR[unit.status] ?? '#3a4558', letterSpacing: '0.04em' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: STATUS_COLOR[unit.status] ?? '#7a8ba0', letterSpacing: '0.04em' }}>
               {unit.status.replace(/_/g, ' ').toUpperCase()}
             </span>
             {loadout && cap.water_gal > 0 && (
@@ -213,7 +213,7 @@ function RightPanelUnitCard({ unit, confirmedLoadouts, onUnitClick, focused, inc
               </span>
             )}
           </div>
-          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#7a8ba0', marginTop: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#9baac0', marginTop: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {incidentName
               ? `${incidentName} · ${loadout ? `${(loadout.equipment ?? []).length} items` : UNIT_CAPABILITIES[unit.unit_type]?.note ?? ''}`
               : loadout
@@ -223,7 +223,7 @@ function RightPanelUnitCard({ unit, confirmedLoadouts, onUnitClick, focused, inc
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
           {focused && <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#38bdf8', boxShadow: '0 0 10px #38bdf8' }} />}
-          <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: STATUS_COLOR[unit.status] ?? '#3a4558' }} />
+          <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: STATUS_COLOR[unit.status] ?? '#7a8ba0' }} />
         </div>
       </div>
     </>
@@ -271,7 +271,7 @@ function AlertRecommendationPanel({ alert, recData, recLoading, units, incidents
 
   if (recLoading) {
     return (
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: '#7a8ba0', letterSpacing: '0.06em', padding: '4px 0' }}>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: '#9baac0', letterSpacing: '0.06em', padding: '4px 0' }}>
         LOADING RECOMMENDATION…
       </div>
     )
@@ -328,7 +328,7 @@ function AlertRecommendationPanel({ alert, recData, recLoading, units, incidents
                 <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '10px', color: filled ? '#22c55e' : '#d4dce8', flex: 1 }}>
                   {u.quantity}× {u.unit_type.replace(/_/g, ' ').toUpperCase()}
                 </span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '8px', color: filled ? '#22c55e' : '#7a8ba0', letterSpacing: '0.04em' }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '8px', color: filled ? '#22c55e' : '#9baac0', letterSpacing: '0.04em' }}>
                   {filled ? '✓ FILLED' : u.priority?.replace(/_/g, ' ').toUpperCase()}
                 </span>
               </div>
@@ -342,7 +342,7 @@ function AlertRecommendationPanel({ alert, recData, recLoading, units, incidents
           <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '9px', color: s.text, letterSpacing: '0.08em', marginBottom: '5px' }}>SELECT UNITS TO DISPATCH</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginBottom: '9px', maxHeight: '180px', overflowY: 'auto' }}>
             {available.length === 0 && (
-              <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#7a8ba0', padding: '4px 0' }}>No available units</div>
+              <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#9baac0', padding: '4px 0' }}>No available units</div>
             )}
             {(() => {
               let lastType = null
@@ -356,7 +356,7 @@ function AlertRecommendationPanel({ alert, recData, recLoading, units, incidents
                 return (
                   <div key={unit.id}>
                     {showHeader && (
-                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: '8.5px', fontWeight: 600, color: '#7a8ba0', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: '5px', marginBottom: '2px', paddingLeft: '2px' }}>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: '8.5px', fontWeight: 600, color: '#9baac0', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: '5px', marginBottom: '2px', paddingLeft: '2px' }}>
                         {unit.unit_type.replace(/_/g, ' ')}
                       </div>
                     )}
@@ -372,7 +372,7 @@ function AlertRecommendationPanel({ alert, recData, recLoading, units, incidents
                     >
                       <span style={{ fontSize: '11px' }}>{UNIT_TYPE_ICON[unit.unit_type] ?? '◉'}</span>
                       <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '10px', color: isSelected ? '#d4dce8' : '#9baac0', flex: 1 }}>{unit.designation}</span>
-                      {distLabel && <span style={{ fontFamily: 'var(--font-mono)', fontSize: '8.5px', color: '#7a8ba0' }}>{distLabel}</span>}
+                      {distLabel && <span style={{ fontFamily: 'var(--font-mono)', fontSize: '8.5px', color: '#9baac0' }}>{distLabel}</span>}
                       {isSuggested && <span style={{ fontFamily: 'var(--font-mono)', fontSize: '8px', color: '#ff4d1a' }}>★</span>}
                     </div>
                   </div>
@@ -391,7 +391,7 @@ function AlertRecommendationPanel({ alert, recData, recLoading, units, incidents
               border: 'none', borderRadius: '9px',
               cursor: canDispatch ? 'pointer' : 'not-allowed',
               fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '10px',
-              color: canDispatch ? '#fff' : '#7a8ba0',
+              color: canDispatch ? '#fff' : '#9baac0',
               letterSpacing: '0.08em', boxShadow: canDispatch ? '0 8px 20px rgba(255,77,26,0.32)' : 'none',
             }}
           >
@@ -718,12 +718,12 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
                   }}>
                     {badgeText}
                   </span>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '8px', color: '#a7b5c7', letterSpacing: '0.04em' }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '8px', color: '#c3d0df', letterSpacing: '0.04em' }}>
                     {event.time}
                   </span>
                   {incidentName && (
                     <span style={{
-                      fontFamily: 'var(--font-mono)', fontSize: '8px', color: '#4a5668',
+                      fontFamily: 'var(--font-mono)', fontSize: '8px', color: '#8b9bb0',
                       letterSpacing: '0.03em', overflow: 'hidden', textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap', maxWidth: '90px',
                     }} title={incidentName}>

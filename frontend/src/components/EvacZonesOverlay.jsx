@@ -58,12 +58,12 @@ export function EvacZonesPanel({ data, visible, loading, onClose, onExport, acti
             </div>
           )}
         </div>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#878787', cursor: 'pointer', fontSize: '14px' }}>✕</button>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#9baac0', cursor: 'pointer', fontSize: '14px' }}>✕</button>
       </div>
 
       <div style={{ padding: '10px 14px', overflowY: 'auto', flex: 1 }}>
         {loading && (
-          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#878787', padding: '8px 0' }}>
+          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#9baac0', padding: '8px 0' }}>
             <span style={{ color: '#ef4444' }}>⬡</span> Generating zones...
           </div>
         )}
@@ -72,13 +72,13 @@ export function EvacZonesPanel({ data, visible, loading, onClose, onExport, acti
           <>
             {/* Conditions strip */}
             <div style={{ display: 'flex', gap: '10px', marginBottom: '10px', padding: '8px 10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px' }}>
-              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#878787' }}>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#9baac0' }}>
                 ROS <span style={{ color: '#FBFBFB', fontWeight: 700 }}>{data.ros_mph} mph</span>
               </div>
-              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#878787' }}>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#9baac0' }}>
                 Wind <span style={{ color: '#FBFBFB', fontWeight: 700 }}>{data.wind_speed_mph ?? '—'} mph</span>
               </div>
-              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#878787' }}>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#9baac0' }}>
                 Dir <span style={{ color: '#FBFBFB', fontWeight: 700 }}>{data.spread_direction}</span>
               </div>
             </div>
@@ -110,10 +110,10 @@ export function EvacZonesPanel({ data, visible, loading, onClose, onExport, acti
                       transition: 'background 0.15s',
                     }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '10px', color: active ? meta.color : '#878787', letterSpacing: '0.04em' }}>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '10px', color: active ? meta.color : '#9baac0', letterSpacing: '0.04em' }}>
                         {meta.short}
                       </div>
-                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#878787', marginTop: '1px' }}>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#9baac0', marginTop: '1px' }}>
                         {meta.desc}
                       </div>
                     </div>
@@ -121,7 +121,7 @@ export function EvacZonesPanel({ data, visible, loading, onClose, onExport, acti
                       <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#FBFBFB', fontWeight: 600 }}>
                         {p.forward_km.toFixed(1)} km
                       </div>
-                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', color: '#878787' }}>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '9px', color: '#9baac0' }}>
                         {p.area_sq_mi.toFixed(1)} mi²
                       </div>
                     </div>
@@ -172,7 +172,7 @@ export function EvacZonesPanel({ data, visible, loading, onClose, onExport, acti
         )}
 
         {!data && !loading && (
-          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#555', padding: '8px 0' }}>
+          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '11px', color: '#8b9bb0', padding: '8px 0' }}>
             Select an incident to generate zones
           </div>
         )}

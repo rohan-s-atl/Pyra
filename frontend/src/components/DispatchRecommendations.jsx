@@ -22,7 +22,7 @@ const S = {
     fontFamily: 'var(--font-sans)',
     fontWeight: 700,
     fontSize: '11px',
-    color: '#5a6878',
+    color: '#8b9bb0',
     letterSpacing: '0.06em',
     marginBottom: '6px',
     display: 'flex',
@@ -72,13 +72,13 @@ const S = {
   meta: {
     fontFamily: 'var(--font-sans)',
     fontSize:   '10px',
-    color:      '#878787',
+    color:      '#9baac0',
     marginBottom: '2px',
   },
   reason: {
     fontFamily: 'var(--font-sans)',
     fontSize:   '10px',
-    color:      '#aaaaaa',
+    color:      '#c3d0df',
     lineHeight: 1.4,
     marginTop:  '3px',
   },
@@ -140,7 +140,7 @@ const S = {
     justifyContent: 'space-between',
     fontFamily:     'Inter, sans-serif',
     fontSize:       '10px',
-    color:          '#878787',
+    color:          '#9baac0',
     marginTop:      '6px',
     marginBottom:   '2px',
   },
@@ -165,7 +165,7 @@ function ConfidenceBar({ score, label }) {
       padding: '9px 10px',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
-        <span style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', fontWeight: 700, color: '#5a6878', letterSpacing: '0.06em' }}>
+        <span style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', fontWeight: 700, color: '#8b9bb0', letterSpacing: '0.06em' }}>
           AI CONFIDENCE
         </span>
         <span style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', fontWeight: 700, color }}>
@@ -176,7 +176,7 @@ function ConfidenceBar({ score, label }) {
         <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: '2px', transition: 'width 0.4s ease' }} />
       </div>
       {label && (
-        <div style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#555', marginTop: '4px' }}>
+        <div style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#8b9bb0', marginTop: '4px' }}>
           Overall risk: {label}
         </div>
       )}
@@ -207,14 +207,14 @@ function RouteSafetyPanel({ routes, summary }) {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}
       >
-        <span style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', fontWeight: 700, color: '#5a6878', letterSpacing: '0.06em' }}>
+        <span style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', fontWeight: 700, color: '#8b9bb0', letterSpacing: '0.06em' }}>
           ROUTE SAFETY
         </span>
         <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
           {safeCt    > 0 && <StatusPill label={`${safeCt} SAFE`}    status="safe"    />}
           {riskyCt   > 0 && <StatusPill label={`${riskyCt} RISKY`}  status="risky"   />}
           {blockedCt > 0 && <StatusPill label={`${blockedCt} BLOCK`} status="blocked" />}
-          <span style={{ color: '#555', fontSize: '10px' }}>{expanded ? '▲' : '▼'}</span>
+          <span style={{ color: '#8b9bb0', fontSize: '10px' }}>{expanded ? '▲' : '▼'}</span>
         </div>
       </button>
 
@@ -246,7 +246,7 @@ function StatusPill({ label, status }) {
 
 function RouteRow({ route }) {
   const status = route.status ?? 'safe'
-  const color  = SAFETY_STATUS_COLOR[status] ?? '#878787'
+  const color  = SAFETY_STATUS_COLOR[status] ?? '#9baac0'
   const score  = route.safety_score ?? 0
 
   return (
@@ -270,7 +270,7 @@ function RouteRow({ route }) {
         <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: 600, color: '#d4dce8', marginBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {route.label ?? route.route_id}
         </div>
-        <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#5a6878', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#8b9bb0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {route.explanation ?? (route.risk_factors?.[0] ?? 'No hazards detected')}
         </div>
       </div>
@@ -572,7 +572,7 @@ export default function DispatchRecommendations({
             <div style={{
               fontFamily: 'var(--font-sans)', fontSize: '12px',
               padding: '8px 0',
-              color: (dispatchedUnitIds.size + alreadyAssignedIds.length) > 0 ? '#22c55e' : '#878787',
+              color: (dispatchedUnitIds.size + alreadyAssignedIds.length) > 0 ? '#22c55e' : '#9baac0',
             }}>
               {(dispatchedUnitIds.size + alreadyAssignedIds.length) > 0
                 ? '✓ All recommended units have been deployed.'
@@ -617,7 +617,7 @@ export default function DispatchRecommendations({
 
           {isViewer && (
             <div style={{
-              fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#5a6878',
+              fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#8b9bb0',
               textAlign: 'center', marginTop: '6px',
             }}>
               COMMANDER / DISPATCHER ROLE REQUIRED

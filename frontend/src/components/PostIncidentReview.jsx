@@ -7,7 +7,7 @@ function renderMarkdown(text) {
   if (!text) return null
   return text.split('\n').map((line, i, arr) => {
     // H3 ### 
-    if (line.startsWith('### ')) return <div key={i} style={{ fontWeight: 700, fontSize: '11px', color: '#878787', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: '14px', marginBottom: '4px' }}>{line.slice(4)}</div>
+    if (line.startsWith('### ')) return <div key={i} style={{ fontWeight: 700, fontSize: '11px', color: '#9baac0', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: '14px', marginBottom: '4px' }}>{line.slice(4)}</div>
     // H2 ##
     if (line.startsWith('## ')) return <div key={i} style={{ fontWeight: 700, fontSize: '13px', color: '#FBFBFB', marginTop: '8px', marginBottom: '2px' }}>{line.slice(3)}</div>
     // H1 #
@@ -93,7 +93,7 @@ export default function PostIncidentReview({ incident, onClose }) {
           <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '12px', color: '#FBFBFB', letterSpacing: '0.04em' }}>
             POST-INCIDENT REVIEW  <span className="pyra-ai-badge" style={{marginLeft:'6px'}}>⬡ PYRA AI</span>
           </div>
-          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#878787', marginTop: '2px' }}>
+          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#9baac0', marginTop: '2px' }}>
             {incident.name} · Commander only
           </div>
         </div>
@@ -104,15 +104,15 @@ export default function PostIncidentReview({ incident, onClose }) {
               style={{
                 background: 'transparent', border: '1px solid #333', borderRadius: '3px',
                 padding: '3px 8px', cursor: 'pointer',
-                fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#878787',
+                fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#9baac0',
               }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = '#4ade80'; e.currentTarget.style.color = '#4ade80' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.color = '#878787' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.color = '#9baac0' }}
             >
               COPY
             </button>
           )}
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#555', fontSize: '14px' }}>✕</button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8b9bb0', fontSize: '14px' }}>✕</button>
         </div>
       </div>
 
@@ -120,7 +120,7 @@ export default function PostIncidentReview({ incident, onClose }) {
       <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px' }}>
         {!review && !loading && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '16px' }}>
-            <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: '#878787', textAlign: 'center', lineHeight: 1.6 }}>
+            <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '12px', color: '#9baac0', textAlign: 'center', lineHeight: 1.6 }}>
               Claude will analyze the full audit log and dispatch timeline for this incident and generate a structured lessons-learned document.
             </div>
             <button
@@ -152,10 +152,10 @@ export default function PostIncidentReview({ incident, onClose }) {
               width: '100%', padding: '8px', background: 'transparent',
               border: '1px solid #333', borderRadius: '3px', cursor: 'pointer',
               fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '11px',
-              color: '#878787', letterSpacing: '0.04em', transition: 'all 0.15s',
+              color: '#9baac0', letterSpacing: '0.04em', transition: 'all 0.15s',
             }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = '#F56E0F'; e.currentTarget.style.color = '#F56E0F' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.color = '#878787' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.color = '#9baac0' }}
           >
             ↺ REGENERATE
           </button>

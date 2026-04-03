@@ -4,7 +4,7 @@ import { useState } from 'react'
 const ROLE_COLOR = {
   commander:  '#ff4d1a',
   dispatcher: '#38bdf8',
-  viewer:     '#5a6878',
+  viewer:     '#8b9bb0',
 }
 const ROLE_DESC = {
   commander:  'Full access — dispatch, briefings, all actions',
@@ -121,7 +121,7 @@ export default function LoginScreen({ onLogin }) {
             <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '24px', color: '#edf2f7', letterSpacing: '0.08em', lineHeight: 1 }}>
               PYRA
             </div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: '#3a4558', letterSpacing: '0.14em', marginTop: '3px' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: '#7a8ba0', letterSpacing: '0.14em', marginTop: '3px' }}>
               WILDFIRE COMMAND INTELLIGENCE
             </div>
           </div>
@@ -132,14 +132,14 @@ export default function LoginScreen({ onLogin }) {
           <div style={{ fontWeight: 700, fontSize: '15px', color: '#d4dce8', marginBottom: '5px' }}>
             Sign in to Pyra
           </div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: '#3a4558', letterSpacing: '0.06em', marginBottom: '24px' }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: '#7a8ba0', letterSpacing: '0.06em', marginBottom: '24px' }}>
             AUTHENTICATED ACCESS REQUIRED
           </div>
 
           <form onSubmit={handleLogin}>
             {['username', 'password'].map((field) => (
               <div key={field} style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 600, color: '#3a4558', letterSpacing: '0.1em', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontFamily: 'var(--font-mono)', fontSize: '9px', fontWeight: 600, color: '#7a8ba0', letterSpacing: '0.1em', marginBottom: '6px' }}>
                   {field.toUpperCase()}
                 </label>
                 <input
@@ -185,7 +185,7 @@ export default function LoginScreen({ onLogin }) {
                 border: 'none', borderRadius: '14px',
                 cursor: canSubmit ? 'pointer' : 'not-allowed',
                 fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '11px',
-                color: canSubmit ? '#fff' : '#3a4558', letterSpacing: '0.1em',
+                color: canSubmit ? '#fff' : '#7a8ba0', letterSpacing: '0.1em',
                 transition: 'all 0.15s',
                 boxShadow: canSubmit ? '0 0 20px rgba(255,77,26,0.3)' : 'none',
               }}
@@ -206,7 +206,7 @@ export default function LoginScreen({ onLogin }) {
           animation: 'panel-float 12s ease-in-out infinite',
           animationDelay: '-4s',
         }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#3a4558', letterSpacing: '0.12em', marginBottom: '10px' }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#7a8ba0', letterSpacing: '0.12em', marginBottom: '10px' }}>
             DEMO CREDENTIALS · PASSWORD: pyra2025
           </div>
           {Object.entries(ROLE_DESC).map(([role, desc]) => (
@@ -228,7 +228,7 @@ export default function LoginScreen({ onLogin }) {
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600, color: ROLE_COLOR[role], letterSpacing: '0.04em', flexShrink: 0, minWidth: '80px' }}>
                 {role}
               </span>
-              <span style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#3a4558' }}>{desc}</span>
+              <span style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#7a8ba0' }}>{desc}</span>
             </div>
           ))}
         </div>

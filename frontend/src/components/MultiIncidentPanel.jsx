@@ -109,7 +109,7 @@ export default function MultiIncidentPanel({ incidents, units, alerts, selectedI
           <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '13px', color: '#d4dce8', letterSpacing: '0.04em' }}>
             COMMAND OVERVIEW
           </div>
-          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#8b9bb0', marginTop: '2px' }}>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#a7b5c7', marginTop: '2px' }}>
             {sorted.length} incident{sorted.length !== 1 ? 's' : ''}
           </div>
         </div>
@@ -135,7 +135,7 @@ export default function MultiIncidentPanel({ incidents, units, alerts, selectedI
         ].map(s => (
           <div key={s.label} style={{ background: 'rgba(10,14,20,0.45)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '18px', padding: '10px 12px', textAlign: 'center' }}>
             <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '17px', color: s.color }}>{s.count}</div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '8px', color: '#8b9bb0', letterSpacing: '0.08em' }}>{s.label}</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '8px', color: '#a7b5c7', letterSpacing: '0.08em' }}>{s.label}</div>
           </div>
         ))}
       </div>
@@ -143,13 +143,13 @@ export default function MultiIncidentPanel({ incidents, units, alerts, selectedI
       {/* Incident cards */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '10px 10px 12px' }}>
         {sorted.length === 0 && (
-          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', color: '#8b9bb0', padding: '20px 8px' }}>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: '12px', color: '#a7b5c7', padding: '20px 8px' }}>
             No active incidents.
           </div>
         )}
         {sorted.map(inc => {
           const s         = stats[inc.id] ?? {}
-          const color     = SEVERITY_COLOR[inc.severity] ?? '#878787'
+          const color     = SEVERITY_COLOR[inc.severity] ?? '#9baac0'
           const isSelected = inc.id === selectedId
 
           return (
@@ -173,7 +173,7 @@ export default function MultiIncidentPanel({ incidents, units, alerts, selectedI
                   <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '13px', color: '#d4dce8', marginBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {inc.name}
                   </div>
-                  <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#8b9bb0' }}>
+                  <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#a7b5c7' }}>
                     {inc.fire_type.replace(/_/g, ' ')} · {formatAcres(inc.acres_burned)}
                   </div>
                 </div>
@@ -199,7 +199,7 @@ export default function MultiIncidentPanel({ incidents, units, alerts, selectedI
                     return (
                       <span style={{
                         fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '9px',
-                        color: ps.score >= 70 ? '#ef4444' : ps.score >= 45 ? '#ff4d1a' : '#878787',
+                        color: ps.score >= 70 ? '#ef4444' : ps.score >= 45 ? '#ff4d1a' : '#9baac0',
                         background: 'rgba(255,255,255,0.04)', border: '1px solid #333',
                         borderRadius: '8px', padding: '3px 7px', letterSpacing: '0.04em',
                         cursor: 'help',
@@ -221,7 +221,7 @@ export default function MultiIncidentPanel({ incidents, units, alerts, selectedI
 
               {/* Containment bar */}
               <div style={{ marginBottom: '8px' }}>
-                <div style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#8b9bb0', letterSpacing: '0.06em', marginBottom: '3px' }}>CONTAINMENT</div>
+                <div style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#a7b5c7', letterSpacing: '0.06em', marginBottom: '3px' }}>CONTAINMENT</div>
                 <ContainmentBar pct={inc.containment_percent} />
               </div>
 
@@ -234,7 +234,7 @@ export default function MultiIncidentPanel({ incidents, units, alerts, selectedI
                   { label: 'HUMIDITY', value: inc.humidity_percent != null ? `${inc.humidity_percent.toFixed(0)}%` : '—', color: '#d4dce8' },
                 ].map(stat => (
                   <div key={stat.label} style={{ flex: 1 }}>
-                    <div style={{ fontFamily: 'var(--font-sans)', fontSize: '8px', color: '#8b9bb0', letterSpacing: '0.06em', marginBottom: '2px' }}>{stat.label}</div>
+                    <div style={{ fontFamily: 'var(--font-sans)', fontSize: '8px', color: '#a7b5c7', letterSpacing: '0.06em', marginBottom: '2px' }}>{stat.label}</div>
                     <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '13px', color: stat.color }}>{stat.value}</div>
                   </div>
                 ))}
@@ -243,7 +243,7 @@ export default function MultiIncidentPanel({ incidents, units, alerts, selectedI
               {/* Spread risk */}
               {inc.spread_risk && (
                 <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#8b9bb0', letterSpacing: '0.06em' }}>SPREAD</div>
+                  <div style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#a7b5c7', letterSpacing: '0.06em' }}>SPREAD</div>
                   <div style={{
                     fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '9px',
                     color: inc.spread_risk === 'extreme' ? '#ef4444' : inc.spread_risk === 'high' ? '#ff4d1a' : inc.spread_risk === 'moderate' ? '#facc15' : '#22c55e',

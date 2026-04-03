@@ -303,7 +303,7 @@ export default function App() {
           }}
         />
       </div>
-      <div style={{ color: '#3a4558', fontFamily: 'var(--font-mono)', fontSize: '10px', letterSpacing: '0.12em', animation: 'status-blink 1.5s ease-in-out infinite' }}>
+      <div style={{ color: '#7a8ba0', fontFamily: 'var(--font-mono)', fontSize: '10px', letterSpacing: '0.12em', animation: 'status-blink 1.5s ease-in-out infinite' }}>
         INITIALIZING PYRA…
       </div>
     </div>
@@ -568,7 +568,7 @@ export default function App() {
               <div style={{ fontWeight: 600, fontSize: '15px', color: '#d4dce8', marginBottom: '8px' }}>
                 {containmentModal.incidentName}
               </div>
-              <div style={{ fontSize: '12px', color: '#5a6878', marginBottom: '24px', lineHeight: 1.6 }}>
+              <div style={{ fontSize: '12px', color: '#8b9bb0', marginBottom: '24px', lineHeight: 1.6 }}>
                 This incident has reached 100% containment. All units are being recalled to home stations.
               </div>
               <button

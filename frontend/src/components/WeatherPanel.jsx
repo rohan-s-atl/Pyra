@@ -8,7 +8,7 @@ const SEVERITY_COLOR = {
 }
 
 function statColor(label, value) {
-  if (value == null) return '#555'
+  if (value == null) return '#9baac0'
   if (label === 'WIND')  return value >= 25 ? '#ef4444' : value >= 15 ? '#ff4d1a' : '#FBFBFB'
   if (label === 'RH')    return value < 12  ? '#ef4444' : value < 20  ? '#ff4d1a' : '#FBFBFB'
   if (label === 'SLOPE') return value >= 30 ? '#ff4d1a' : '#FBFBFB'
@@ -95,7 +95,7 @@ export default function WeatherPanel({ incidents, onClose }) {
           <span style={{
             fontFamily: 'var(--font-sans)',
             fontSize: '11px',
-            color: '#666'
+            color: '#8b9bb0'
           }}>
             {active.length} incidents
           </span>
@@ -107,7 +107,7 @@ export default function WeatherPanel({ incidents, onClose }) {
             background: 'none',
             border: 'none',
             cursor: 'pointer',
-            color: '#777',
+            color: '#9baac0',
             fontSize: '18px'
           }}
         >
@@ -125,7 +125,7 @@ export default function WeatherPanel({ incidents, onClose }) {
         width: '100%',
       }}>
         {active.map(inc => {
-          const sevColor = SEVERITY_COLOR[inc.severity] ?? '#878787'
+          const sevColor = SEVERITY_COLOR[inc.severity] ?? '#9baac0'
           const stats = [
             { label: 'WIND',  value: inc.wind_speed_mph != null   ? `${inc.wind_speed_mph} mph`        : '—',   raw: inc.wind_speed_mph },
             { label: 'RH',    value: inc.humidity_percent != null ? `${inc.humidity_percent}%`         : '—',   raw: inc.humidity_percent },
@@ -168,7 +168,7 @@ export default function WeatherPanel({ incidents, onClose }) {
               }}>
                 {stats.map(({ label, value, raw }) => (
                   <div key={label}>
-                    <div style={{ fontSize: '9px', color: '#555', marginBottom: '2px' }}>{label}</div>
+                    <div style={{ fontSize: '9px', color: '#8b9bb0', marginBottom: '2px' }}>{label}</div>
                     <div style={{ fontWeight: 700, fontSize: '11px', color: statColor(label, raw) }}>{value}</div>
                   </div>
                 ))}
@@ -176,7 +176,7 @@ export default function WeatherPanel({ incidents, onClose }) {
 
               <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #262626' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-                  <span style={{ fontSize: '9px', color: '#555' }}>CONTAINMENT</span>
+                  <span style={{ fontSize: '9px', color: '#8b9bb0' }}>CONTAINMENT</span>
                   <span style={{
                     fontWeight: 700,
                     fontSize: '10px',

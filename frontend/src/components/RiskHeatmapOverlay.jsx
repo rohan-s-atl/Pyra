@@ -150,7 +150,7 @@ export default function RiskHeatmapOverlay({ visible, rightOffset = 12, bottomOf
         backdropFilter: 'blur(14px)',
         boxShadow: '0 16px 36px rgba(0,0,0,0.4)',
       }}>
-        <div style={{ fontSize: '9px', color: '#878787', letterSpacing: '0.06em', marginBottom: '6px' }}>
+        <div style={{ fontSize: '9px', color: '#9baac0', letterSpacing: '0.06em', marginBottom: '6px' }}>
           COMPOSITE RISK · {meta?.incidentCount ?? '—'} INCIDENTS
         </div>
         {[

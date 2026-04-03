@@ -43,7 +43,7 @@ function renderBriefing(text) {
 const PRIORITY_COLOR = {
   immediate:   '#ef4444',
   within_1hr:  '#ff4d1a',
-  standby:     '#878787',
+  standby:     '#9baac0',
 }
 
 const UNIT_ICON = {
@@ -167,7 +167,7 @@ function UnitRouteCard({ unitRoute }) {
       </div>
       {expanded && (
         <div style={{
-          fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#aaa',
+          fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#c3d0df',
           lineHeight: 1.5, marginTop: '6px', paddingTop: '6px',
           borderTop: '1px solid rgba(255,255,255,0.06)',
         }}>
@@ -502,10 +502,10 @@ export default function IncidentDetailPanel({
             <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '11px', color: SEVERITY_COLOR[incident.severity], letterSpacing: '0.04em' }}>
               {incident.severity.toUpperCase()}
             </span>
-            <span style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#aaaaaa' }}>
+            <span style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#c3d0df' }}>
               {incident.fire_type.replace(/_/g, ' ').toUpperCase()}
             </span>
-            <span style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#aaaaaa' }}>
+            <span style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', color: '#c3d0df' }}>
               {incident.acres_burned?.toLocaleString()} ac
             </span>
           </div>
@@ -554,7 +554,7 @@ export default function IncidentDetailPanel({
                 <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '9px', color: '#8b9bb0', letterSpacing: '0.06em', marginBottom: '2px' }}>
                   CONFIDENCE
                 </div>
-                <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '13px', color: recommendation.confidence === 'high' ? '#4ade80' : recommendation.confidence === 'moderate' ? '#facc15' : '#878787' }}>
+                <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '13px', color: recommendation.confidence === 'high' ? '#4ade80' : recommendation.confidence === 'moderate' ? '#facc15' : '#9baac0' }}>
                   {recommendation.confidence.toUpperCase()}
                 </div>
               </div>
@@ -619,7 +619,7 @@ export default function IncidentDetailPanel({
                         <div style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#8b9bb0', letterSpacing: '0.04em', marginBottom: '3px' }}>TERRAIN</div>
                         <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '12px', color: '#d4dce8' }}>
                           {Math.round(incident.elevation_m)}m
-                          {incident.slope_percent != null && <span style={{ fontWeight: 400, color: incident.slope_percent >= 30 ? '#ff4d1a' : '#878787', fontSize: '11px' }}> · {incident.slope_percent.toFixed(0)}% slope</span>}
+                          {incident.slope_percent != null && <span style={{ fontWeight: 400, color: incident.slope_percent >= 30 ? '#ff4d1a' : '#9baac0', fontSize: '11px' }}> · {incident.slope_percent.toFixed(0)}% slope</span>}
                         </div>
                         {incident.aspect_cardinal && (
                           <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#a7b5c7', marginTop: '2px' }}>{incident.aspect_cardinal} aspect</div>
@@ -704,7 +704,7 @@ export default function IncidentDetailPanel({
             {/* Already deployed */}
             {alreadyAssigned.length > 0 && (
               <div style={{ marginBottom: '14px' }}>
-                <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '11px', color: '#5a6878', letterSpacing: '0.06em', marginBottom: '6px' }}>
+                <div style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '11px', color: '#8b9bb0', letterSpacing: '0.06em', marginBottom: '6px' }}>
                   ALREADY DEPLOYED
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
@@ -1102,14 +1102,14 @@ export default function IncidentDetailPanel({
                 background: briefingLoading ? '#ff4d1a' : '#4ade80',
                 boxShadow: briefingLoading ? '0 0 6px #ff4d1a' : '0 0 6px #4ade80',
               }} />
-              <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '11px', color: '#d4dce8', letterSpacing: '0.06em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '11px', color: '#edf2f7', letterSpacing: '0.06em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 ICS OPERATIONAL BRIEFING
               </span>
               <span className="pyra-ai-badge">
                 PYRA AI
               </span>
               {briefingLoading && (
-                <span style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#ff4d1a' }}>
+                <span style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#ff4d1a', flexShrink: 0, whiteSpace: 'nowrap' }}>
                   · GENERATING...
                 </span>
               )}
@@ -1121,15 +1121,16 @@ export default function IncidentDetailPanel({
                   style={{
                     background: 'rgba(255,255,255,0.04)',
                     border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '10px',
-                    padding: '6px 10px',
+                    borderRadius: '8px',
+                    padding: '4px 8px',
                     cursor: 'pointer',
-                    fontFamily: 'var(--font-sans)',
-                    fontSize: '10px',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '9px',
                     fontWeight: 600,
                     color: '#c3d0df',
                     letterSpacing: '0.06em',
                     transition: 'all 0.15s',
+                    whiteSpace: 'nowrap',
                   }}
                   onMouseEnter={e => {
                     e.currentTarget.style.borderColor = '#ff4d1a'
@@ -1288,7 +1289,7 @@ export default function IncidentDetailPanel({
                         border: '1px solid #ef444466', borderRadius: '14px',
                         cursor: (closeLoading || auth?.role !== 'commander') ? 'not-allowed' : 'pointer',
                         fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '11px',
-                        color: auth?.role !== 'commander' ? '#555' : '#ef4444aa',
+                        color: auth?.role !== 'commander' ? '#8b9bb0' : '#ef4444aa',
                         letterSpacing: '0.04em',
                       }}
                       title={auth?.role !== 'commander' ? 'Commander role required to force close' : 'Force close bypasses checklist'}
