@@ -416,7 +416,7 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
   const [recData, setRecData] = useState(null)
   const [recLoading, setRecLoading] = useState(false)
   const [showResolved, setShowResolved] = useState(false)
-  const [chronoMode, setChronoMode] = useState(false)
+  const [allAlertsMode, setAllAlertsMode] = useState(null) // null | 'newest' | 'oldest'
   const [pinnedIds, setPinnedIds] = useState(new Set())
   const [collapsed, setCollapsed] = useState(false)
   const [feedRatio, setFeedRatio] = useState(0.62)
@@ -477,10 +477,10 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
     onAlertsChanged?.()
   }
 
-  const filteredAlerts = (selectedIncidentId && !chronoMode) ? alerts.filter(a => a.incident_id === selectedIncidentId) : alerts
+  const filteredAlerts = (selectedIncidentId && !allAlertsMode) ? alerts.filter(a => a.incident_id === selectedIncidentId) : alerts
   const unacked = filteredAlerts.filter(a => !a.is_acknowledged)
   const timelineEvents = incidents
-    .filter(i => !selectedIncidentId || i.id === selectedIncidentId)
+    .filter(i => !selectedIncidentId || allAlertsMode || i.id === selectedIncidentId)
     .map(i => ({
       id: `inc-${i.id}`,
       type: 'timeline',
@@ -508,14 +508,14 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
   }))
 
   const activityFeed = [...alertEvents, ...timelineEvents]
-    .filter(e => chronoMode || showResolved || e.type === 'timeline' || !e.acknowledged)
+    .filter(e => allAlertsMode || showResolved || e.type === 'timeline' || !e.acknowledged)
     .sort((a, b) => {
-      if (!chronoMode) {
+      if (!allAlertsMode) {
         const aPinned = pinnedIds.has(a.id) ? 0 : 1
         const bPinned = pinnedIds.has(b.id) ? 0 : 1
         if (aPinned !== bPinned) return aPinned - bPinned
       }
-      return chronoMode ? a.ts - b.ts : b.ts - a.ts
+      return allAlertsMode === 'oldest' ? a.ts - b.ts : b.ts - a.ts
     })
 
   const selectedAlert = filteredAlerts.find(a => a.id === activeAlertId) ?? null
@@ -620,17 +620,17 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
       <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', gap: '7px', flexWrap: 'wrap' }}>
         <button
           className="ui-interactive-btn"
-          onClick={() => setChronoMode(v => !v)}
+          onClick={() => setAllAlertsMode(m => m === null ? 'newest' : m === 'newest' ? 'oldest' : null)}
           style={{
             borderRadius: '999px',
-            border: `1px solid ${chronoMode ? 'rgba(56,189,248,0.45)' : 'rgba(255,255,255,0.12)'}`,
-            background: chronoMode ? 'rgba(56,189,248,0.12)' : 'rgba(255,255,255,0.05)',
-            color: chronoMode ? '#38bdf8' : '#c3d0df',
+            border: `1px solid ${allAlertsMode ? 'rgba(56,189,248,0.45)' : 'rgba(255,255,255,0.12)'}`,
+            background: allAlertsMode ? 'rgba(56,189,248,0.12)' : 'rgba(255,255,255,0.05)',
+            color: allAlertsMode ? '#38bdf8' : '#c3d0df',
             fontFamily: 'var(--font-mono)', fontSize: '8px', letterSpacing: '0.06em',
             padding: '4px 9px', cursor: 'pointer',
           }}
         >
-          {chronoMode ? '↑ OLDEST FIRST' : '↑ CHRONO'}
+          {allAlertsMode === 'oldest' ? '↑ ALL OLDEST' : allAlertsMode === 'newest' ? '↓ ALL NEWEST' : 'ALL ALERTS'}
         </button>
         <button
           className="ui-interactive-btn"
