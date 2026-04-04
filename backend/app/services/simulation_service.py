@@ -29,7 +29,7 @@ from app.services.routing import (
 
 logger = logging.getLogger(__name__)
 
-CONTAINMENT_GAIN_PER_UNIT        = 0.03   # ~+0.9%/tick per unit at baseline; full dispatch reaches 100% in ~8-12 min
+CONTAINMENT_GAIN_PER_UNIT        = 0.06   # full dispatch of ~10 units reaches 100% in ~5-8 min on-scene; 2-3 batches puts fire out
 CONTAINMENT_LOSS_BASE           = 0.025  # slow, realistic decay after grace period
 CONTAINMENT_GRACE_MINUTES       = 12     # no loss for first 12 real-time minutes after incident start
 WIND_VARIATION                   = 2.0
@@ -222,10 +222,10 @@ def _advance_positions(db: Session) -> None:
 
 
 _ON_SCENE_DURATION: dict[str, int] = {
-    "helicopter": 30, "air_tanker": 30, "engine": 40, "water_tender": 40,
-    "dozer": 40, "hand_crew": 45, "command_unit": 45,
+    "helicopter": 180, "air_tanker": 180, "engine": 300, "water_tender": 300,
+    "dozer": 300, "hand_crew": 360, "command_unit": 360,
 }
-_ON_SCENE_DEFAULT = 40
+_ON_SCENE_DEFAULT = 300
 
 
 def _rotate_on_scene_units(db: Session) -> None:

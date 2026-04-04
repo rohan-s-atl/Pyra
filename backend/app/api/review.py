@@ -13,13 +13,22 @@ FIXES APPLIED
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response
 from sqlalchemy.orm import Session
 import anthropic
 import json
 import logging
 import asyncio
+import io
+import re
 from datetime import datetime, UTC, timezone
+from pydantic import BaseModel
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.units import inch
+from reportlab.lib.colors import HexColor
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable, Table, TableStyle
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib.enums import TA_RIGHT, TA_CENTER
 
 from app.core.database import get_db
 from app.core.config import settings
@@ -212,4 +221,142 @@ async def post_incident_review(
         stream(),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+# ---------------------------------------------------------------------------
+# PDF Export
+# ---------------------------------------------------------------------------
+
+_C_BG     = HexColor('#151419')
+_C_PANEL  = HexColor('#1B1B1E')
+_C_BORDER = HexColor('#262626')
+_C_ORANGE = HexColor('#F56E0F')
+_C_TEXT   = HexColor('#FBFBFB')
+_C_MUTED  = HexColor('#9baac0')
+
+SEVERITY_COLOR = {
+    "low": HexColor('#22c55e'), "moderate": HexColor('#f59e0b'),
+    "high": HexColor('#ff4d1a'), "critical": HexColor('#ef4444'),
+}
+
+
+def _ps(name, **kw):
+    return ParagraphStyle(name, **kw)
+
+
+def _generate_review_pdf(incident: Incident, content: str) -> bytes:
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buf, pagesize=letter,
+        leftMargin=0.6 * inch, rightMargin=0.6 * inch,
+        topMargin=0.6 * inch, bottomMargin=0.6 * inch,
+    )
+
+    styles = {
+        'title':   _ps('title',   fontName='Helvetica-Bold', fontSize=18, textColor=_C_TEXT, spaceAfter=2),
+        'sub':     _ps('sub',     fontName='Helvetica', fontSize=10, textColor=_C_MUTED, spaceAfter=12, alignment=TA_RIGHT),
+        'meta':    _ps('meta',    fontName='Helvetica', fontSize=10, textColor=_C_MUTED, spaceAfter=2),
+        'section': _ps('section', fontName='Helvetica-Bold', fontSize=8, textColor=_C_MUTED, spaceBefore=12, spaceAfter=4, letterSpacing=2),
+        'body':    _ps('body',    fontName='Helvetica', fontSize=9, textColor=_C_TEXT, spaceAfter=6, leading=14),
+        'bold':    _ps('bold',    fontName='Helvetica-Bold', fontSize=9, textColor=_C_TEXT, spaceAfter=4),
+        'footer':  _ps('footer',  fontName='Helvetica', fontSize=7, textColor=_C_MUTED, alignment=TA_CENTER),
+    }
+
+    sev_color = SEVERITY_COLOR.get(incident.severity, _C_MUTED)
+    story = []
+
+    # Header bar
+    hdr = Table([[
+        Paragraph(f'<font color="#{_C_ORANGE.hexval()[2:]}">PYRA</font> POST-INCIDENT AAR', styles['title']),
+        Paragraph(datetime.now(UTC).strftime('%Y-%m-%d %H%MZ'), styles['sub']),
+    ]], colWidths=[4.5 * inch, 2.8 * inch])
+    hdr.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), _C_BG),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+    ]))
+    story.append(hdr)
+    story.append(HRFlowable(width='100%', thickness=1, color=_C_ORANGE, spaceAfter=12))
+
+    # Incident summary block
+    sev_hex = sev_color.hexval()[2:]
+    summary = Table([
+        [
+            Paragraph(incident.name, styles['title']),
+            Paragraph(f'<font color="#{sev_hex}">{incident.severity.upper()}</font>', styles['title']),
+        ],
+        [
+            Paragraph(f'{incident.fire_type.replace("_", " ").title()} · {incident.status.upper()}', styles['meta']),
+            Paragraph(
+                f'{incident.acres_burned:,.0f} acres · {incident.containment_percent or 0:.0f}% contained'
+                if incident.acres_burned else f'{incident.containment_percent or 0:.0f}% contained',
+                styles['meta'],
+            ),
+        ],
+    ], colWidths=[4.5 * inch, 2.8 * inch])
+    summary.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), _C_PANEL),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+        ('LINEBELOW', (0, -1), (-1, -1), 1, _C_BORDER),
+    ]))
+    story.append(summary)
+    story.append(Spacer(1, 14))
+
+    # Parse markdown content into styled paragraphs
+    for line in content.split('\n'):
+        line = line.rstrip()
+        if line.startswith('# '):
+            story.append(Paragraph(line[2:], styles['section']))
+        elif line.startswith('## '):
+            story.append(Paragraph(line[3:], styles['bold']))
+        elif line.startswith('### '):
+            story.append(Paragraph(line[4:], styles['bold']))
+        elif line.strip() == '---':
+            story.append(HRFlowable(width='100%', thickness=1, color=_C_BORDER, spaceAfter=6))
+        elif line.strip():
+            # strip markdown bold markers for PDF
+            cleaned = re.sub(r'\*\*(.+?)\*\*', r'\1', line)
+            story.append(Paragraph(cleaned, styles['body']))
+        else:
+            story.append(Spacer(1, 4))
+
+    story.append(Spacer(1, 20))
+    story.append(HRFlowable(width='100%', thickness=1, color=_C_BORDER, spaceAfter=6))
+    story.append(Paragraph('Generated by PYRA · After-Action Review · COMMANDER RESTRICTED', styles['footer']))
+
+    doc.build(story)
+    return buf.getvalue()
+
+
+class _ExportBody(BaseModel):
+    content: str
+
+
+@router.post(
+    "/{incident_id}/export.pdf",
+    summary="Export post-incident AAR as PDF",
+    response_class=Response,
+)
+def export_review_pdf(
+    incident_id: str,
+    body: _ExportBody,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_commander),
+):
+    incident = db.query(Incident).filter(Incident.id == incident_id).first()
+    if not incident:
+        raise HTTPException(status_code=404, detail="Incident not found")
+
+    pdf_bytes = _generate_review_pdf(incident, body.content)
+    filename = f"pyra_aar_{incident_id}_{datetime.now(UTC).strftime('%Y%m%d_%H%M')}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )

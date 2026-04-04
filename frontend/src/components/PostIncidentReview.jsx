@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { streamReview } from '../api/client'
+import { streamReview, BASE_URL, authHeaders } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 
 function renderMarkdown(text) {
@@ -69,6 +69,27 @@ export default function PostIncidentReview({ incident, onClose }) {
     navigator.clipboard.writeText(review).catch(() => {})
   }
 
+  function handleExportPdf() {
+    fetch(`${BASE_URL}/api/review/${incident.id}/export.pdf`, {
+      method: 'POST',
+      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: review }),
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Export failed')
+        return res.blob()
+      })
+      .then(blob => {
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `pyra_aar_${incident.id}.pdf`
+        a.click()
+        setTimeout(() => URL.revokeObjectURL(url), 1000)
+      })
+      .catch(err => console.error('[review] PDF export failed:', err))
+  }
+
   return createPortal(
     <div style={{
       position: 'fixed', left: `${pos.x}px`, top: `${pos.y}px`,
@@ -99,18 +120,33 @@ export default function PostIncidentReview({ incident, onClose }) {
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           {done && (
-            <button
-              onClick={handleCopy}
-              style={{
-                background: 'transparent', border: '1px solid #333', borderRadius: '3px',
-                padding: '3px 8px', cursor: 'pointer',
-                fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#9baac0',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = '#4ade80'; e.currentTarget.style.color = '#4ade80' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.color = '#9baac0' }}
-            >
-              COPY
-            </button>
+            <>
+              <button
+                onClick={handleCopy}
+                style={{
+                  background: 'transparent', border: '1px solid #333', borderRadius: '3px',
+                  padding: '3px 8px', cursor: 'pointer',
+                  fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#9baac0',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#4ade80'; e.currentTarget.style.color = '#4ade80' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.color = '#9baac0' }}
+              >
+                COPY
+              </button>
+              <button
+                onClick={handleExportPdf}
+                style={{
+                  background: 'transparent', border: '1px solid #333', borderRadius: '3px',
+                  padding: '3px 8px', cursor: 'pointer',
+                  fontFamily: 'Inter, sans-serif', fontSize: '10px', color: '#9baac0',
+                  display: 'flex', alignItems: 'center', gap: '4px',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#F56E0F'; e.currentTarget.style.color = '#F56E0F' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.color = '#9baac0' }}
+              >
+                ↓ PDF
+              </button>
+            </>
           )}
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8b9bb0', fontSize: '14px' }}>✕</button>
         </div>

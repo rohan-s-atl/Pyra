@@ -100,6 +100,7 @@ function MapController({ focusedUnit, focusedIncident, unitRoutes, selectedIncid
   // Fly to incident when selected from command panel
   useEffect(() => {
     if (!focusedIncident) return
+    routeFitLockRef.current = true  // prevent route bounds fit from overriding this flyTo
     map.flyTo([focusedIncident.latitude, focusedIncident.longitude], 12, { duration: 1.0, easeLinearity: 0.2 })
   }, [focusedIncident?._ts])
 
