@@ -34,6 +34,8 @@ from app.models.unit import Unit
 from app.models.alert import Alert
 from app.models.user import User
 from app.models.shift_briefing import ShiftBriefing
+from app.ext.fire_behavior import predict_fire_behavior
+from app.ext.composite_risk import compute_risk_score
 
 router = APIRouter(prefix="/api/briefing", tags=["Briefing"])
 logger = logging.getLogger(__name__)
@@ -222,7 +224,7 @@ def generate_briefing_pdf(incident: Incident, content: str, generated_by: str) -
     return buf.read()
 
 
-def _build_prompt(incident, units_on_scene, units_en_route, active_alerts):
+def _build_prompt(incident, units_on_scene, units_en_route, active_alerts, fire_behavior: dict, risk: dict):
     now = datetime.now(UTC).strftime("%Y-%m-%d %H%MZ")
 
     def unit_line(u):
@@ -234,6 +236,17 @@ def _build_prompt(incident, units_on_scene, units_en_route, active_alerts):
     on_scene_str = "\n".join(f"  - {unit_line(u)}" for u in units_on_scene) or "  - None currently on scene"
     en_route_str = "\n".join(f"  - {unit_line(u)}" for u in units_en_route) or "  - None en route"
     alerts_str   = "\n".join(f"  - [{a.severity.upper()}] {a.title}" for a in active_alerts) or "  - No active alerts"
+
+    terrain_parts = []
+    if incident.elevation_m   is not None: terrain_parts.append(f"elevation {incident.elevation_m:.0f} m")
+    if incident.slope_percent is not None: terrain_parts.append(f"slope {incident.slope_percent:.1f}%")
+    if incident.aspect_cardinal:           terrain_parts.append(f"aspect {incident.aspect_cardinal}")
+    terrain_str = ", ".join(terrain_parts) or "Not available"
+
+    aqi_str = f"{incident.aqi} ({incident.aqi_category})" if incident.aqi is not None else "Not available"
+
+    proj_acres = fire_behavior.get("projected_acres_12h")
+    proj_str   = f"{proj_acres:,.0f} acres" if proj_acres else "unknown"
 
     return f"""Generate an ICS-style operational briefing for the following wildfire incident. Write in plain English using standard ICS terminology. Use ALLCAPS section headers followed by a colon. Be authoritative, concise, and direct — this document will be handed to a deputy incident commander or read aloud at a briefing.
 
@@ -248,9 +261,21 @@ INCIDENT DATA:
   Structures Threatened: {incident.structures_threatened or 0}
   Spread Risk: {(incident.spread_risk or 'Unknown').upper()}
   Spread Direction: {incident.spread_direction or 'Unknown'}
-  Wind Speed: {incident.wind_speed_mph or 'Unknown'} mph
-  Relative Humidity: {incident.humidity_percent or 'Unknown'}%
-  Generated: {now}
+
+WEATHER & ENVIRONMENT:
+  Wind: {incident.wind_speed_mph or 'Unknown'} mph
+  Humidity: {incident.humidity_percent or 'Unknown'}%
+  AQI: {aqi_str}
+  Terrain: {terrain_str}
+
+FIRE BEHAVIOR (computed from current conditions):
+  Fire Behavior Index: {fire_behavior.get('fire_behavior_index', 'N/A')} — {fire_behavior.get('predicted_behavior', '').upper()}
+  {fire_behavior.get('behavior_description', '')}
+  Rate of Spread: {fire_behavior.get('rate_of_spread_mph', 'N/A')} mph
+  Spotting Potential: {fire_behavior.get('spotting_potential', 'N/A')} ({fire_behavior.get('spotting_distance_miles', 0)} mi max)
+  Containment Probability: {fire_behavior.get('containment_probability_pct', 'N/A')}%
+  Projected Size (12h): {proj_str}
+  Composite Risk: {risk.get('risk_score', 'N/A')} / 1.0 — {risk.get('risk_level', '').upper()}
 
 UNITS ON SCENE:
 {on_scene_str}
@@ -261,10 +286,12 @@ UNITS EN ROUTE:
 ACTIVE ALERTS:
 {alerts_str}
 
-Generate a complete ICS operational briefing with these sections:
-SITUATION, WEATHER, RESOURCES, TACTICS, COMMUNICATIONS, SAFETY
+  Generated: {now}
 
-Keep the total briefing under 400 words. Each section should be 2-4 sentences. Do not use bullet points or markdown — write in prose."""
+Generate a complete ICS operational briefing with these sections:
+SITUATION, WEATHER, FIRE BEHAVIOR, RESOURCES, TACTICS, COMMUNICATIONS, SAFETY
+
+Keep the total briefing under 500 words. Each section should be 2-4 sentences. Do not use bullet points or markdown — write in prose."""
 
 
 @router.post("/{incident_id}", summary="Generate AI operational briefing for an incident")
@@ -294,8 +321,34 @@ async def generate_briefing(
         Alert.is_acknowledged.is_(False),
     ).order_by(Alert.created_at.desc()).limit(10).all()
 
+    # Compute fire behavior from live ingested fields before closing session
+    fire_behavior = predict_fire_behavior(
+        fire_type           = incident.fire_type,
+        spread_risk         = incident.spread_risk,
+        wind_speed_mph      = incident.wind_speed_mph,
+        humidity_percent    = incident.humidity_percent,
+        containment_percent = incident.containment_percent,
+        acres_burned        = incident.acres_burned,
+        units_on_scene      = len(units_on_scene),
+        slope_percent       = incident.slope_percent,
+        aqi                 = incident.aqi,
+    )
+    risk = compute_risk_score(
+        fire_behavior_index   = fire_behavior["fire_behavior_index"],
+        spread_risk           = incident.spread_risk,
+        severity              = incident.severity,
+        structures_threatened = incident.structures_threatened,
+        containment_percent   = incident.containment_percent,
+        acres_burned          = incident.acres_burned,
+        slope_percent         = incident.slope_percent,
+        aspect_cardinal       = incident.aspect_cardinal,
+        spread_direction      = incident.spread_direction,
+        units_on_scene        = len(units_on_scene),
+        units_en_route        = len(units_en_route),
+    )
+
     # Build prompt while session is open, then close before streaming (up to 30s AI call)
-    prompt = _build_prompt(incident, units_on_scene, units_en_route, active_alerts)
+    prompt = _build_prompt(incident, units_on_scene, units_en_route, active_alerts, fire_behavior, risk)
     db.close()
 
     async def stream_briefing():
@@ -351,7 +404,7 @@ def export_briefing_pdf(
     )
 
 
-def _build_handoff_prompt(incident: Incident, recent_alerts: list, units: list, period_hours: int) -> str:
+def _build_handoff_prompt(incident: Incident, recent_alerts: list, units: list, period_hours: int, fire_behavior: dict, risk: dict) -> str:
     now   = datetime.now(UTC).strftime("%Y-%m-%d %H%MZ")
     since = (datetime.now(UTC) - timedelta(hours=period_hours)).strftime("%Y-%m-%d %H%MZ")
 
@@ -362,6 +415,14 @@ def _build_handoff_prompt(incident: Incident, recent_alerts: list, units: list, 
         f"  - {u.unit_type} {u.designation} | status: {u.status}" for u in units
     ) or "  - None"
 
+    terrain_parts = []
+    if incident.elevation_m   is not None: terrain_parts.append(f"elevation {incident.elevation_m:.0f} m")
+    if incident.slope_percent is not None: terrain_parts.append(f"slope {incident.slope_percent:.1f}%")
+    if incident.aspect_cardinal:           terrain_parts.append(f"aspect {incident.aspect_cardinal}")
+    terrain_str = ", ".join(terrain_parts) or "Not available"
+
+    aqi_str = f"{incident.aqi} ({incident.aqi_category})" if incident.aqi is not None else "Not available"
+
     return f"""Generate a shift handoff briefing for an outgoing incident commander.
 Cover the last {period_hours} hours ({since} to {now}).
 
@@ -370,7 +431,15 @@ Status: {incident.status.upper()} | Severity: {incident.severity.upper()}
 Containment: {incident.containment_percent or 0:.0f}% | Acres: {incident.acres_burned or 0:,.0f}
 Spread Risk: {(incident.spread_risk or 'unknown').upper()} | Direction: {incident.spread_direction or 'N/A'}
 Wind: {incident.wind_speed_mph or 'N/A'} mph | Humidity: {incident.humidity_percent or 'N/A'}%
+AQI: {aqi_str}
+Terrain: {terrain_str}
 Structures Threatened: {incident.structures_threatened or 0}
+
+FIRE BEHAVIOR (conditions incoming IC is inheriting):
+  FBI: {fire_behavior.get('fire_behavior_index', 'N/A')} — {fire_behavior.get('predicted_behavior', '').upper()}
+  ROS: {fire_behavior.get('rate_of_spread_mph', 'N/A')} mph | Spotting: {fire_behavior.get('spotting_potential', 'N/A')}
+  Containment Probability: {fire_behavior.get('containment_probability_pct', 'N/A')}%
+  Composite Risk: {risk.get('risk_score', 'N/A')} / 1.0 — {risk.get('risk_level', '').upper()}
 
 CURRENT RESOURCES:
 {unit_lines}
@@ -378,8 +447,8 @@ CURRENT RESOURCES:
 ALERTS IN LAST {period_hours}h:
 {alert_lines}
 
-Write a professional ICS shift handoff using ALLCAPS section headers (SITUATION, PERIOD SUMMARY, RESOURCES STATUS, OUTSTANDING ACTIONS, WEATHER OUTLOOK, SAFETY CONCERNS). \
-Prose only — no bullets. Max 350 words. Tone: authoritative, direct, factual."""
+Write a professional ICS shift handoff using ALLCAPS section headers (SITUATION, PERIOD SUMMARY, RESOURCES STATUS, OUTSTANDING ACTIONS, WEATHER AND FIRE BEHAVIOR, SAFETY CONCERNS). \
+Prose only — no bullets. Max 400 words. Tone: authoritative, direct, factual."""
 
 
 async def _generate_handoff_text(prompt: str, api_key: str) -> str:
@@ -422,8 +491,36 @@ async def generate_handoff_briefing(
 
     units = db.query(Unit).filter(Unit.assigned_incident_id == incident_id).all()
 
+    on_scene_count  = sum(1 for u in units if u.status == "on_scene")
+    en_route_count  = sum(1 for u in units if u.status == "en_route")
+
+    fire_behavior = predict_fire_behavior(
+        fire_type           = incident.fire_type,
+        spread_risk         = incident.spread_risk,
+        wind_speed_mph      = incident.wind_speed_mph,
+        humidity_percent    = incident.humidity_percent,
+        containment_percent = incident.containment_percent,
+        acres_burned        = incident.acres_burned,
+        units_on_scene      = on_scene_count,
+        slope_percent       = incident.slope_percent,
+        aqi                 = incident.aqi,
+    )
+    risk = compute_risk_score(
+        fire_behavior_index   = fire_behavior["fire_behavior_index"],
+        spread_risk           = incident.spread_risk,
+        severity              = incident.severity,
+        structures_threatened = incident.structures_threatened,
+        containment_percent   = incident.containment_percent,
+        acres_burned          = incident.acres_burned,
+        slope_percent         = incident.slope_percent,
+        aspect_cardinal       = incident.aspect_cardinal,
+        spread_direction      = incident.spread_direction,
+        units_on_scene        = on_scene_count,
+        units_en_route        = en_route_count,
+    )
+
     # Build prompt and snapshot incident name before closing the session
-    prompt        = _build_handoff_prompt(incident, recent_alerts, units, period_hours)
+    prompt        = _build_handoff_prompt(incident, recent_alerts, units, period_hours, fire_behavior, risk)
     incident_name = incident.name
     username      = current_user.username
     db.close()  # Release connection before the AI call (up to 30s)

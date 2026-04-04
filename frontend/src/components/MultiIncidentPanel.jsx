@@ -216,6 +216,11 @@ export default function MultiIncidentPanel({ incidents, units, alerts, selectedI
                       {s.alertsCount} ALERT{s.alertsCount !== 1 ? 'S' : ''}
                     </span>
                   )}
+                  {(inc.structures_threatened ?? 0) > 0 && (
+                    <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '9px', color: '#facc15', background: 'rgba(250,204,21,0.1)', border: '1px solid rgba(250,204,21,0.3)', borderRadius: '8px', padding: '3px 7px' }}>
+                      {inc.structures_threatened} STRUCT
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -240,17 +245,33 @@ export default function MultiIncidentPanel({ incidents, units, alerts, selectedI
                 ))}
               </div>
 
-              {/* Spread risk */}
-              {inc.spread_risk && (
-                <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#a7b5c7', letterSpacing: '0.06em' }}>SPREAD</div>
-                  <div style={{
-                    fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '9px',
-                    color: inc.spread_risk === 'extreme' ? '#ef4444' : inc.spread_risk === 'high' ? '#ff4d1a' : inc.spread_risk === 'moderate' ? '#facc15' : '#22c55e',
-                    letterSpacing: '0.06em',
-                  }}>
-                    {inc.spread_risk.toUpperCase()} · {inc.spread_direction || '—'}
-                  </div>
+              {/* Spread risk + AQI */}
+              {(inc.spread_risk || inc.aqi != null) && (
+                <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  {inc.spread_risk && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#a7b5c7', letterSpacing: '0.06em' }}>SPREAD</div>
+                      <div style={{
+                        fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '9px',
+                        color: inc.spread_risk === 'extreme' ? '#ef4444' : inc.spread_risk === 'high' ? '#ff4d1a' : inc.spread_risk === 'moderate' ? '#facc15' : '#22c55e',
+                        letterSpacing: '0.06em',
+                      }}>
+                        {inc.spread_risk.toUpperCase()} · {inc.spread_direction || '—'}
+                      </div>
+                    </div>
+                  )}
+                  {inc.aqi != null && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ fontFamily: 'var(--font-sans)', fontSize: '9px', color: '#a7b5c7', letterSpacing: '0.06em' }}>AQI</div>
+                      <div style={{
+                        fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: '9px',
+                        color: inc.aqi >= 201 ? '#ef4444' : inc.aqi >= 151 ? '#ff4d1a' : inc.aqi >= 101 ? '#facc15' : '#22c55e',
+                        letterSpacing: '0.06em',
+                      }}>
+                        {Math.round(inc.aqi)}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

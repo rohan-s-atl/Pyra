@@ -30,6 +30,8 @@ from app.models.unit import Unit
 from app.models.alert import Alert
 from app.models.user import User
 from app.core.limiter import limiter
+from app.ext.fire_behavior import predict_fire_behavior
+from app.ext.composite_risk import compute_risk_score
 
 router = APIRouter(prefix="/api/review", tags=["Review"])
 logger = logging.getLogger(__name__)
@@ -108,6 +110,39 @@ async def post_incident_review(
 
     acres = f"{incident.acres_burned:,.0f}" if incident.acres_burned else "Unknown"
 
+    # Compute fire behavior so the review can explain why the fire behaved as it did
+    fire_behavior = predict_fire_behavior(
+        fire_type           = incident.fire_type,
+        spread_risk         = incident.spread_risk,
+        wind_speed_mph      = incident.wind_speed_mph,
+        humidity_percent    = incident.humidity_percent,
+        containment_percent = incident.containment_percent,
+        acres_burned        = incident.acres_burned,
+        units_on_scene      = None,
+        slope_percent       = incident.slope_percent,
+        aqi                 = incident.aqi,
+    )
+    risk = compute_risk_score(
+        fire_behavior_index   = fire_behavior["fire_behavior_index"],
+        spread_risk           = incident.spread_risk,
+        severity              = incident.severity,
+        structures_threatened = incident.structures_threatened,
+        containment_percent   = incident.containment_percent,
+        acres_burned          = incident.acres_burned,
+        slope_percent         = incident.slope_percent,
+        aspect_cardinal       = incident.aspect_cardinal,
+        spread_direction      = incident.spread_direction,
+        units_on_scene        = None,
+        units_en_route        = None,
+    )
+
+    terrain_parts = []
+    if incident.elevation_m   is not None: terrain_parts.append(f"elevation {incident.elevation_m:.0f} m")
+    if incident.slope_percent is not None: terrain_parts.append(f"slope {incident.slope_percent:.1f}%")
+    if incident.aspect_cardinal:           terrain_parts.append(f"aspect {incident.aspect_cardinal}")
+    terrain_str = ", ".join(terrain_parts) or "Not recorded"
+    aqi_str     = f"{incident.aqi} ({incident.aqi_category})" if incident.aqi is not None else "Not recorded"
+
     # ── Prompt ───────────────────────────────────────────────────────────────
     prompt = (
         f"You are a CAL FIRE after-action review specialist. "
@@ -119,16 +154,31 @@ async def post_incident_review(
         f"  Final Status: {incident.status.upper()}\n"
         f"  Acres Burned: {acres}\n"
         f"  Peak Spread Risk: {(incident.spread_risk or 'Unknown').upper()}\n"
+        f"  Spread Direction: {incident.spread_direction or 'Unknown'}\n"
         f"  Final Containment: {incident.containment_percent or 0:.0f}%\n"
         f"  Structures Threatened: {incident.structures_threatened or 0}\n"
         f"  Duration: {duration_hrs or 'Unknown'} hours\n"
         f"  Total Units Deployed: {total_units}\n"
         f"  Total Alerts Generated: {total_alerts} ({acked_alerts} resolved)\n\n"
+        f"ENVIRONMENTAL CONDITIONS AT CLOSE:\n"
+        f"  Wind: {incident.wind_speed_mph or 'Unknown'} mph\n"
+        f"  Humidity: {incident.humidity_percent or 'Unknown'}%\n"
+        f"  AQI: {aqi_str}\n"
+        f"  Terrain: {terrain_str}\n\n"
+        f"FIRE BEHAVIOR PROFILE (explains why the fire behaved as it did):\n"
+        f"  Fire Behavior Index: {fire_behavior['fire_behavior_index']} — {fire_behavior['predicted_behavior'].upper()}\n"
+        f"  {fire_behavior['behavior_description']}\n"
+        f"  Rate of Spread: {fire_behavior['rate_of_spread_mph']} mph\n"
+        f"  Spotting Potential: {fire_behavior['spotting_potential']} ({fire_behavior['spotting_distance_miles']} mi max)\n"
+        f"  Final Containment Probability: {fire_behavior['containment_probability_pct']}%\n"
+        f"  Composite Risk Score: {risk['risk_score']} / 1.0 — {risk['risk_level'].upper()}\n\n"
         f"DISPATCH TIMELINE:\n{timeline}\n\n"
         f"Generate sections:\n"
-        f"INCIDENT SUMMARY, TIMELINE ANALYSIS, RESOURCE DEPLOYMENT ASSESSMENT, "
-        f"ALERT RESPONSE EFFECTIVENESS, LESSONS LEARNED, RECOMMENDATIONS FOR FUTURE INCIDENTS\n\n"
-        f"Keep total length under 600 words. No bullet points."
+        f"INCIDENT SUMMARY, ENVIRONMENTAL AND FIRE BEHAVIOR ANALYSIS, TIMELINE ANALYSIS, "
+        f"RESOURCE DEPLOYMENT ASSESSMENT, ALERT RESPONSE EFFECTIVENESS, "
+        f"LESSONS LEARNED, RECOMMENDATIONS FOR FUTURE INCIDENTS\n\n"
+        f"Keep total length under 700 words. No bullet points. "
+        f"Ground tactical observations in the environmental conditions and fire behavior data above."
     )
 
     # All DB data is now in plain Python values — release the connection before

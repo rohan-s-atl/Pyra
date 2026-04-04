@@ -35,7 +35,9 @@ from app.models.unit import Unit
 from app.models.alert import Alert
 from app.models.user import User
 from app.core.limiter import limiter
-from app.intelligence.recommendation_engine import select_loadout_profile, TACTICAL_NOTES, UNIT_RULES
+from app.intelligence.recommendation_engine import (
+    select_loadout_profile, TACTICAL_NOTES, UNIT_RULES, _adjust_unit_recommendations,
+)
 from app.ext.fire_behavior import predict_fire_behavior
 from app.ext.composite_risk import compute_risk_score
 
@@ -254,7 +256,9 @@ async def chat(
     }
     rec_profile    = select_loadout_profile(incident_dict)
     tactical_notes = TACTICAL_NOTES.get(rec_profile, "")
-    rec_unit_rules = UNIT_RULES.get(rec_profile, UNIT_RULES["initial_attack"])
+    rec_unit_rules = _adjust_unit_recommendations(
+        rec_profile, incident_dict, UNIT_RULES.get(rec_profile, UNIT_RULES["initial_attack"])
+    )
 
     # Compute live fire behavior and composite risk from all ingested data
     fire_behavior = predict_fire_behavior(

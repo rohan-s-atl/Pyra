@@ -32,6 +32,7 @@ from app.core.limiter import limiter
 from app.models.incident import Incident
 from app.models.unit import Unit
 from app.models.user import User
+from app.ext.fire_behavior import predict_fire_behavior
 
 logger = logging.getLogger(__name__)
 
@@ -155,9 +156,9 @@ def _cache_set(key: str, result: LoadoutAdviceResponse) -> None:
 
 # ── Prompt builder ────────────────────────────────────────────────────────────
 
-def _build_prompt(incident: Incident, units: List[Unit]) -> str:
+def _build_prompt(incident: Incident, units: List[Unit], fire_behavior: dict | None = None) -> str:
     unit_list = "\n".join([
-        f"  - {u.designation} ({u.unit_type.replace('_', ' ').title()})"
+        f"  - ID:{u.id} | {u.designation} ({u.unit_type.replace('_', ' ').title()})"
         for u in units
     ])
 
@@ -173,12 +174,16 @@ def _build_prompt(incident: Incident, units: List[Unit]) -> str:
         for utype in unique_types if utype in UNIT_CAPACITY
     ])
 
+    fbi_str = f"{fire_behavior['fire_behavior_index']} ({fire_behavior['predicted_behavior'].upper()}) | ROS {fire_behavior['rate_of_spread_mph']} mph | spotting {fire_behavior['spotting_potential'].upper()}" if fire_behavior else "N/A"
+    terrain_str = f"slope {incident.slope_percent or '?'}%, aspect {incident.aspect_cardinal or '?'}, elevation {incident.elevation_m or '?'} m"
+
     return f"""CAL FIRE incident commander configuring unit loadouts.
 
 INCIDENT: {incident.name} | {incident.severity.upper()} | {incident.fire_type.replace('_',' ')}
 Spread: {incident.spread_risk} {incident.spread_direction or ''} | Wind: {incident.wind_speed_mph or '?'} mph | Humidity: {incident.humidity_percent or '?'}%
 Acres: {incident.acres_burned or '?'} | Containment: {incident.containment_percent or 0}% | Structures: {incident.structures_threatened or 0}
-AQI: {incident.aqi or '?'} | Slope: {incident.slope_percent or '?'}%
+AQI: {incident.aqi or '?'} ({incident.aqi_category or '?'}) | Terrain: {terrain_str}
+Fire Behavior: {fbi_str}
 
 UNITS:
 {unit_list}
@@ -196,7 +201,7 @@ Respond ONLY with valid JSON (no markdown):
   "overall_strategy": "1-2 sentences",
   "loadouts": [
     {{
-      "unit_id": "designation_here",
+      "unit_id": "exact-ID-from-list",
       "unit_type": "...",
       "designation": "...",
       "water_pct": 0-100,
@@ -360,31 +365,54 @@ async def get_loadout_advice(
         _cache_set(cache_key, result)
         return result
 
+    # Compute fire behavior from live ingested fields before closing session
+    fire_behavior = predict_fire_behavior(
+        fire_type           = incident.fire_type,
+        spread_risk         = incident.spread_risk,
+        wind_speed_mph      = incident.wind_speed_mph,
+        humidity_percent    = incident.humidity_percent,
+        containment_percent = incident.containment_percent,
+        acres_burned        = incident.acres_burned,
+        units_on_scene      = None,
+        slope_percent       = incident.slope_percent,
+        aqi                 = incident.aqi,
+    )
+
     # Build prompt while session is open, then close before the AI call
-    prompt = _build_prompt(incident, units)
+    prompt = _build_prompt(incident, units, fire_behavior)
     db.close()
 
     try:
         # ── Async Claude call — non-blocking ────────────────────────────────
         client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
 
+        # 300 tokens per unit covers ID, sliders, equipment list, rationale, notes;
+        # floor at 1024, cap at 4096 (Haiku context limit for output).
+        max_tok = min(4096, max(1024, len(units) * 300))
         message = await client.messages.create(
             model="claude-haiku-4-5-20251001",
-            max_tokens=1800,
+            max_tokens=max_tok,
             messages=[{"role": "user", "content": prompt}],
         )
 
         raw = message.content[0].text.strip()
         data = _parse_loadout_response(raw)
 
-        units_by_id    = {u.id: u for u in units}
-        units_by_desig = {u.designation: u for u in units}
+        units_by_id         = {u.id: u for u in units}
+        units_by_desig      = {u.designation: u for u in units}
+        units_by_desig_lower = {u.designation.lower(): u for u in units}
 
         loadouts = []
         for item in data.get("loadouts", []):
             raw_id    = item.get("unit_id", "")
             raw_desig = item.get("designation", "")
-            matched   = units_by_id.get(raw_id) or units_by_desig.get(raw_desig) or units_by_desig.get(raw_id)
+            matched = (
+                units_by_id.get(raw_id)
+                or units_by_desig.get(raw_desig)
+                or units_by_desig.get(raw_id)
+                or units_by_desig_lower.get(raw_desig.lower())
+                or units_by_desig_lower.get(raw_id.lower())
+            )
             if not matched:
                 logger.warning("[loadout] Could not match Claude unit_id=%r desig=%r — skipping", raw_id, raw_desig)
                 continue
