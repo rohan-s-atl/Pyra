@@ -42,14 +42,14 @@ const UNIT_TYPE_ORDER = {
   dozer: 4, water_tender: 5, command_unit: 6, rescue: 7,
 }
 const UNIT_CAPACITY = {
-  engine:       { water_gal: 500 },
-  water_tender: { water_gal: 4000 },
-  helicopter:   { water_gal: 300 },
-  air_tanker:   { water_gal: 0 },
-  hand_crew:    { water_gal: 0 },
-  dozer:        { water_gal: 0 },
-  command_unit: { water_gal: 0 },
-  rescue:       { water_gal: 0 },
+  engine:       { water_gal: 500,  foam_pct_max: 6 },
+  water_tender: { water_gal: 4000, foam_pct_max: 3 },
+  helicopter:   { water_gal: 300,  foam_pct_max: 1 },
+  air_tanker:   { water_gal: 0,    foam_pct_max: 0 },
+  hand_crew:    { water_gal: 0,    foam_pct_max: 0 },
+  dozer:        { water_gal: 0,    foam_pct_max: 0 },
+  command_unit: { water_gal: 0,    foam_pct_max: 0 },
+  rescue:       { water_gal: 0,    foam_pct_max: 0 },
 }
 const DEFAULT_LOADOUTS = {
   engine:       { water_pct: 100, foam_pct: 0, retardant_pct: 0, equipment: ['Hand tools (Pulaskis, McLeods)', 'Medical kit (ALS)'] },
@@ -73,7 +73,10 @@ const ENGAGED_STATUS = new Set(['en_route', 'on_scene', 'returning'])
 function LoadoutTooltip({ unit, loadout, rect, isDefault }) {
   if (!loadout || !rect) return null
   const cap = UNIT_CAPACITY[unit.unit_type] ?? {}
-  const waterGal = cap.water_gal ? Math.round((loadout.water_pct / 100) * cap.water_gal) : 0
+  const hasWater    = cap.water_gal > 0
+  const hasFoam     = cap.foam_pct_max > 0
+  const hasRetardant = unit.unit_type === 'air_tanker'
+  const waterGal = hasWater ? Math.round((loadout.water_pct / 100) * cap.water_gal) : 0
   const renderLeft = rect.left > window.innerWidth / 2
   const pos = renderLeft ? { right: window.innerWidth - rect.left + 10 } : { left: rect.right + 10 }
 
@@ -91,14 +94,36 @@ function LoadoutTooltip({ unit, loadout, rect, isDefault }) {
       <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '9px', color: isDefault ? '#38bdf8' : '#ff4d1a', letterSpacing: '0.1em', marginBottom: '10px' }}>
         {isDefault ? '◈ STANDARD LOADOUT' : '⬡ CONFIRMED'} · {unit.designation}
       </div>
-      {cap.water_gal > 0 && (
-        <div style={{ marginBottom: '8px' }}>
+      {hasWater && (
+        <div style={{ marginBottom: '7px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#9baac0' }}>WATER</span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '9px', color: '#38bdf8' }}>{waterGal.toLocaleString()} gal</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '9px', color: '#38bdf8' }}>{waterGal.toLocaleString()} gal ({loadout.water_pct}%)</span>
           </div>
           <div style={{ height: '2px', background: 'rgba(255,255,255,0.08)', borderRadius: '1px' }}>
             <div style={{ height: '100%', width: `${loadout.water_pct}%`, background: '#38bdf8', borderRadius: '1px' }} />
+          </div>
+        </div>
+      )}
+      {hasFoam && loadout.foam_pct > 0 && (
+        <div style={{ marginBottom: '7px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#9baac0' }}>FOAM</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '9px', color: '#22c55e' }}>{loadout.foam_pct}%</span>
+          </div>
+          <div style={{ height: '2px', background: 'rgba(255,255,255,0.08)', borderRadius: '1px' }}>
+            <div style={{ height: '100%', width: `${(loadout.foam_pct / cap.foam_pct_max) * 100}%`, background: '#22c55e', borderRadius: '1px' }} />
+          </div>
+        </div>
+      )}
+      {hasRetardant && loadout.retardant_pct > 0 && (
+        <div style={{ marginBottom: '7px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#9baac0' }}>RETARDANT</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '9px', color: '#ff4d1a' }}>{loadout.retardant_pct}%</span>
+          </div>
+          <div style={{ height: '2px', background: 'rgba(255,255,255,0.08)', borderRadius: '1px' }}>
+            <div style={{ height: '100%', width: `${loadout.retardant_pct}%`, background: '#ff4d1a', borderRadius: '1px' }} />
           </div>
         </div>
       )}

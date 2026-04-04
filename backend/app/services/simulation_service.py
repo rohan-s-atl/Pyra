@@ -10,7 +10,7 @@ import asyncio
 import logging
 import random
 import uuid
-from datetime import datetime, UTC
+from datetime import datetime, UTC, timezone, timedelta
 
 from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -29,8 +29,9 @@ from app.services.routing import (
 
 logger = logging.getLogger(__name__)
 
-CONTAINMENT_GAIN_PER_UNIT        = 0.02
-CONTAINMENT_LOSS_BASE           = 0.12
+CONTAINMENT_GAIN_PER_UNIT        = 0.03   # ~+0.9%/tick per unit at baseline; full dispatch reaches 100% in ~8-12 min
+CONTAINMENT_LOSS_BASE           = 0.025  # slow, realistic decay after grace period
+CONTAINMENT_GRACE_MINUTES       = 12     # no loss for first 12 real-time minutes after incident start
 WIND_VARIATION                   = 2.0
 HUMIDITY_VARIATION               = 1.5
 WIND_ALERT_THRESHOLD             = 25.0
@@ -249,6 +250,10 @@ def _containment_delta(incident: Incident, on_scene: int, en_route: int) -> floa
     """
     Positive delta means containment improves; negative means the incident is
     outpacing available suppression coverage.
+
+    Grace period: no loss for the first CONTAINMENT_GRACE_MINUTES of real time
+    after incident.started_at — containment holds steady while the first
+    dispatch wave is en route.
     """
     severity_pressure = _SEVERITY_PRESSURE.get((incident.severity or "moderate").lower(), 1.0)
     spread_pressure = _SPREAD_PRESSURE.get((incident.spread_risk or "moderate").lower(), 1.0)
@@ -272,9 +277,21 @@ def _containment_delta(incident: Incident, on_scene: int, en_route: int) -> floa
         gain = CONTAINMENT_GAIN_PER_UNIT * (on_scene + max(0.0, surplus * 0.65))
         return gain * random.uniform(0.65, 1.25)
 
+    # Check grace period — no loss for the first N minutes after incident start
+    in_grace = False
+    if incident.started_at:
+        started = incident.started_at
+        if started.tzinfo is None:
+            started = started.replace(tzinfo=timezone.utc)
+        elapsed_mins = (datetime.now(UTC) - started).total_seconds() / 60.0
+        in_grace = elapsed_mins < CONTAINMENT_GRACE_MINUTES
+
+    if in_grace:
+        return 0.0  # Hold steady; first dispatch wave is still en route
+
     coverage_gap = max(0.0, incident_pressure - effective_coverage)
     if on_scene <= 0:
-        coverage_gap += 0.8
+        coverage_gap += 0.4  # reduced from 0.8 — no panic-spiral on zero units
     loss = CONTAINMENT_LOSS_BASE * coverage_gap
     return -loss * random.uniform(0.6, 1.2)
 
