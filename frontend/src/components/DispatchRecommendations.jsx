@@ -466,7 +466,7 @@ export default function DispatchRecommendations({
         outcome: isOverride ? 'overridden' : 'accepted',
         override_unit_ids: isOverride ? selectedUnits : [],
         confidence_reported: data?.summary?.confidence_score?.toString() ?? '',
-      }).catch(() => {})  // fire-and-forget
+      }).catch(e => console.warn('[dispatch] Feedback submission failed:', e))
 
       setSelectedUnits([])
       setFeedbackSent(true)

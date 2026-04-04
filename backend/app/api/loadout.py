@@ -22,6 +22,7 @@ import json
 import hashlib
 import logging
 import re
+import threading
 from datetime import datetime, UTC
 
 from app.core.database import get_db
@@ -122,6 +123,7 @@ class LoadoutAdviceResponse(BaseModel):
 # TTL is implicit: cache is cleared when the module reloads (server restart).
 
 _cache: dict[str, tuple[float, LoadoutAdviceResponse]] = {}
+_cache_lock = threading.Lock()
 _CACHE_TTL_SECONDS = 120   # 2 minutes — stale enough for demo, fresh enough for real ops
 _CACHE_MAX = 64
 
@@ -132,22 +134,23 @@ def _cache_key(incident_id: str, unit_ids: List[str]) -> str:
 
 
 def _cache_get(key: str) -> Optional[LoadoutAdviceResponse]:
-    entry = _cache.get(key)
-    if not entry:
-        return None
-    ts, result = entry
-    if (datetime.now(UTC).timestamp() - ts) > _CACHE_TTL_SECONDS:
-        del _cache[key]
-        return None
-    return result
+    with _cache_lock:
+        entry = _cache.get(key)
+        if not entry:
+            return None
+        ts, result = entry
+        if (datetime.now(UTC).timestamp() - ts) > _CACHE_TTL_SECONDS:
+            del _cache[key]
+            return None
+        return result
 
 
 def _cache_set(key: str, result: LoadoutAdviceResponse) -> None:
-    if len(_cache) >= _CACHE_MAX:
-        # Evict oldest entry
-        oldest = min(_cache, key=lambda k: _cache[k][0])
-        del _cache[oldest]
-    _cache[key] = (datetime.now(UTC).timestamp(), result)
+    with _cache_lock:
+        if len(_cache) >= _CACHE_MAX:
+            oldest = min(_cache, key=lambda k: _cache[k][0])
+            del _cache[oldest]
+        _cache[key] = (datetime.now(UTC).timestamp(), result)
 
 
 # ── Prompt builder ────────────────────────────────────────────────────────────

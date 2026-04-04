@@ -13,6 +13,9 @@ PATCHES
 3. recorded_at in submit_feedback now uses datetime.now(UTC) (was naive datetime.now()).
 """
 
+import threading
+import time
+
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -34,6 +37,7 @@ router = APIRouter(prefix="/api/recommendations", tags=["Recommendations"])
 # In-process TTL cache keyed on (incident_id, updated_at_isoformat)
 # ---------------------------------------------------------------------------
 _rec_cache: dict[str, tuple[float, dict]] = {}
+_rec_cache_lock = threading.Lock()
 _REC_CACHE_TTL = 30.0   # seconds — short enough to stay fresh, long enough to absorb poll bursts
 _REC_CACHE_MAX = 128
 
@@ -44,23 +48,23 @@ def _cache_key(incident: Incident) -> str:
 
 
 def _cache_get(key: str) -> dict | None:
-    import time
-    entry = _rec_cache.get(key)
-    if not entry:
-        return None
-    ts, result = entry
-    if time.monotonic() - ts > _REC_CACHE_TTL:
-        del _rec_cache[key]
-        return None
-    return result
+    with _rec_cache_lock:
+        entry = _rec_cache.get(key)
+        if not entry:
+            return None
+        ts, result = entry
+        if time.monotonic() - ts > _REC_CACHE_TTL:
+            del _rec_cache[key]
+            return None
+        return result
 
 
 def _cache_set(key: str, result: dict) -> None:
-    import time
-    if len(_rec_cache) >= _REC_CACHE_MAX:
-        oldest = min(_rec_cache, key=lambda k: _rec_cache[k][0])
-        del _rec_cache[oldest]
-    _rec_cache[key] = (time.monotonic(), result)
+    with _rec_cache_lock:
+        if len(_rec_cache) >= _REC_CACHE_MAX:
+            oldest = min(_rec_cache, key=lambda k: _rec_cache[k][0])
+            del _rec_cache[oldest]
+        _rec_cache[key] = (time.monotonic(), result)
 
 
 # ---------------------------------------------------------------------------

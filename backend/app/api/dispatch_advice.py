@@ -259,6 +259,8 @@ async def dispatch_advice(
             ),
             timeout=15,
         )
+        if not message.content or not hasattr(message.content[0], "text"):
+            raise ValueError("Empty or non-text response from AI")
         advice = message.content[0].text.strip()
     except (asyncio.TimeoutError, Exception) as e:
         logger.warning("[dispatch_advice] AI call failed: %s — using rule-based fallback", e)

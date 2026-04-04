@@ -55,6 +55,16 @@ const UNIT_CAPACITY = {
   command_unit: { water_gal: 0, foam_pct_max: 0 },
   rescue:       { water_gal: 0, foam_pct_max: 0 },
 }
+const DEFAULT_LOADOUTS = {
+  engine:       { water_pct: 100, foam_pct: 0, retardant_pct: 0, equipment: ['Hand tools (Pulaskis, McLeods)', 'Medical kit (ALS)'] },
+  water_tender: { water_pct: 100, foam_pct: 0, retardant_pct: 0, equipment: ['Portable tank (3000 gal)', 'Extra hose (200ft)'] },
+  helicopter:   { water_pct: 100, foam_pct: 0, retardant_pct: 0, equipment: ['Helibucket (300 gal)', 'Medical kit'] },
+  air_tanker:   { water_pct: 0,   foam_pct: 0, retardant_pct: 100, equipment: ['Fire retardant (Phos-Chek)', 'Air tactical radio'] },
+  hand_crew:    { water_pct: 0,   foam_pct: 0, retardant_pct: 0, equipment: ['Chainsaws (2×)', 'Hand tools', 'Medical kit (ALS)'] },
+  dozer:        { water_pct: 0,   foam_pct: 0, retardant_pct: 0, equipment: ['Dozer blade (standard)', 'Fire shelter'] },
+  command_unit: { water_pct: 0,   foam_pct: 0, retardant_pct: 0, equipment: ['Satellite comms', 'GIS / mapping laptop'] },
+  rescue:       { water_pct: 0,   foam_pct: 0, retardant_pct: 0, equipment: ['ALS medical kit', 'Oxygen / airway kit'] },
+}
 const STATUS_FILTERS = [
   { key: 'all', label: 'ALL' },
   { key: 'available', label: 'AVAIL' },
@@ -90,7 +100,7 @@ function distBetween(unit, incident) {
   }
 }
 
-function UnitLoadoutTooltip({ unit, loadout, rect }) {
+function UnitLoadoutTooltip({ unit, loadout, rect, isDefault }) {
   if (!loadout || !rect) return null
   const cap = UNIT_CAPACITY[unit.unit_type] ?? {}
   const hasWater = cap.water_gal > 0
@@ -112,8 +122,8 @@ function UnitLoadoutTooltip({ unit, loadout, rect }) {
       boxShadow: '0 18px 48px rgba(0,0,0,0.55)',
       pointerEvents: 'none', backdropFilter: 'blur(14px)',
     }}>
-      <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '9px', color: '#ff4d1a', letterSpacing: '0.1em', marginBottom: '9px' }}>
-        ⬡ CONFIRMED LOADOUT · {unit.designation}
+      <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '9px', color: isDefault ? '#38bdf8' : '#ff4d1a', letterSpacing: '0.1em', marginBottom: '9px' }}>
+        {isDefault ? '◈ STANDARD LOADOUT' : '⬡ CONFIRMED'} · {unit.designation}
       </div>
       {hasWater && (
         <div style={{ marginBottom: '7px' }}>
@@ -166,12 +176,13 @@ function UnitLoadoutTooltip({ unit, loadout, rect }) {
 
 function RightPanelUnitCard({ unit, confirmedLoadouts, onUnitClick, focused, incidentName }) {
   const [tooltipRect, setTooltipRect] = useState(null)
-  const loadout = confirmedLoadouts?.[unit.id] ?? null
+  const isDefault = !confirmedLoadouts?.[String(unit.id)]
+  const loadout = confirmedLoadouts?.[String(unit.id)] ?? DEFAULT_LOADOUTS[unit.unit_type] ?? null
   const cap = UNIT_CAPACITY[unit.unit_type] ?? {}
 
   return (
     <>
-      {tooltipRect && <UnitLoadoutTooltip unit={unit} loadout={loadout} rect={tooltipRect} />}
+      {tooltipRect && <UnitLoadoutTooltip unit={unit} loadout={loadout} rect={tooltipRect} isDefault={isDefault} />}
       <div
         className="ui-hover-lift"
         onClick={() => onUnitClick?.(unit)}
@@ -180,17 +191,17 @@ function RightPanelUnitCard({ unit, confirmedLoadouts, onUnitClick, focused, inc
           padding: '8px 9px', marginBottom: '5px',
           background: focused ? 'rgba(56,189,248,0.12)' : 'rgba(255,255,255,0.05)',
           borderRadius: '14px',
-          border: `1px solid ${focused ? 'rgba(56,189,248,0.28)' : loadout ? 'rgba(255,77,26,0.22)' : 'rgba(255,255,255,0.08)'}`,
+          border: `1px solid ${focused ? 'rgba(56,189,248,0.28)' : !isDefault ? 'rgba(255,77,26,0.22)' : 'rgba(255,255,255,0.08)'}`,
           cursor: 'pointer', transition: 'all 0.12s',
           boxShadow: focused ? '0 12px 24px rgba(56,189,248,0.16)' : 'none',
         }}
         onMouseEnter={e => {
-          e.currentTarget.style.borderColor = focused ? 'rgba(56,189,248,0.38)' : loadout ? 'rgba(255,77,26,0.45)' : 'rgba(255,255,255,0.16)'
+          e.currentTarget.style.borderColor = focused ? 'rgba(56,189,248,0.38)' : !isDefault ? 'rgba(255,77,26,0.45)' : 'rgba(255,255,255,0.16)'
           e.currentTarget.style.background = focused ? 'rgba(56,189,248,0.15)' : 'rgba(255,255,255,0.07)'
-          if (loadout) setTooltipRect(e.currentTarget.getBoundingClientRect())
+          setTooltipRect(e.currentTarget.getBoundingClientRect())
         }}
         onMouseLeave={e => {
-          e.currentTarget.style.borderColor = focused ? 'rgba(56,189,248,0.28)' : loadout ? 'rgba(255,77,26,0.22)' : 'rgba(255,255,255,0.08)'
+          e.currentTarget.style.borderColor = focused ? 'rgba(56,189,248,0.28)' : !isDefault ? 'rgba(255,77,26,0.22)' : 'rgba(255,255,255,0.08)'
           e.currentTarget.style.background = focused ? 'rgba(56,189,248,0.12)' : 'rgba(255,255,255,0.05)'
           setTooltipRect(null)
         }}
@@ -201,13 +212,13 @@ function RightPanelUnitCard({ unit, confirmedLoadouts, onUnitClick, focused, inc
             <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '11px', color: '#d4dce8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {unit.designation}
             </span>
-            {loadout && <span style={{ fontFamily: 'var(--font-mono)', fontSize: '8px', color: '#ff4d1a', fontWeight: 700, flexShrink: 0 }}>⬡</span>}
+            {!isDefault && <span style={{ fontFamily: 'var(--font-mono)', fontSize: '8px', color: '#ff4d1a', fontWeight: 700, flexShrink: 0 }}>⬡</span>}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '1px' }}>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: STATUS_COLOR[unit.status] ?? '#7a8ba0', letterSpacing: '0.04em' }}>
               {unit.status.replace(/_/g, ' ').toUpperCase()}
             </span>
-            {loadout && cap.water_gal > 0 && (
+            {cap.water_gal > 0 && loadout && (
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: '#38bdf8' }}>
                 · {Math.round((loadout.water_pct / 100) * cap.water_gal).toLocaleString()} gal
               </span>
@@ -215,10 +226,8 @@ function RightPanelUnitCard({ unit, confirmedLoadouts, onUnitClick, focused, inc
           </div>
           <div style={{ fontFamily: 'var(--font-sans)', fontSize: '10px', color: '#9baac0', marginTop: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {incidentName
-              ? `${incidentName} · ${loadout ? `${(loadout.equipment ?? []).length} items` : UNIT_CAPABILITIES[unit.unit_type]?.note ?? ''}`
-              : loadout
-              ? `${(loadout.equipment ?? []).length} items · hover for loadout`
-              : UNIT_CAPABILITIES[unit.unit_type]?.note ?? ''}
+              ? `${incidentName} · ${(loadout?.equipment ?? []).length} items`
+              : `${(loadout?.equipment ?? []).length} items · hover for loadout`}
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>

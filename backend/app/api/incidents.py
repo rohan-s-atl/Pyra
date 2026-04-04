@@ -3,7 +3,10 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime, UTC
 import asyncio
+import logging
 import uuid
+
+logger = logging.getLogger(__name__)
 
 from app.core.database import get_db
 from app.core.security import require_any_role, require_dispatcher_or_above
@@ -246,7 +249,7 @@ async def close_incident(
             final_briefing_id = fb.id
         except Exception as exc:
             # Don't block close-out on briefing failure
-            pass
+            logger.warning("[incidents] Final briefing generation failed for incident=%s: %s", incident_id, exc)
 
     # --- Mark incident out ---
     incident.status = "out"

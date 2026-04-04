@@ -29,6 +29,8 @@ def _aqi_from_pm25(pm25: float) -> int:
     ]
     for lo_c, hi_c, lo_i, hi_i in breakpoints:
         if lo_c <= pm25 <= hi_c:
+            if hi_c == lo_c:
+                return lo_i
             return round((hi_i - lo_i) / (hi_c - lo_c) * (pm25 - lo_c) + lo_i)
     return 500 if pm25 > 500 else 0
 

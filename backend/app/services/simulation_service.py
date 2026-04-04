@@ -30,6 +30,7 @@ from app.services.routing import (
 logger = logging.getLogger(__name__)
 
 CONTAINMENT_GAIN_PER_UNIT        = 0.02
+CONTAINMENT_LOSS_BASE           = 0.12
 WIND_VARIATION                   = 2.0
 HUMIDITY_VARIATION               = 1.5
 WIND_ALERT_THRESHOLD             = 25.0
@@ -45,6 +46,20 @@ _sim_tick:              int  = 0
 _running:               bool = False
 _route_builder_running: bool = False
 _contained_notified:    set[str] = set()
+
+_SEVERITY_PRESSURE: dict[str, float] = {
+    "low": 0.6,
+    "moderate": 0.95,
+    "high": 1.3,
+    "critical": 1.7,
+}
+
+_SPREAD_PRESSURE: dict[str, float] = {
+    "low": 0.7,
+    "moderate": 1.0,
+    "high": 1.35,
+    "extreme": 1.8,
+}
 
 
 async def run_simulation_cycle() -> None:
@@ -230,19 +245,52 @@ def _rotate_on_scene_units(db: Session) -> None:
             logger.info("[simulation] Unit=%s rotating off scene (type=%s)", unit.id, unit.unit_type)
 
 
+def _containment_delta(incident: Incident, on_scene: int, en_route: int) -> float:
+    """
+    Positive delta means containment improves; negative means the incident is
+    outpacing available suppression coverage.
+    """
+    severity_pressure = _SEVERITY_PRESSURE.get((incident.severity or "moderate").lower(), 1.0)
+    spread_pressure = _SPREAD_PRESSURE.get((incident.spread_risk or "moderate").lower(), 1.0)
+    wind_mph = incident.wind_speed_mph if incident.wind_speed_mph is not None else 10.0
+    wind_pressure = min(max(wind_mph / 18.0, 0.7), 1.8)
+    humidity = incident.humidity_percent if incident.humidity_percent is not None else 25.0
+    humidity_pressure = 1.25 if humidity < 15 else 1.1 if humidity < 25 else 0.95
+    containment_drag = 1.1 if (incident.containment_percent or 0.0) >= 85.0 else 1.0
+
+    incident_pressure = (
+        severity_pressure *
+        spread_pressure *
+        wind_pressure *
+        humidity_pressure *
+        containment_drag
+    )
+    effective_coverage = on_scene + (en_route * 0.45)
+
+    if on_scene > 0 and effective_coverage >= incident_pressure:
+        surplus = effective_coverage - incident_pressure
+        gain = CONTAINMENT_GAIN_PER_UNIT * (on_scene + max(0.0, surplus * 0.65))
+        return gain * random.uniform(0.65, 1.25)
+
+    coverage_gap = max(0.0, incident_pressure - effective_coverage)
+    if on_scene <= 0:
+        coverage_gap += 0.8
+    loss = CONTAINMENT_LOSS_BASE * coverage_gap
+    return -loss * random.uniform(0.6, 1.2)
+
+
 def _progress_containment(db: Session) -> None:
     global _contained_notified
 
-    for incident in db.query(Incident).filter(Incident.status == "active").all():
+    for incident in db.query(Incident).filter(Incident.status.in_(["active", "contained"])).all():
         on_scene = db.query(Unit).filter(
             Unit.assigned_incident_id == incident.id, Unit.status == "on_scene",
         ).count()
-        if on_scene <= 0:
-            continue
-
-        gain    = CONTAINMENT_GAIN_PER_UNIT * on_scene * random.uniform(0.3, 1.2)
+        en_route = db.query(Unit).filter(
+            Unit.assigned_incident_id == incident.id, Unit.status == "en_route",
+        ).count()
         current = incident.containment_percent or 0.0
-        new_pct = round(min(100.0, current + gain * 0.1), 1)
+        new_pct = round(min(100.0, max(0.0, current + _containment_delta(incident, on_scene, en_route))), 1)
         incident.containment_percent = new_pct
         incident.updated_at          = datetime.now(UTC)
 
@@ -270,8 +318,11 @@ def _progress_containment(db: Session) -> None:
             )
             logger.info("[simulation] '%s' reached 100%% — status → contained", incident.name)
 
-        elif new_pct >= 90.0 and incident.status == "active":
+        elif new_pct >= 90.0:
             incident.status = "contained"
+        elif incident.status == "contained" and new_pct < 90.0:
+            incident.status = "active"
+            logger.info("[simulation] '%s' dropped below containment threshold; status -> active", incident.name)
 
     # FIX: prune _contained_notified for incidents that have been closed (status='out')
     # to prevent unbounded memory growth in long-running deployments.

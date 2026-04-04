@@ -37,10 +37,20 @@ logger = logging.getLogger(__name__)
 ARRIVAL_THRESHOLD_DEG = 0.015
 
 # Waypoints to advance per simulation tick
-# Ground units: 1 step on even ticks (effectively 0.5 steps/tick = half speed)
-# Air units: 2 steps on even ticks (effectively 1 step/tick, was 4)
-WAYPOINT_STEP_GROUND = 1
+# Air units: 2 steps every 2 ticks = 1 step/tick effective
 WAYPOINT_STEP_AIR    = 2
+
+# How many ticks must pass before each ground unit type advances one waypoint.
+# Higher = slower. Engines drive ~45 mph; hand crews walk ~3 mph (~15x slower).
+# Dozers crawl ~5 mph on rough terrain (~9x slower than engines).
+_GROUND_TICK_INTERVAL: dict[str, int] = {
+    "engine":       2,
+    "water_tender": 2,
+    "command_unit": 2,
+    "rescue":       2,
+    "dozer":        8,
+    "hand_crew":    18,
+}
 
 
 # ---------------------------------------------------------------------------
@@ -129,11 +139,17 @@ def advance_en_route(db: Session, unit: Unit, tick: int = 0) -> None:
     """
     Move an en_route unit one step along its cached route.
     Transitions to on_scene when the route end is reached.
-    Only advances on even ticks to halve effective speed.
+    Tick interval is per unit type so hand crews move far slower than engines.
     """
-    if tick % 2 != 0:
-        return
-    step = WAYPOINT_STEP_AIR if is_air_unit(unit.unit_type) else WAYPOINT_STEP_GROUND
+    if is_air_unit(unit.unit_type):
+        if tick % 2 != 0:
+            return
+        step = WAYPOINT_STEP_AIR
+    else:
+        interval = _GROUND_TICK_INTERVAL.get(unit.unit_type, 2)
+        if tick % interval != 0:
+            return
+        step = 1
     new_pos = advance_waypoint(unit.id, step)
     if new_pos is None:
         # No cached route — unit may be stale (no assigned incident) or waiting for builder
@@ -176,15 +192,21 @@ def advance_returning(db: Session, unit: Unit, tick: int = 0) -> None:
     """
     Move a returning unit one step toward its home station.
     Transitions to available when the route end is reached.
-    Only advances on even ticks to halve effective speed.
+    Tick interval is per unit type — mirrors advance_en_route speed logic.
     """
-    if tick % 2 != 0:
-        return
+    if is_air_unit(unit.unit_type):
+        if tick % 2 != 0:
+            return
+        step = WAYPOINT_STEP_AIR
+    else:
+        interval = _GROUND_TICK_INTERVAL.get(unit.unit_type, 2)
+        if tick % interval != 0:
+            return
+        step = 1
+
     station = resolve_home_station(db, unit)
     if not station:
         return
-
-    step = WAYPOINT_STEP_AIR if is_air_unit(unit.unit_type) else WAYPOINT_STEP_GROUND
     new_pos = advance_waypoint(unit.id, step)
     if new_pos is None:
         # No cached route yet. If the unit just became returning, give the route

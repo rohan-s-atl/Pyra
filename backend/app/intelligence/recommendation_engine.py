@@ -89,6 +89,9 @@ TACTICAL_NOTES = {
     ),
 }
 
+_SEVERITY_WEIGHT = {"low": 0.0, "moderate": 0.8, "high": 1.5, "critical": 2.2}
+_SPREAD_WEIGHT = {"low": 0.0, "moderate": 0.7, "high": 1.4, "extreme": 2.1}
+
 
 def select_loadout_profile(incident: dict) -> str:
     for rule in LOADOUT_RULES:
@@ -191,6 +194,55 @@ def _compute_overall_risk(incident: dict) -> str:
     return "low"
 
 
+def _adjust_unit_recommendations(loadout: str, incident: dict, unit_recs: list[dict]) -> list[dict]:
+    """
+    Scale baseline recommendation quantities based on current staffing and
+    incident pressure so recommendations respond to live conditions.
+    """
+    severity = (incident.get("severity") or "moderate").lower()
+    spread = (incident.get("spread_risk") or "moderate").lower()
+    containment = float(incident.get("containment_percent") or 0.0)
+    structures = int(incident.get("structures_threatened") or 0)
+    on_scene = int(incident.get("units_on_scene") or 0)
+    en_route = int(incident.get("units_en_route") or 0)
+
+    staffing = on_scene + (en_route * 0.5)
+    pressure = (
+        _SEVERITY_WEIGHT.get(severity, 0.8) +
+        _SPREAD_WEIGHT.get(spread, 0.7) +
+        (1.4 if containment < 20 else 0.7 if containment < 50 else -0.4) +
+        min(structures / 40.0, 1.2)
+    )
+    deficit = pressure - staffing
+
+    adjusted: list[dict] = []
+    for rec in unit_recs:
+        unit_type = rec.get("unit_type")
+        quantity = int(rec.get("quantity", 1))
+        delta = 0
+
+        if deficit >= 2.5 and unit_type in {"engine", "hand_crew", "water_tender"}:
+            delta += 1
+        if deficit >= 4.0 and unit_type in {"engine", "hand_crew"}:
+            delta += 1
+        if structures > 0 and unit_type == "engine" and containment < 35:
+            delta += 1
+        if spread == "extreme" and unit_type in {"dozer", "helicopter", "air_tanker"}:
+            delta += 1
+
+        if containment >= 70 and staffing >= max(3.0, pressure + 1.0):
+            delta -= 1
+        if loadout == "containment_support" and containment >= 85 and staffing >= 4.0:
+            delta -= 1
+
+        adjusted.append({
+            **rec,
+            "quantity": max(1, quantity + delta),
+        })
+
+    return adjusted
+
+
 def generate_recommendation(incident: dict, routes: list) -> dict:
     """
     Generate a structured recommendation for an incident.
@@ -200,7 +252,11 @@ def generate_recommendation(incident: dict, routes: list) -> dict:
     confidence_label, confidence_score = assess_confidence(incident)
     summary                    = build_summary(incident, loadout)
 
-    unit_recs = UNIT_RULES.get(loadout, UNIT_RULES["initial_attack"])
+    unit_recs = _adjust_unit_recommendations(
+        loadout,
+        incident,
+        UNIT_RULES.get(loadout, UNIT_RULES["initial_attack"]),
+    )
 
     # Rank routes by safety then travel time
     ranked_routes = sorted(

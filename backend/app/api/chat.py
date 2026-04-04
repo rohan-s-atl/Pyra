@@ -19,6 +19,7 @@ FIXES APPLIED
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from pydantic import BaseModel, field_validator
 from typing import List
 import anthropic
@@ -34,6 +35,9 @@ from app.models.unit import Unit
 from app.models.alert import Alert
 from app.models.user import User
 from app.core.limiter import limiter
+from app.intelligence.recommendation_engine import select_loadout_profile, TACTICAL_NOTES, UNIT_RULES
+from app.ext.fire_behavior import predict_fire_behavior
+from app.ext.composite_risk import compute_risk_score
 
 router = APIRouter(prefix="/api/chat", tags=["Chat"])
 logger = logging.getLogger(__name__)
@@ -83,7 +87,18 @@ class ChatRequest(BaseModel):
 # Prompt builder
 # ---------------------------------------------------------------------------
 
-def _build_system(incident: Incident, units_on: list, units_en: list, active_alerts: list) -> str:
+def _build_system(
+    incident: Incident,
+    units_on: list,
+    units_en: list,
+    active_alerts: list,
+    available_by_type: dict[str, int],
+    rec_profile: str,
+    tactical_notes: str,
+    rec_unit_rules: list[dict],
+    fire_behavior: dict,
+    risk: dict,
+) -> str:
     unit_lines = "\n".join(
         f"  - {u.designation} ({u.unit_type.replace('_', ' ')}) — {u.status}"
         for u in units_on + units_en
@@ -96,6 +111,40 @@ def _build_system(incident: Incident, units_on: list, units_en: list, active_ale
 
     acres = f"{incident.acres_burned:,.0f}" if incident.acres_burned else "Unknown"
 
+    # Fleet section — only types with at least 1 available unit
+    if available_by_type:
+        fleet_lines = "\n".join(
+            f"  - {utype.replace('_', ' ')}: {count} available"
+            for utype, count in sorted(available_by_type.items())
+        )
+    else:
+        fleet_lines = "  - None available (all units assigned or offline)"
+
+    # What the recommendation engine says this incident needs
+    rec_lines = "\n".join(
+        f"  - {r['unit_type'].replace('_', ' ')}: {r['quantity']} ({r['priority'].replace('_', ' ')}) — {r['rationale']}"
+        for r in rec_unit_rules
+    )
+
+    # Terrain block — omit fields that were never fetched
+    terrain_parts = []
+    if incident.elevation_m is not None:
+        terrain_parts.append(f"elevation {incident.elevation_m:.0f} m")
+    if incident.slope_percent is not None:
+        terrain_parts.append(f"slope {incident.slope_percent:.1f}%")
+    if incident.aspect_cardinal:
+        terrain_parts.append(f"aspect {incident.aspect_cardinal}")
+    terrain_line = ", ".join(terrain_parts) if terrain_parts else "Not available"
+
+    # AQI block
+    if incident.aqi is not None:
+        aqi_line = f"{incident.aqi} ({incident.aqi_category or 'unknown category'})"
+    else:
+        aqi_line = "Not available"
+
+    proj_acres = fire_behavior.get("projected_acres_12h")
+    proj_acres_str = f"{proj_acres:,.0f} acres" if proj_acres else "unknown"
+
     return (
         f"You are Pyra, an AI wildfire command support system embedded in an incident command platform.\n\n"
         f"INCIDENT: {incident.name}\n"
@@ -106,14 +155,41 @@ def _build_system(incident: Incident, units_on: list, units_en: list, active_ale
         f"ACRES BURNED: {acres}\n"
         f"CONTAINMENT: {incident.containment_percent or 0:.0f}%\n"
         f"SPREAD RISK: {(incident.spread_risk or '').upper()}\n"
-        f"SPREAD DIRECTION: {incident.spread_direction or 'Unknown'}\n"
-        f"WIND: {incident.wind_speed_mph or 0:.1f} mph\n"
-        f"HUMIDITY: {incident.humidity_percent or 0:.1f}%\n"
+        f"SPREAD DIRECTION: {incident.spread_direction or 'Unknown'}\n\n"
+        f"WEATHER:\n"
+        f"  Wind: {incident.wind_speed_mph or 0:.1f} mph\n"
+        f"  Humidity: {incident.humidity_percent or 0:.1f}%\n"
+        f"  AQI: {aqi_line}\n\n"
+        f"TERRAIN:\n"
+        f"  {terrain_line}\n\n"
         f"STRUCTURES THREATENED: {incident.structures_threatened or 0}\n\n"
-        f"RESOURCES (top 20):\n{unit_lines}\n\n"
+        f"FIRE BEHAVIOR (computed from current conditions):\n"
+        f"  Fire Behavior Index (FBI): {fire_behavior.get('fire_behavior_index', 'N/A')} — {fire_behavior.get('predicted_behavior', '').upper()}\n"
+        f"  {fire_behavior.get('behavior_description', '')}\n"
+        f"  Rate of Spread: {fire_behavior.get('rate_of_spread_mph', 'N/A')} mph\n"
+        f"  Spotting Potential: {fire_behavior.get('spotting_potential', 'N/A')} ({fire_behavior.get('spotting_distance_miles', 0)} mi max)\n"
+        f"  Containment Probability: {fire_behavior.get('containment_probability_pct', 'N/A')}%\n"
+        f"  Projected Growth (12h): {fire_behavior.get('projected_growth_percent_12h', 'N/A')}% → {proj_acres_str}\n"
+        f"  Suppression Effectiveness: {fire_behavior.get('suppression_effectiveness', 'N/A')}\n\n"
+        f"COMPOSITE RISK SCORE: {risk.get('risk_score', 'N/A')} / 1.0 — {risk.get('risk_level', '').upper()}\n"
+        f"  Drivers: FBI={risk.get('raw_scores', {}).get('fire_behavior_index', 'N/A')}, "
+        f"spread={risk.get('raw_scores', {}).get('spread_score', 'N/A')}, "
+        f"terrain={risk.get('raw_scores', {}).get('terrain_score', 'N/A')}, "
+        f"structures={risk.get('raw_scores', {}).get('structure_score', 'N/A')}, "
+        f"resources={risk.get('raw_scores', {}).get('resource_score', 'N/A')}\n\n"
+        f"ASSIGNED RESOURCES (top 20):\n{unit_lines}\n\n"
+        f"FLEET — AVAILABLE TO DISPATCH (do not suggest unit types not listed here):\n{fleet_lines}\n\n"
+        f"SYSTEM RECOMMENDATION — Profile: {rec_profile.replace('_', ' ').title()}\n"
+        f"Recommended units for this incident:\n{rec_lines}\n"
+        f"Tactical posture: {tactical_notes}\n\n"
         f"ACTIVE ALERTS (recent 10):\n{alert_lines}\n\n"
-        f"Respond concisely using ICS terminology. Do not speculate beyond available data. "
-        f"Keep responses under 200 words unless explicitly asked for more detail."
+        f"CRITICAL RULES:\n"
+        f"- When advising on tactics or dispatch, ONLY reference unit types present in the FLEET section above.\n"
+        f"- If a recommended unit type has zero availability, explicitly state it is unavailable and suggest the best alternative from the fleet.\n"
+        f"- Do not invent unit designations — use only those listed in ASSIGNED RESOURCES.\n"
+        f"- Ground tactical advice in the FIRE BEHAVIOR and COMPOSITE RISK data above, not generic doctrine.\n"
+        f"- Respond concisely using ICS terminology. Do not speculate beyond available data.\n"
+        f"- Keep responses under 200 words unless explicitly asked for more detail."
     )
 
 
@@ -156,8 +232,58 @@ async def chat(
         .all()
     )
 
+    # Count available units by type so the AI knows what can actually be dispatched
+    available_rows = (
+        db.query(Unit.unit_type, func.count(Unit.id).label("cnt"))
+        .filter(Unit.status == "available", Unit.assigned_incident_id.is_(None))
+        .group_by(Unit.unit_type)
+        .all()
+    )
+    available_by_type: dict[str, int] = {row.unit_type: row.cnt for row in available_rows}
+
+    # Get the recommendation engine's tactical profile for this incident
+    incident_dict = {
+        "id":                   incident.id,
+        "severity":             incident.severity,
+        "fire_type":            incident.fire_type,
+        "spread_risk":          incident.spread_risk,
+        "containment_percent":  incident.containment_percent or 0,
+        "structures_threatened":incident.structures_threatened or 0,
+        "units_on_scene":       len(units_on),
+        "units_en_route":       len(units_en),
+    }
+    rec_profile    = select_loadout_profile(incident_dict)
+    tactical_notes = TACTICAL_NOTES.get(rec_profile, "")
+    rec_unit_rules = UNIT_RULES.get(rec_profile, UNIT_RULES["initial_attack"])
+
+    # Compute live fire behavior and composite risk from all ingested data
+    fire_behavior = predict_fire_behavior(
+        fire_type          = incident.fire_type,
+        spread_risk        = incident.spread_risk,
+        wind_speed_mph     = incident.wind_speed_mph,
+        humidity_percent   = incident.humidity_percent,
+        containment_percent= incident.containment_percent,
+        acres_burned       = incident.acres_burned,
+        units_on_scene     = len(units_on),
+        slope_percent      = incident.slope_percent,
+        aqi                = incident.aqi,
+    )
+    risk = compute_risk_score(
+        fire_behavior_index  = fire_behavior["fire_behavior_index"],
+        spread_risk          = incident.spread_risk,
+        severity             = incident.severity,
+        structures_threatened= incident.structures_threatened,
+        containment_percent  = incident.containment_percent,
+        acres_burned         = incident.acres_burned,
+        slope_percent        = incident.slope_percent,
+        aspect_cardinal      = incident.aspect_cardinal,
+        spread_direction     = incident.spread_direction,
+        units_on_scene       = len(units_on),
+        units_en_route       = len(units_en),
+    )
+
     # Build the full system prompt from ORM objects while the session is still open
-    system   = _build_system(incident, units_on, units_en, alerts)
+    system   = _build_system(incident, units_on, units_en, alerts, available_by_type, rec_profile, tactical_notes, rec_unit_rules, fire_behavior, risk)
     messages = [{"role": m.role, "content": m.content} for m in body.messages]
     # Everything needed is now in plain strings — close the session so the
     # connection is returned to the pool before the AI stream begins (up to 30s).

@@ -212,3 +212,29 @@ class TestGenerateRecommendation:
         inc = make_incident()
         result = generate_recommendation(inc, [])
         assert len(result["tactical_notes"]) > 0
+
+    def test_recommendations_expand_when_incident_is_understaffed(self):
+        inc = make_incident(
+            severity="critical",
+            spread_risk="extreme",
+            fire_type="wildland_urban_interface",
+            containment_percent=10.0,
+            structures_threatened=60,
+            units_on_scene=0,
+            units_en_route=0,
+        )
+        result = generate_recommendation(inc, [])
+        engine_rec = next(r for r in result["unit_recommendations"] if r["unit_type"] == "engine")
+        assert engine_rec["quantity"] > 4
+
+    def test_recommendations_relax_when_well_staffed_and_near_contained(self):
+        inc = make_incident(
+            fire_type="structure",
+            containment_percent=88.0,
+            structures_threatened=4,
+            units_on_scene=5,
+            units_en_route=2,
+        )
+        result = generate_recommendation(inc, [])
+        engine_rec = next(r for r in result["unit_recommendations"] if r["unit_type"] == "engine")
+        assert engine_rec["quantity"] < 2
