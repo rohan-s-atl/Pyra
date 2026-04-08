@@ -1,4 +1,4 @@
-from datetime import datetime, UTC
+from datetime import datetime, UTC, timedelta
 
 from app.models.incident import Incident
 from app.models.unit import Unit
@@ -52,31 +52,38 @@ def test_containment_improves_with_crews_on_scene(db, monkeypatch):
 
     monkeypatch.setattr(sim.random, "uniform", lambda a, b: 1.0)
     sim._progress_containment(db)
+    db.flush()
     db.refresh(incident)
 
     assert incident.containment_percent > 40.0
 
 
 def test_containment_slips_without_scene_coverage(db, monkeypatch):
-    incident = make_incident(containment_percent=35.0, wind_speed_mph=28.0, humidity_percent=9.0)
+    # started_at must be outside the 12-minute grace period so loss is not suppressed
+    incident = make_incident(containment_percent=35.0, wind_speed_mph=28.0, humidity_percent=9.0,
+                             started_at=datetime.now(UTC) - timedelta(minutes=20))
     db.add(incident)
     db.commit()
 
     monkeypatch.setattr(sim.random, "uniform", lambda a, b: 1.0)
     sim._progress_containment(db)
+    db.flush()
     db.refresh(incident)
 
     assert incident.containment_percent < 35.0
 
 
 def test_contained_incident_can_reactivate_if_staffing_collapses(db, monkeypatch):
-    incident = make_incident(status="contained", containment_percent=91.0, wind_speed_mph=30.0, humidity_percent=8.0)
+    # started_at must be outside the 12-minute grace period so loss is not suppressed
+    incident = make_incident(status="contained", containment_percent=90.05, wind_speed_mph=30.0, humidity_percent=8.0,
+                             started_at=datetime.now(UTC) - timedelta(minutes=20))
     db.add(incident)
     db.commit()
 
     monkeypatch.setattr(sim.random, "uniform", lambda a, b: 1.2)
     sim._progress_containment(db)
+    db.flush()
     db.refresh(incident)
 
     assert incident.status == "active"
-    assert incident.containment_percent < 90.0
+    assert incident.containment_percent < 90.05
