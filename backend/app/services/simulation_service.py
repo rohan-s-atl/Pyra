@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
+import time as _time
 import uuid
 from datetime import datetime, UTC, timezone, timedelta
 
@@ -47,6 +48,38 @@ _sim_tick:              int  = 0
 _running:               bool = False
 _route_builder_running: bool = False
 _contained_notified:    set[str] = set()
+
+# Demo fire templates — used to respawn the 3 hardcoded demo fires 15 minutes
+# after they are fully contained.  Keys match incident names exactly.
+_DEMO_FIRE_TEMPLATES: dict[str, dict] = {
+    "LNU Lightning Complex": dict(
+        fire_type="wildland", severity="high", spread_risk="high",
+        latitude=38.9200, longitude=-122.6500,
+        acres_burned=5800, wind_speed_mph=24, humidity_percent=16,
+        containment_percent=7, structures_threatened=180,
+        spread_direction="NE",
+        notes="Multiple ignitions from dry lightning. Merging heads on east flank.",
+    ),
+    "Shasta River Fire": dict(
+        fire_type="wildland", severity="moderate", spread_risk="moderate",
+        latitude=40.5200, longitude=-122.4100,
+        acres_burned=1400, wind_speed_mph=11, humidity_percent=28,
+        containment_percent=40, structures_threatened=32,
+        spread_direction="SW",
+        notes="Good line on north and west flanks. Head running into rocky terrain.",
+    ),
+    "San Jose Structure Fire": dict(
+        fire_type="structure", severity="critical", spread_risk="high",
+        latitude=37.3382, longitude=-121.8863,
+        acres_burned=0, wind_speed_mph=5, humidity_percent=52,
+        containment_percent=0, structures_threatened=6,
+        spread_direction="N",
+        notes="3-alarm. Commercial structure. Exposure risk to adjacent buildings.",
+    ),
+}
+_DEMO_RESPAWN_DELAY = 15 * 60  # 15 real-world minutes in seconds
+# Maps demo fire name → monotonic timestamp after which it should respawn
+_demo_respawn_queue: dict[str, float] = {}
 
 _SEVERITY_PRESSURE: dict[str, float] = {
     "low": 0.6,
@@ -87,6 +120,7 @@ def _tick() -> None:
     _run_phase("advance_positions",    _advance_positions)
     _run_phase("rotate_on_scene",      _rotate_on_scene_units)
     _run_phase("progress_containment", _progress_containment)
+    _run_phase("demo_respawns",        _check_demo_respawns)
     _run_phase("grow_acreage",         _grow_acreage)
     _run_phase("vary_weather",         _vary_weather)
 
@@ -312,7 +346,6 @@ def _progress_containment(db: Session) -> None:
         incident.updated_at          = datetime.now(UTC)
 
         if new_pct >= 100.0 and incident.id not in _contained_notified:
-            incident.status              = "contained"
             incident.containment_percent = 100.0
             _contained_notified.add(incident.id)
 
@@ -330,10 +363,18 @@ def _progress_containment(db: Session) -> None:
                 title       = f"Fire Fully Contained — {incident.name}",
                 description = (
                     f"{incident.name} has reached 100% containment. "
-                    f"All units are being recalled. Incident status set to CONTAINED."
+                    f"All units are being recalled. Incident closed out."
                 ),
             )
-            logger.info("[simulation] '%s' reached 100%% — status → contained", incident.name)
+
+            # Remove the fire from the active system
+            incident.status = "out"
+            logger.info("[simulation] '%s' reached 100%% — status → out", incident.name)
+
+            # Queue demo fires to respawn after 15 real minutes
+            if incident.name in _DEMO_FIRE_TEMPLATES:
+                _demo_respawn_queue[incident.name] = _time.monotonic() + _DEMO_RESPAWN_DELAY
+                logger.info("[simulation] '%s' queued for respawn in 15 min", incident.name)
 
         elif new_pct >= 90.0:
             incident.status = "contained"
@@ -354,6 +395,35 @@ def _progress_containment(db: Session) -> None:
         if closed_ids:
             logger.debug("[simulation] Pruned %d closed incident IDs from _contained_notified",
                          len(closed_ids))
+
+
+def _check_demo_respawns(db: Session) -> None:
+    """Recreate demo fires 15 real minutes after they were fully contained."""
+    now = _time.monotonic()
+    ready = [name for name, ts in list(_demo_respawn_queue.items()) if now >= ts]
+    for name in ready:
+        # Only spawn if the fire isn't already active/contained in DB
+        existing = db.query(Incident).filter(
+            Incident.name == name,
+            Incident.status.in_(["active", "contained"]),
+        ).first()
+        if existing:
+            del _demo_respawn_queue[name]
+            continue
+
+        tpl = _DEMO_FIRE_TEMPLATES[name]
+        now_dt = datetime.now(UTC)
+        new_inc = Incident(
+            id=str(uuid.uuid4()),
+            name=name,
+            status="active",
+            started_at=now_dt,
+            updated_at=now_dt,
+            **tpl,
+        )
+        db.add(new_inc)
+        del _demo_respawn_queue[name]
+        logger.info("[simulation] Demo fire '%s' respawned", name)
 
 
 _GROWTH_BASE: dict[str, float] = {

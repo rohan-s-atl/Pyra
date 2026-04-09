@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, memo } from 'react'
 import { createPortal } from 'react-dom'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
@@ -176,6 +176,8 @@ function UnitLoadoutTooltip({ unit, loadout, rect, isDefault }) {
 
 function RightPanelUnitCard({ unit, confirmedLoadouts, onUnitClick, focused, incidentName }) {
   const [tooltipRect, setTooltipRect] = useState(null)
+  const [hovered, setHovered] = useState(false)
+  const cardRef = useRef(null)
   const isDefault = !confirmedLoadouts?.[String(unit.id)]
   const loadout = confirmedLoadouts?.[String(unit.id)] ?? DEFAULT_LOADOUTS[unit.unit_type] ?? null
   const cap = UNIT_CAPACITY[unit.unit_type] ?? {}
@@ -184,27 +186,24 @@ function RightPanelUnitCard({ unit, confirmedLoadouts, onUnitClick, focused, inc
     <>
       {tooltipRect && <UnitLoadoutTooltip unit={unit} loadout={loadout} rect={tooltipRect} isDefault={isDefault} />}
       <div
+        ref={cardRef}
         className="ui-hover-lift"
         onClick={() => onUnitClick?.(unit)}
         style={{
           display: 'flex', alignItems: 'center', gap: '8px',
           padding: '8px 9px', marginBottom: '5px',
-          background: focused ? 'rgba(56,189,248,0.12)' : 'rgba(255,255,255,0.05)',
+          background: hovered
+            ? (focused ? 'rgba(56,189,248,0.15)' : 'rgba(255,255,255,0.07)')
+            : (focused ? 'rgba(56,189,248,0.12)' : 'rgba(255,255,255,0.05)'),
           borderRadius: '14px',
-          border: `1px solid ${focused ? 'rgba(56,189,248,0.28)' : !isDefault ? 'rgba(255,77,26,0.22)' : 'rgba(255,255,255,0.08)'}`,
+          border: `1px solid ${hovered
+            ? (focused ? 'rgba(56,189,248,0.38)' : !isDefault ? 'rgba(255,77,26,0.45)' : 'rgba(255,255,255,0.16)')
+            : (focused ? 'rgba(56,189,248,0.28)' : !isDefault ? 'rgba(255,77,26,0.22)' : 'rgba(255,255,255,0.08)')}`,
           cursor: 'pointer', transition: 'all 0.12s',
           boxShadow: focused ? '0 12px 24px rgba(56,189,248,0.16)' : 'none',
         }}
-        onMouseEnter={e => {
-          e.currentTarget.style.borderColor = focused ? 'rgba(56,189,248,0.38)' : !isDefault ? 'rgba(255,77,26,0.45)' : 'rgba(255,255,255,0.16)'
-          e.currentTarget.style.background = focused ? 'rgba(56,189,248,0.15)' : 'rgba(255,255,255,0.07)'
-          setTooltipRect(e.currentTarget.getBoundingClientRect())
-        }}
-        onMouseLeave={e => {
-          e.currentTarget.style.borderColor = focused ? 'rgba(56,189,248,0.28)' : !isDefault ? 'rgba(255,77,26,0.22)' : 'rgba(255,255,255,0.08)'
-          e.currentTarget.style.background = focused ? 'rgba(56,189,248,0.12)' : 'rgba(255,255,255,0.05)'
-          setTooltipRect(null)
-        }}
+        onMouseEnter={() => { setHovered(true); setTooltipRect(cardRef.current?.getBoundingClientRect()) }}
+        onMouseLeave={() => { setHovered(false); setTooltipRect(null) }}
       >
         <span style={{ fontSize: '13px', flexShrink: 0 }}>{UNIT_TYPE_ICON[unit.unit_type] ?? '◉'}</span>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -418,7 +417,7 @@ function AlertRecommendationPanel({ alert, recData, recLoading, units, incidents
   )
 }
 
-export default function RightPanel({ alerts, units, incidents = [], selectedIncidentId, onUnitClick, onAlertsChanged, confirmedLoadouts = {}, focusedUnitId = null, panelWidth = 360 }) {
+function RightPanel({ alerts, units, incidents = [], selectedIncidentId, onUnitClick, onAlertsChanged, confirmedLoadouts = {}, focusedUnitId = null, panelWidth = 360 }) {
   const [activeAlertId, setActiveAlertId] = useState(null)
   const [triageCache, setTriageCache] = useState({})
   const [unitFilter, setUnitFilter] = useState('all')
@@ -546,7 +545,7 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
 
   if (collapsed) {
     return (
-      <div className="ui-shell-panel ui-float-soft-delayed ui-panel-enter" style={{
+      <div className="ui-shell-panel ui-panel-enter" style={{
         width: '58px',
         background: 'linear-gradient(180deg, rgba(28,35,47,0.9) 0%, rgba(18,24,34,0.95) 100%)',
         border: '1px solid rgba(255,255,255,0.1)',
@@ -585,7 +584,7 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
   }
 
   return (
-    <div ref={panelRef} className="ui-shell-panel ui-float-soft-delayed ui-panel-enter" style={{
+    <div ref={panelRef} className="ui-shell-panel ui-panel-enter" style={{
       width: `${panelWidth}px`,
       minWidth: `${panelWidth}px`,
       maxWidth: `${panelWidth}px`,
@@ -882,3 +881,5 @@ export default function RightPanel({ alerts, units, incidents = [], selectedInci
     </div>
   )
 }
+
+export default memo(RightPanel)

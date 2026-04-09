@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, memo } from 'react'
 import { createPortal } from 'react-dom'
 
 const STATUS_COLOR = {
@@ -145,6 +145,7 @@ function LoadoutTooltip({ unit, loadout, rect, isDefault }) {
 
 function UnitRow({ unit, confirmedLoadouts, onUnitClick }) {
   const [tooltipRect, setTooltipRect] = useState(null)
+  const [hovered, setHovered] = useState(false)
   const rowRef = useRef(null)
   const statusColor = STATUS_COLOR[unit.status] ?? '#8b9bb0'
   const loadout = confirmedLoadouts?.[String(unit.id)] ?? DEFAULT_LOADOUTS[unit.unit_type]
@@ -156,24 +157,16 @@ function UnitRow({ unit, confirmedLoadouts, onUnitClick }) {
         className="ui-hover-lift"
         ref={rowRef}
         onClick={() => onUnitClick?.(unit)}
-        onMouseEnter={() => setTooltipRect(rowRef.current?.getBoundingClientRect())}
-        onMouseLeave={() => setTooltipRect(null)}
+        onMouseEnter={() => { setHovered(true); setTooltipRect(rowRef.current?.getBoundingClientRect()) }}
+        onMouseLeave={() => { setHovered(false); setTooltipRect(null) }}
         style={{
           display: 'flex', alignItems: 'center', gap: '9px',
           padding: '9px 11px', cursor: 'pointer',
-          border: '1px solid rgba(255,255,255,0.08)',
-          background: 'rgba(255,255,255,0.02)',
+          border: `1px solid ${hovered ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.08)'}`,
+          background: hovered ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)',
           borderRadius: '12px',
           transition: 'all 0.15s',
           marginBottom: '7px',
-        }}
-        onMouseEnterCapture={e => {
-          e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
-          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'
-        }}
-        onMouseLeaveCapture={e => {
-          e.currentTarget.style.background = 'rgba(255,255,255,0.02)'
-          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
         }}
       >
         <div style={{
@@ -213,7 +206,7 @@ function UnitRow({ unit, confirmedLoadouts, onUnitClick }) {
   )
 }
 
-export default function LeftSidebar({ units, activeView, onViewChange, selectedIncidentId, onUnitClick, confirmedLoadouts }) {
+function LeftSidebar({ units, activeView, onViewChange, selectedIncidentId, onUnitClick, confirmedLoadouts }) {
   const [filter, setFilter] = useState('all')
 
   const incidentUnits = !selectedIncidentId
@@ -240,7 +233,7 @@ export default function LeftSidebar({ units, activeView, onViewChange, selectedI
   }
 
   return (
-    <div className="ui-shell-panel ui-float-soft" style={{
+    <div className="ui-shell-panel" style={{
       width: '272px',
       display: 'grid',
       gridTemplateRows: 'auto auto auto minmax(0, 1fr)',
@@ -340,3 +333,5 @@ export default function LeftSidebar({ units, activeView, onViewChange, selectedI
     </div>
   )
 }
+
+export default memo(LeftSidebar)

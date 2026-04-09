@@ -34,6 +34,9 @@ def list_incidents(
     query = db.query(IncidentModel)
     if status:
         query = query.filter(IncidentModel.status == status)
+    else:
+        # By default exclude fully-closed fires (status='out') from the live view
+        query = query.filter(IncidentModel.status != "out")
     return query.all()
 
 

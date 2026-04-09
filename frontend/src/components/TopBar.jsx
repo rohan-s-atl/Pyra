@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, memo } from 'react'
 import { createPortal } from 'react-dom'
 import { formatClockTime, formatTimezone } from '../utils/timeUtils'
 import { BASE_URL } from '../api/client'
@@ -10,7 +10,7 @@ const THREAT_COLOR = {
   extreme:  '#ef4444',
 }
 
-export default function TopBar({
+function TopBar({
   incidents, units,
   showEvacZones, onToggleEvacZones,
   showFireGrowth, onToggleFireGrowth,
@@ -67,8 +67,10 @@ export default function TopBar({
   const assignedUnits = units.filter(u => u.assigned_incident_id)
   const criticalCount = incidents.filter(i => i.severity === 'critical').length
 
-  const avgContainment = activeInc.length
-    ? Math.round(activeInc.reduce((s, i) => s + (i.containment_percent ?? 0), 0) / activeInc.length)
+  // Only average containment over fires still burning (status=active); contained fires skew to 100%
+  const burningInc = incidents.filter(i => i.status === 'active')
+  const avgContainment = burningInc.length
+    ? Math.round(burningInc.reduce((s, i) => s + (i.containment_percent ?? 0), 0) / burningInc.length)
     : 0
   const minHumidity = activeInc.length ? Math.min(...activeInc.map(i => i.humidity_percent ?? 100)) : 0
   const maxAqi = activeInc.length ? Math.max(...activeInc.map(i => i.aqi ?? 0)) : 0
@@ -428,3 +430,5 @@ export default function TopBar({
     </div>
   )
 }
+
+export default memo(TopBar)

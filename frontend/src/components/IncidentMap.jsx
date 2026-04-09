@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo, memo } from 'react'
 import { MapContainer, TileLayer, CircleMarker, Tooltip, Polyline, Marker, useMapEvents, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -155,7 +155,7 @@ function createCallsignIcon(designation, color) {
   })
 }
 
-export default function IncidentMap({
+function IncidentMap({
   incidents, selectedId, onSelect, mapView = 'live',
   focusedUnit, focusedIncident, unitRoutes = [], selectedIncident,
   showPerimeters = false, showHeatmap = false, showCommand = false, showSatellite = false,
@@ -180,6 +180,7 @@ export default function IncidentMap({
   const mapRef = useRef(null)
 
   const clickedRouteCache = useRef({})
+  const fireIconCache     = useRef({})   // keyed by "incId:severity:selected" — avoids Leaflet DOM rebuilds on animation frames
   const mountedRef        = useRef(true)
   const posHistory        = useRef({})
   const [trailSnapshot, setTrailSnapshot] = useState({})
@@ -191,7 +192,8 @@ export default function IncidentMap({
   const [displayUnits, setDisplayUnits] = useState([])
   const animFrameRef     = useRef(null)
   const animateRef       = useRef(null)
-  const LERP_SPEED       = 0.12         // fraction to close per frame (~60fps → ~0.6s to arrive)
+  const lastFrameTimeRef = useRef(0)
+  const LERP_SPEED       = 0.28         // fraction to close per frame (~20fps throttle → ~0.5s to arrive)
 
   // Mark unmounted so in-flight rAF callbacks don't call setState
   useEffect(() => () => { mountedRef.current = false }, [])
@@ -220,9 +222,16 @@ export default function IncidentMap({
     animFrameRef.current = requestAnimationFrame(animateRef.current)
   }
 
-  // Animation loop — only runs while at least one unit is still interpolating
+  // Animation loop — throttled to ~20fps, only runs while at least one unit is still interpolating
   useEffect(() => {
-    animateRef.current = function animate() {
+    animateRef.current = function animate(timestamp) {
+      // Throttle to ~20fps to avoid flooding React with re-renders for 15-20 units
+      if (timestamp - lastFrameTimeRef.current < 50) {
+        animFrameRef.current = requestAnimationFrame(animateRef.current)
+        return
+      }
+      lastFrameTimeRef.current = timestamp
+
       let dirty = false
       for (const [id, target] of Object.entries(targetPositions.current)) {
         const current = smoothPositions.current[id]
@@ -242,11 +251,18 @@ export default function IncidentMap({
         }
       }
       if (dirty && mountedRef.current) {
-        setDisplayUnits(prev => prev.map(u => {
-          const pos = smoothPositions.current[u.id]
-          if (!pos) return u
-          return { ...u, latitude: pos.lat, longitude: pos.lon }
-        }))
+        setDisplayUnits(prev => {
+          let anyChanged = false
+          const next = prev.map(u => {
+            const pos = smoothPositions.current[u.id]
+            if (!pos) return u
+            // Only create a new object if the position meaningfully changed
+            if (Math.abs(pos.lat - u.latitude) < 0.0000001 && Math.abs(pos.lon - u.longitude) < 0.0000001) return u
+            anyChanged = true
+            return { ...u, latitude: pos.lat, longitude: pos.lon }
+          })
+          return anyChanged ? next : prev
+        })
         animFrameRef.current = requestAnimationFrame(animateRef.current)
       } else {
         animFrameRef.current = null
@@ -309,10 +325,7 @@ export default function IncidentMap({
     }
   }, [unitsProp])
 
-  // Fetch road route when user clicks an en-route unit
-  useEffect(() => {
-    setTrailSnapshot({ ...posHistory.current })
-  }, [units])
+  // Trail snapshot is updated by recordPositions whenever a unit actually moves
 
   const selectedUnitData = selectedUnit ? units.find(u => u.id === selectedUnit) ?? null : null
   const selectedUnitRouteKey = selectedUnitData
@@ -633,7 +646,9 @@ export default function IncidentMap({
           const glowAnim = isCritical ? 'fire-glow-breathe 1.6s ease-in-out infinite' : 'fire-glow-breathe 2.4s ease-in-out infinite'
           const coreAnim = isCritical ? 'fire-core-pulse 1.3s ease-in-out infinite' : 'fire-core-pulse 2.2s ease-in-out infinite'
 
-          const icon = L.divIcon({
+          // Icon is memoized at render time — the key changes only when severity or selection changes,
+          // not on every animation frame, so Leaflet doesn't rebuild the DOM marker at 20fps.
+          const icon = fireIconCache.current[`${inc.id}:${inc.severity}:${selected}`] ??= L.divIcon({
             className: '',
             html: `
               <div style="position:relative;width:${sz}px;height:${sz}px;transform:translate(-50%,-50%)">
@@ -813,3 +828,5 @@ export default function IncidentMap({
     </div>
   )
 }
+
+export default memo(IncidentMap)

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { AuthContext } from './context/AuthContext'
 import TopBar from './components/TopBar'
 import IncidentMap from './components/IncidentMap'
@@ -92,12 +92,12 @@ export default function App() {
   }, [])
 
   // ── Auth ─────────────────────────────────────────────────────────────────
-  function handleLogin(data) {
+  const handleLogin = useCallback((data) => {
     setAuth(data)
     setAuthToken(data.access_token)
-  }
+  }, [])
 
-  function handleLogout() {
+  const handleLogout = useCallback(() => {
     setAuth(null)
     setAuthToken(null)
     setIncidents([])
@@ -105,7 +105,7 @@ export default function App() {
     setUnits([])
     setSelectedId(null)
     setError(null)
-  }
+  }, [])
 
   // ── Stable refresh callbacks (no stale closure in polling interval) ──────
   const refreshAlerts    = useCallback(() => api.alerts().then(newAlerts => {
@@ -179,6 +179,10 @@ export default function App() {
         setAlerts(alt)
         setUnits(unt)
         setSelectedId(prev => (prev == null && inc.length > 0 ? inc[0].id : prev))
+        // Pre-seed seen set so we never re-fire the modal for alerts that existed at login
+        for (const a of alt) {
+          if (a.alert_type === 'containment_complete') _seenContainmentAlerts.current.add(a.id)
+        }
       } catch {
         if (!cancelled) setError('Could not connect to the Pyra backend.')
       } finally {
@@ -235,29 +239,48 @@ export default function App() {
   }, [])
 
   // ── Handlers ─────────────────────────────────────────────────────────────
-  function handleSelectIncident(id) {
+  // Uses incidentsRef (not incidents state) so this stays stable across polls
+  const handleSelectIncident = useCallback((id) => {
     setSelectedId(id)
     setDetailOpen(true)
     setUnitRoutes([])
-    const inc = incidents.find(i => i.id === id)
+    const inc = incidentsRef.current.find(i => i.id === id)
     if (inc) setFocusedIncident({ ...inc, _ts: Date.now() })
-  }
+  }, [])
 
   // Loadout data confirmed in LoadoutConfigurator — persisted so panels can show what each unit carries
   const [confirmedLoadouts, setConfirmedLoadouts] = useState({}) // unit_id -> loadout
 
-  function handleConfirmLoadouts(loadouts) {
+  const handleConfirmLoadouts = useCallback((loadouts) => {
     setConfirmedLoadouts(prev => {
       const next = { ...prev }
       for (const l of loadouts) next[String(l.unit_id)] = l
       return next
     })
-  }
+  }, [])
 
-  function handleDispatchSuccess() { refreshUnits() }
-  function handleUnitClick(unit)   { setFocusedUnit({ ...unit, _ts: Date.now() }) }
+  const handleDispatchSuccess = useCallback(() => { refreshUnits() }, [refreshUnits])
+  const handleUnitClick = useCallback((unit) => { setFocusedUnit({ ...unit, _ts: Date.now() }) }, [])
 
-  const selectedIncident = incidents.find(i => i.id === selectedId) ?? null
+  // ── Stable no-op for optional callbacks ─────────────────────────────────
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const _noop = useCallback(() => {}, [])
+
+  // ── Stable toggle callbacks — [] deps because they only call stable setState setters ─
+  const onToggleEvacZones    = useCallback(() => setShowEvacZones(v => !v), [])
+  const onToggleFireGrowth   = useCallback(() => setShowFireGrowth(v => !v), [])
+  const onTogglePerimeters   = useCallback(() => setShowPerimeters(v => !v), [])
+  const onToggleHeatmap      = useCallback(() => setShowHeatmap(v => !v), [])
+  const onToggleCommand      = useCallback(() => setShowCommand(v => !v), [])
+  const onToggleSatellite    = useCallback(() => setShowSatellite(v => !v), [])
+  const onToggleWeather      = useCallback(() => setShowWeather(v => !v), [])
+  const onToggleWaterSources = useCallback(() => { setShowWaterSources(v => !v); setWaterSourceStatus(null) }, [])
+  const onToggleAudit        = useCallback(() => setShowAudit(v => !v), [])
+  const onToggleSettings     = useCallback(() => setShowSettings(v => !v), [])
+  const onDetailClose        = useCallback(() => { setDetailOpen(false); setUnitRoutes([]) }, [])
+  const onToggleEvacZone     = useCallback((ztype) => setActiveEvacZones(prev => ({ ...prev, [ztype]: !prev[ztype] })), [])
+
+  const selectedIncident = useMemo(() => incidents.find(i => i.id === selectedId) ?? null, [incidents, selectedId])
 
   // ── Responsive scaling using CSS transform (works in all browsers) ───────
   // Base design is 1440px wide. Scale between 0.7 and 1.0
@@ -321,8 +344,11 @@ export default function App() {
     </div>
   )
 
+  // Stable context value — only recreates when auth object itself changes (login/logout)
+  const authContextValue = useMemo(() => ({ ...auth, logout: handleLogout }), [auth, handleLogout])
+
   return (
-    <AuthContext.Provider value={{ ...auth, logout: handleLogout }}>
+    <AuthContext.Provider value={authContextValue}>
       <div 
         style={{ 
           position: 'relative',
@@ -402,25 +428,25 @@ export default function App() {
               incidents={incidents}
               units={units}
               showEvacZones={showEvacZones}
-              onToggleEvacZones={() => setShowEvacZones(v => !v)}
+              onToggleEvacZones={onToggleEvacZones}
               showFireGrowth={showFireGrowth}
-              onToggleFireGrowth={() => setShowFireGrowth(v => !v)}
+              onToggleFireGrowth={onToggleFireGrowth}
               showPerimeters={showPerimeters}
-              onTogglePerimeters={() => setShowPerimeters(v => !v)}
+              onTogglePerimeters={onTogglePerimeters}
               showHeatmap={showHeatmap}
-              onToggleHeatmap={() => setShowHeatmap(v => !v)}
+              onToggleHeatmap={onToggleHeatmap}
               showCommand={showCommand}
-              onToggleCommand={() => setShowCommand(v => !v)}
+              onToggleCommand={onToggleCommand}
               showSatellite={showSatellite}
-              onToggleSatellite={() => setShowSatellite(v => !v)}
+              onToggleSatellite={onToggleSatellite}
               showWeather={showWeather}
-              onToggleWeather={() => setShowWeather(v => !v)}
+              onToggleWeather={onToggleWeather}
               showWaterSources={showWaterSources}
-              onToggleWaterSources={() => { setShowWaterSources(v => !v); setWaterSourceStatus(null) }}
+              onToggleWaterSources={onToggleWaterSources}
               auth={auth}
               onLogout={handleLogout}
-              onToggleAudit={() => setShowAudit(v => !v)}
-              onToggleSettings={() => setShowSettings(v => !v)}
+              onToggleAudit={onToggleAudit}
+              onToggleSettings={onToggleSettings}
             />
           </div>
 
@@ -429,10 +455,10 @@ export default function App() {
               data={evacZonesData}
               visible={showEvacZones}
               loading={evacZonesLoading}
-              onClose={() => setShowEvacZones(false)}
-              onExport={(data, zones) => exportEvacZones(data, zones)}
+              onClose={onToggleEvacZones}
+              onExport={exportEvacZones}
               activeZones={activeEvacZones}
-              onToggleZone={ztype => setActiveEvacZones(prev => ({ ...prev, [ztype]: !prev[ztype] }))}
+              onToggleZone={onToggleEvacZone}
               rightOffset={mapRightInset}
               bottomOffset={shellInset + 18}
             />
@@ -442,7 +468,7 @@ export default function App() {
             <FireGrowthLegend
               data={fireGrowthData}
               visible={showFireGrowth}
-              onClose={() => setShowFireGrowth(false)}
+              onClose={onToggleFireGrowth}
               timeMode={fireGrowthTimeMode}
               onTimeModeChange={setFireGrowthTimeMode}
               topOffset={topRailOffset}
@@ -509,10 +535,10 @@ export default function App() {
               incident={selectedIncident}
               units={units}
               allIncidents={incidents}
-              onClose={() => { setDetailOpen(false); setUnitRoutes([]) }}
+              onClose={onDetailClose}
               onDispatchSuccess={handleDispatchSuccess}
               onUnitRoutesChange={setUnitRoutes}
-              onPreviewUnits={() => {}}
+              onPreviewUnits={_noop}
               onUnitClick={handleUnitClick}
               onConfirmLoadouts={handleConfirmLoadouts}
               panelWidth={overlayPanelWidth}
@@ -523,10 +549,10 @@ export default function App() {
           )}
         </div>
 
-        {showAudit && <AuditLogPanel onClose={() => setShowAudit(false)} />}
+        {showAudit && <AuditLogPanel onClose={onToggleAudit} />}
 
         {showWeather && (
-          <WeatherPanel incidents={incidents} onClose={() => setShowWeather(false)} />
+          <WeatherPanel incidents={incidents} onClose={onToggleWeather} />
         )}
 
         {showCommand && (
@@ -536,7 +562,7 @@ export default function App() {
             alerts={alerts}
             selectedId={selectedId}
             onSelect={handleSelectIncident}
-            onClose={() => setShowCommand(false)}
+            onClose={onToggleCommand}
             panelWidth={overlayPanelWidth}
             topOffset={topRailOffset}
             bottomOffset={shellInset}
@@ -545,7 +571,7 @@ export default function App() {
         )}
 
         <ToastContainer toasts={toasts} />
-        {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
+        {showSettings && <SettingsPanel onClose={onToggleSettings} />}
 
         {/* Containment modal */}
         {containmentModal && (

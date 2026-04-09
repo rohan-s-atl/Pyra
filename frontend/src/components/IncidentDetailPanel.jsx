@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef, memo } from 'react'
 import { createPortal } from 'react-dom'
 import { api, BASE_URL, authHeaders, streamBriefing, getDispatchAdvice, generateHandoffBriefing } from '../api/client'
 import { scoreBadges, computeUnitRoutes } from '../services/routeEngine'
@@ -179,7 +179,7 @@ function UnitRouteCard({ unitRoute }) {
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-export default function IncidentDetailPanel({
+function IncidentDetailPanel({
   incident, units, allIncidents = [],
   onClose, onDispatchSuccess, onUnitRoutesChange, onPreviewUnits, onConfirmLoadouts,
   rightOffset = 0,
@@ -476,7 +476,7 @@ export default function IncidentDetailPanel({
   }
 
   return (
-    <div className="ui-shell-panel ui-float-soft" style={{
+    <div className="ui-shell-panel" style={{
       position: 'fixed', top: `${topOffset}px`, right: `${rightOffset}px`, bottom: `${bottomOffset}px`, width: `${panelWidth}px`,
       transition: 'right 0.2s ease',
       animation: 'slideInRight 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
@@ -975,6 +975,7 @@ export default function IncidentDetailPanel({
 
           {/* Generate Briefing button */}
           <button
+            className={!briefingLoading && canBrief ? 'pyra-btn-hover-orange' : ''}
             onClick={handleGenerateBriefing}
             disabled={briefingLoading || !canBrief}
             style={{
@@ -988,8 +989,6 @@ export default function IncidentDetailPanel({
               letterSpacing: '0.03em', transition: 'all 0.15s',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
             }}
-            onMouseEnter={e => { if (!briefingLoading && canBrief) { e.currentTarget.style.borderColor = '#ff4d1a'; e.currentTarget.style.color = '#ff4d1a' }}}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = canBrief ? '#444' : '#262626'; e.currentTarget.style.color = canBrief ? '#c3d0df' : '#5f6c7d' }}
           >
             {briefingLoading ? (
               <>
@@ -1005,6 +1004,7 @@ export default function IncidentDetailPanel({
 
           {/* Export PDF Report button */}
           <button
+            className="pyra-btn-hover-green"
             onClick={handleDownloadReport}
             style={{
               width: '100%', padding: '10px', marginTop: '6px',
@@ -1014,8 +1014,6 @@ export default function IncidentDetailPanel({
               color: '#c3d0df', letterSpacing: '0.03em', transition: 'all 0.15s',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = '#4ade80'; e.currentTarget.style.color = '#4ade80' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = '#444'; e.currentTarget.style.color = '#c3d0df' }}
           >
             ↓ EXPORT PDF REPORT
           </button>
@@ -1023,6 +1021,7 @@ export default function IncidentDetailPanel({
           {/* Close-out button — only shown when incident is not already out */}
           {canClose && incident.status !== 'out' && (
             <button
+              className="pyra-btn-hover-red"
               onClick={handleOpenCloseout}
               style={{
                 width: '100%', padding: '10px', marginTop: '6px',
@@ -1032,8 +1031,6 @@ export default function IncidentDetailPanel({
                 color: '#ef4444aa', letterSpacing: '0.03em', transition: 'all 0.15s',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
               }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = '#ef4444'; e.currentTarget.style.color = '#ef4444' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = '#ef444466'; e.currentTarget.style.color = '#ef4444aa' }}
             >
               ⬡ CLOSE OUT INCIDENT
             </button>
@@ -1042,6 +1039,7 @@ export default function IncidentDetailPanel({
           {/* Bottom row — SITREP Chat + Post-Incident Review */}
           <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
             <button
+              className={!chatOpen ? 'pyra-btn-hover-orange' : ''}
               onClick={() => setChatOpen(v => !v)}
               style={{
                 flex: 1, padding: '9px',
@@ -1053,13 +1051,12 @@ export default function IncidentDetailPanel({
                 letterSpacing: '0.03em', transition: 'all 0.15s',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
               }}
-              onMouseEnter={e => { if (!chatOpen) { e.currentTarget.style.borderColor = '#ff4d1a'; e.currentTarget.style.color = '#ff4d1a' }}}
-              onMouseLeave={e => { if (!chatOpen) { e.currentTarget.style.borderColor = '#444'; e.currentTarget.style.color = '#c3d0df' }}}
             >
               💬 SITREP CHAT
             </button>
             {auth?.role === 'commander' && (
               <button
+                className={!reviewOpen ? 'pyra-btn-hover-blue' : ''}
                 onClick={() => setReviewOpen(v => !v)}
                 style={{
                   flex: 1, padding: '9px',
@@ -1071,8 +1068,6 @@ export default function IncidentDetailPanel({
                   letterSpacing: '0.03em', transition: 'all 0.15s',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                 }}
-                onMouseEnter={e => { if (!reviewOpen) { e.currentTarget.style.borderColor = '#60a5fa'; e.currentTarget.style.color = '#60a5fa' }}}
-                onMouseLeave={e => { if (!reviewOpen) { e.currentTarget.style.borderColor = '#444'; e.currentTarget.style.color = '#c3d0df' }}}
               >
                 📋 AAR REVIEW
               </button>
@@ -1132,16 +1127,7 @@ export default function IncidentDetailPanel({
                     transition: 'all 0.15s',
                     whiteSpace: 'nowrap',
                   }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.borderColor = '#ff4d1a'
-                    e.currentTarget.style.color = '#ff4d1a'
-                    e.currentTarget.style.background = 'rgba(255,77,26,0.08)'
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'
-                    e.currentTarget.style.color = '#c3d0df'
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
-                  }}
+                  className="pyra-btn-hover-orange"
                 >
                   EXPORT PDF
                 </button>
@@ -1323,3 +1309,5 @@ export default function IncidentDetailPanel({
     </div>
   )
 }
+
+export default memo(IncidentDetailPanel)

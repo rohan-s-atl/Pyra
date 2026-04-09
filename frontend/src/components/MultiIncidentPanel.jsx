@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, memo } from 'react'
 import { api } from '../api/client'
 
 const SEVERITY_COLOR = {
@@ -31,7 +31,7 @@ function ContainmentBar({ pct }) {
   )
 }
 
-export default function MultiIncidentPanel({ incidents, units, alerts, selectedId, onSelect, onClose, panelWidth = 360, topOffset = 86, bottomOffset = 12, rightOffset = 12 }) {
+function MultiIncidentPanel({ incidents, units, alerts, selectedId, onSelect, onClose, panelWidth = 360, topOffset = 86, bottomOffset = 12, rightOffset = 12 }) {
   const [priorityData, setPriorityData] = useState(null)  // API response
 
   // Fetch priority data on mount and every 30s
@@ -281,3 +281,5 @@ export default function MultiIncidentPanel({ incidents, units, alerts, selectedI
     </div>
   )
 }
+
+export default memo(MultiIncidentPanel)
