@@ -282,6 +282,9 @@ export default function App() {
 
   const selectedIncident = useMemo(() => incidents.find(i => i.id === selectedId) ?? null, [incidents, selectedId])
 
+  // Stable context value — only recreates when auth object itself changes (login/logout)
+  const authContextValue = useMemo(() => ({ ...auth, logout: handleLogout }), [auth, handleLogout])
+
   // ── Responsive scaling using CSS transform (works in all browsers) ───────
   // Base design is 1440px wide. Scale between 0.7 and 1.0
   const uiScale = Math.min(1, Math.max(0.7, windowWidth / 1440))
@@ -343,9 +346,6 @@ export default function App() {
       </div>
     </div>
   )
-
-  // Stable context value — only recreates when auth object itself changes (login/logout)
-  const authContextValue = useMemo(() => ({ ...auth, logout: handleLogout }), [auth, handleLogout])
 
   return (
     <AuthContext.Provider value={authContextValue}>
