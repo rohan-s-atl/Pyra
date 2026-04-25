@@ -4,6 +4,8 @@ Pyra is an AI-assisted wildfire command platform built around a live operational
 
 It is designed as a decision-support system, not an automated dispatch engine. Pyra can rank units, score routes, generate briefings, suggest loadouts, surface shortages, and triage alerts, but dispatch and close-out actions remain explicitly human-controlled.
 
+Live Demo - https://pyra-ai.vercel.app/
+
 ## What Pyra Is
 
 Pyra combines four layers into a single command surface:
